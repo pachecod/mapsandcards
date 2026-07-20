@@ -1,0 +1,2914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Scroll map story — builder v1.2</title>
+  <link href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" crossorigin="" />
+  <link
+    href="https://cdn.jsdelivr.net/npm/@mapbox/mapbox-gl-draw@1.4.3/dist/mapbox-gl-draw.css"
+    rel="stylesheet"
+    crossorigin=""
+  />
+  <link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet" crossorigin="" />
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a2332;
+      --text: #e8eaed;
+      --muted: #9aa7b2;
+      --accent: #3d8bfd;
+      --border: #2a3544;
+      --card-bg: rgba(255, 255, 255, 0.86);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 100vh;
+      min-height: 100dvh;
+      overflow: hidden;
+    }
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.65rem 1rem;
+      padding-left: 9rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel);
+      flex-wrap: wrap;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 2;
+    }
+    @media (max-width: 640px) {
+      .topbar {
+        padding-left: 1rem;
+        padding-top: 2.65rem;
+      }
+    }
+    .back-home {
+      position: fixed;
+      top: 0.75rem;
+      left: 0.75rem;
+      z-index: 10;
+      font-size: 0.8rem;
+      padding: 0.4rem 0.7rem;
+      border-radius: 8px;
+      background: rgba(15, 20, 25, 0.82);
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      color: var(--text);
+      text-decoration: none;
+    }
+    .back-home:hover {
+      color: #b8c9ff;
+      border-color: rgba(255, 255, 255, 0.24);
+    }
+    .topbar h1 { margin: 0; font-size: 1rem; font-weight: 600; }
+    .builder-version {
+      font-weight: 500;
+      font-size: 0.85em;
+      color: var(--muted);
+    }
+    .topbar-left {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      flex: 1 1 0;
+      min-width: 0;
+    }
+    .story-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .story-toolbar label {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .story-toolbar select {
+      min-width: 11rem;
+      max-width: 100%;
+      padding: 0.35rem 0.5rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.8rem;
+    }
+    .api-offline-hint {
+      font-size: 0.7rem;
+      color: #f5a623;
+      margin: 0;
+      width: 100%;
+    }
+    .hint { font-size: 0.75rem; color: var(--muted); max-width: 36rem; }
+    .shell {
+      display: flex;
+      flex-direction: row;
+      flex: 1 1 0;
+      min-height: 0;
+      overflow: hidden;
+    }
+    @media (max-width: 900px) {
+      .shell {
+        flex-direction: column;
+        min-height: 0;
+      }
+      .map-wrap {
+        flex: none;
+        height: 45vh;
+        min-height: 280px;
+      }
+    }
+    /* Flex + absolute fill so MapLibre always gets a non-zero size (avoids black canvas). */
+    .map-wrap {
+      position: relative;
+      flex: 1 1 0;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+      /* Safety: nested flex can collapse height to ~0 on some browsers; keep map drawable. */
+      min-height: max(28vh, 200px);
+    }
+    #map {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      background: #111;
+    }
+    /* Custom attribution (MapLibre's <details> control fights native toggle + our label CSS). */
+    .map-wrap .credits-attrib {
+      background: hsla(0, 0%, 100%, 0.92);
+      border-radius: 10px;
+      margin: 0 0 10px 10px;
+      max-width: min(440px, 94vw);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+      font-size: 11px;
+      line-height: 1.35;
+      color: rgba(0, 0, 0, 0.78);
+    }
+    .map-wrap .credits-attrib-bar {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      min-width: 0;
+      width: 100%;
+    }
+    .map-wrap .credits-attrib-toggle {
+      flex: 1 1 auto;
+      min-width: 0;
+      display: block;
+      text-align: left;
+      padding: 6px 12px;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 500;
+      text-decoration: underline;
+      color: inherit;
+    }
+    .map-wrap .credits-attrib-toggle:hover {
+      color: #000;
+    }
+    .map-wrap .credits-attrib-close {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      margin: 0 10px 0 0;
+      padding: 0;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+      opacity: 0.72;
+    }
+    .map-wrap .credits-attrib-close:hover {
+      opacity: 1;
+      background: rgba(0, 0, 0, 0.06);
+      color: #000;
+    }
+    .map-wrap .credits-attrib-close[hidden] {
+      display: none !important;
+    }
+    .map-wrap .credits-attrib-panel {
+      padding: 0;
+      min-width: 0;
+    }
+    .map-wrap .credits-attrib-panel-body {
+      padding: 0 10px 8px;
+      word-break: break-word;
+      max-height: 38vh;
+      overflow-y: auto;
+    }
+    .map-wrap .credits-block-title {
+      font-weight: 600;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: rgba(0, 0, 0, 0.55);
+      margin-bottom: 0.3rem;
+    }
+    .map-wrap .credits-block-text {
+      font-weight: 400;
+      color: rgba(0, 0, 0, 0.78);
+    }
+    .map-wrap .credits-block-sources {
+      margin-top: 0.65rem;
+      padding-top: 0.55rem;
+      border-top: 1px solid rgba(0, 0, 0, 0.1);
+    }
+    .map-wrap .credits-sources-html {
+      font-size: 11px;
+      line-height: 1.45;
+    }
+    .map-wrap .credits-sources-html p {
+      margin: 0 0 0.45em;
+    }
+    .map-wrap .credits-sources-html p:last-child {
+      margin-bottom: 0;
+    }
+    .map-wrap .credits-sources-html a {
+      color: #0b5cab;
+      text-decoration: underline;
+    }
+    .map-wrap .credits-sources-html a:hover {
+      color: #084a8f;
+    }
+    .map-wrap .credits-sources-html ul,
+    .map-wrap .credits-sources-html ol {
+      margin: 0.35em 0;
+      padding-left: 1.15rem;
+    }
+    .map-wrap .credits-attrib-panel[hidden] {
+      display: none !important;
+    }
+    .build-panel {
+      flex: 0 0 44%;
+      min-width: 280px;
+      max-width: 520px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      padding: 1rem;
+      overflow: hidden;
+      min-height: 0;
+      border-left: 1px solid var(--border);
+      background: var(--panel);
+    }
+    .build-panel-main {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      padding-bottom: 0.75rem;
+    }
+    .build-panel-footer {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--border);
+    }
+    .preferences-panel,
+    .annotate-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      flex-shrink: 0;
+    }
+    .preferences-panel[hidden],
+    .annotate-panel[hidden] {
+      display: none !important;
+    }
+    .preferences-toggle-btn,
+    .annotate-toggle-btn {
+      width: 100%;
+    }
+    @media (max-width: 900px) {
+      .build-panel {
+        border-left: none;
+        border-top: 1px solid var(--border);
+        max-width: none;
+        flex: 1;
+      }
+    }
+    .step-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      max-height: 220px;
+      overflow: auto;
+    }
+    .step-list-row {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .step-list-row .step-location-btn {
+      flex: 1 1 auto;
+      min-width: 0;
+      text-align: left;
+      padding: 0.4rem 0.5rem;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+    .step-list-row .step-location-btn.active {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .step-list-row #btn-capture {
+      flex: 0 0 auto;
+      font-size: 0.75rem;
+      padding: 0.4rem 0.55rem;
+    }
+    .field label {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 0.25rem;
+    }
+    .opacity-slider-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-top: 0.25rem;
+    }
+    .opacity-slider-row input[type="range"] {
+      flex: 1;
+      min-width: 0;
+    }
+    .field input[type="color"]#card-bg-color {
+      display: block;
+      width: 100%;
+      max-width: 10rem;
+      height: 2.35rem;
+      padding: 0.2rem;
+      margin-bottom: 0.5rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      cursor: pointer;
+    }
+    .builder-card-preview {
+      margin-top: 0.5rem;
+      padding: 0.65rem 0.75rem;
+      border-radius: 10px;
+      background-color: var(--card-bg);
+      color: #1a1a1a;
+      font-size: 0.85rem;
+      line-height: 1.45;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+    }
+    .builder-card-preview p {
+      margin: 0;
+    }
+    .field textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 0.5rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.875rem;
+      resize: vertical;
+    }
+    .field select {
+      width: 100%;
+      padding: 0.45rem 0.5rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.875rem;
+    }
+    .row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+    .btn {
+      padding: 0.45rem 0.75rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    /* Set Map Location: green = view differs from stored location; blue = matches (set). */
+    .btn-map-loc-unset {
+      background: #15803d;
+      border-color: #166534;
+      color: #fff;
+    }
+    .btn-map-loc-unset:hover {
+      background: #166534;
+      border-color: #14532d;
+    }
+    .btn-map-loc-set {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .btn-map-loc-set:hover {
+      filter: brightness(1.06);
+    }
+    .coords { font-size: 0.75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .hidden { display: none !important; }
+    .preview-story-link {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.45rem 0.75rem;
+      border-radius: 6px;
+      border: 1px solid var(--accent);
+      background: transparent;
+      color: var(--accent);
+      font-size: 0.8rem;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .preview-story-link:hover {
+      background: rgba(61, 139, 253, 0.12);
+      color: #b8c9ff;
+    }
+    .card-quill-wrap {
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .card-quill-wrap .ql-toolbar {
+      background: var(--panel);
+      border: 0;
+      border-bottom: 1px solid var(--border);
+      padding: 0.35rem;
+    }
+    .card-quill-wrap .ql-toolbar .ql-stroke {
+      stroke: var(--text);
+    }
+    .card-quill-wrap .ql-toolbar .ql-fill {
+      fill: var(--text);
+    }
+    .card-quill-wrap .ql-toolbar button:hover .ql-stroke,
+    .card-quill-wrap .ql-toolbar .ql-picker-label:hover {
+      color: var(--accent);
+    }
+    .card-quill-wrap .ql-toolbar button.ql-active .ql-stroke {
+      stroke: var(--accent);
+    }
+    .card-quill-wrap .ql-container {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      font-size: 0.875rem;
+      border: 0;
+      background: #fff;
+      color: #1a1a1a;
+    }
+    .card-quill-wrap .ql-editor {
+      min-height: 7.5rem;
+      line-height: 1.5;
+    }
+    .card-quill-wrap .ql-editor.ql-blank::before {
+      color: rgba(0, 0, 0, 0.45);
+      font-style: normal;
+    }
+    .card-content-field textarea#card-text:not(.hidden) {
+      min-height: 12rem;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 0.8rem;
+    }
+    .overlay-feature-list {
+      margin: 0.35rem 0 0;
+      padding: 0;
+      list-style: none;
+      max-height: 12rem;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.78rem;
+    }
+    .overlay-feature-list li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.35rem;
+      padding: 0.35rem 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .overlay-feature-list li:last-child {
+      border-bottom: 0;
+    }
+    .overlay-feature-list .of-meta {
+      color: var(--muted);
+      min-width: 0;
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .annotate-advanced {
+      margin-top: 0.5rem;
+      border-top: 1px solid var(--border);
+      padding-top: 0.45rem;
+    }
+    .annotate-advanced summary {
+      cursor: pointer;
+      font-size: 0.75rem;
+      color: var(--muted);
+      user-select: none;
+    }
+    .annotate-advanced .annotate-advanced-body {
+      margin-top: 0.45rem;
+    }
+    .draw-tools-hint {
+      margin: 0.35rem 0 0;
+      font-size: 0.72rem;
+      line-height: 1.4;
+      color: var(--muted);
+    }
+    /* Inline popup used for marker & label placement (geojson.io style) */
+    #map .maplibregl-popup.marker-edit-popup .maplibregl-popup-content {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.65rem 0.8rem 0.75rem;
+      color: var(--text);
+      min-width: 200px;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+    }
+    #map .maplibregl-popup.marker-edit-popup .maplibregl-popup-tip {
+      border-top-color: var(--panel);
+    }
+    .marker-popup-label-hint {
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin: 0 0 0.4rem;
+    }
+    .marker-popup-input {
+      display: block;
+      width: 100%;
+      padding: 0.42rem 0.55rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.85rem;
+      font-family: inherit;
+      margin-bottom: 0.55rem;
+      box-sizing: border-box;
+    }
+    .marker-popup-actions {
+      display: flex;
+      gap: 0.4rem;
+    }
+    /* Shared text modal (used for New story / Label) */
+    .text-prompt-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .text-prompt-modal[hidden] {
+      display: none !important;
+    }
+    .text-prompt-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+    }
+    .text-prompt-panel {
+      position: relative;
+      z-index: 1;
+      width: min(28rem, 100%);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.1rem 1.25rem;
+      box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.45);
+    }
+    .text-prompt-title {
+      margin: 0 0 0.45rem;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .text-prompt-message {
+      margin: 0 0 0.75rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    .text-prompt-message:empty { display: none; }
+    .text-prompt-input {
+      width: 100%;
+      min-width: 0;
+      padding: 0.5rem 0.6rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.9rem;
+      margin-bottom: 0.75rem;
+      box-sizing: border-box;
+    }
+    .text-prompt-actions { margin-top: 0.25rem; }
+    .map-load-error {
+      margin: 0.35rem 0 0;
+      font-size: 0.8rem;
+      color: #f5a623;
+      max-width: 48rem;
+    }
+  </style>
+</head>
+<body>
+  <a href="/index.html" class="back-home">Home</a>
+  <header class="topbar">
+    <div class="topbar-left">
+      <h1>Scroll map story — builder <span class="builder-version">v1.2</span></h1>
+      <div class="story-toolbar">
+        <label for="story-select">Story</label>
+        <select id="story-select" aria-label="Current story"></select>
+        <button type="button" class="btn" id="btn-new-story">New story</button>
+      </div>
+      <p id="story-api-hint" class="api-offline-hint hidden" role="status">
+        Saving into <code>Stories/</code> needs <code>npm run dev</code> (Vite).
+      </p>
+    </div>
+    <p class="hint">
+      Pick or create a story, edit locations, then <strong>Save</strong> to update
+      <code>scroll-map-story.json</code> and embed the same data into
+      <code>scroll-map-story.html</code> (so the story works when you open the HTML file directly, without a server).
+      Preview with <code>story-viewer.html?story=…</code> or open <code>scroll-map-story.html</code> in that folder.
+    </p>
+    <p id="map-load-error" class="map-load-error hidden" role="alert">
+      Map could not load (network or blocked requests). Serve this folder over
+      <code>http://localhost</code> or <code>https://</code>, not <code>file://</code>.
+    </p>
+  </header>
+
+  <div class="shell" id="shell">
+    <div class="map-wrap" id="map-wrap">
+      <div id="map" role="application" aria-label="Map"></div>
+    </div>
+    <aside class="build-panel" id="build-panel" aria-label="Story builder">
+      <div class="build-panel-main">
+      <div class="row">
+        <button type="button" class="btn primary" id="btn-add-step">[+] Location</button>
+        <button type="button" class="btn" id="btn-remove-step">[-] Location</button>
+        <button type="button" class="btn" id="btn-move-up">Move up</button>
+        <button type="button" class="btn" id="btn-move-down">Move down</button>
+      </div>
+      <div>
+        <span class="coords" style="display:block;margin-bottom:0.35rem">Locations</span>
+        <div class="step-list" id="step-list" role="group" aria-label="Locations"></div>
+        <p class="coords" id="step-coords" style="margin: 0.35rem 0 0"></p>
+      </div>
+      <div class="field">
+        <label for="step-basemap-select">Base map for this location</label>
+        <select id="step-basemap-select" aria-label="Base map override for this location">
+          <option value="">— Default (use story default) —</option>
+        </select>
+      </div>
+      <div class="field card-content-field">
+        <span class="coords" style="display: block; margin-bottom: 0.35rem">Card content</span>
+        <div class="row card-editor-mode-toggle" role="group" aria-label="Card editor mode">
+          <button type="button" class="btn primary" id="card-mode-visual" aria-pressed="true">
+            Visual
+          </button>
+          <button type="button" class="btn" id="card-mode-html" aria-pressed="false">
+            HTML source
+          </button>
+        </div>
+        <p class="coords" style="margin: 0.35rem 0 0.5rem">
+          Visual mode supports common formatting; use <strong>HTML source</strong> for full control or custom markup.
+        </p>
+        <div id="card-quill-wrap" class="card-quill-wrap">
+          <div id="card-quill-editor" aria-label="Card rich text"></div>
+        </div>
+        <label for="card-text" class="hidden">Card HTML</label>
+        <textarea id="card-text" class="hidden" rows="14" spellcheck="false"></textarea>
+      </div>
+      <button
+        type="button"
+        class="btn annotate-toggle-btn"
+        id="btn-annotate-toggle"
+        aria-expanded="false"
+        aria-controls="annotate-panel"
+      >
+        Annotate
+      </button>
+      <div class="annotate-panel" id="annotate-panel" role="region" aria-label="Map annotation" hidden>
+        <div class="field">
+          <span class="coords" style="display: block; margin-bottom: 0.35rem">Map overlays</span>
+          <div class="row">
+            <button type="button" class="btn" id="btn-draw-marker" title="Click map to place a marker">
+              Marker
+            </button>
+            <button type="button" class="btn" id="btn-add-label" title="Label at map center">Label</button>
+          </div>
+          <p class="coords draw-tools-hint" id="draw-tools-hint" aria-live="polite"></p>
+          <span class="coords" style="display: block; margin-top: 0.5rem">List</span>
+          <ul class="overlay-feature-list" id="overlay-feature-list" aria-label="Overlay features"></ul>
+          <details class="annotate-advanced">
+            <summary>GeoJSON</summary>
+            <div class="annotate-advanced-body">
+              <label for="overlay-geojson" class="coords" style="display: block; margin-bottom: 0.25rem">FeatureCollection JSON</label>
+              <textarea id="overlay-geojson" rows="5" placeholder='{"type":"FeatureCollection","features":[]}'></textarea>
+              <p class="coords" id="overlay-json-error" hidden></p>
+              <div class="row" style="margin-top: 0.35rem">
+                <button type="button" class="btn" id="btn-apply-overlay-json">Apply</button>
+                <label class="btn" style="display: inline-block; margin: 0">
+                  Import file
+                  <input id="overlay-import-file" type="file" accept=".json,.geojson,application/geo+json" class="hidden" />
+                </label>
+              </div>
+            </div>
+          </details>
+        </div>
+      </div>
+      </div>
+      <div class="build-panel-footer">
+      <div class="row">
+        <button type="button" class="btn primary" id="btn-save">Save</button>
+        <a
+          id="preview-story-link"
+          class="preview-story-link hidden"
+          href="#"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Open saved story preview in a new tab"
+          >Preview</a>
+      </div>
+      <div class="preferences-panel" id="preferences-panel" role="region" aria-label="Global options" hidden>
+        <div class="field">
+          <label for="base-map-select">Base map</label>
+          <select id="base-map-select" aria-label="Base map style"></select>
+        </div>
+        <div class="field terrain-field">
+          <label style="display:flex;align-items:flex-start;gap:0.5rem;cursor:pointer;font-size:0.875rem">
+            <input type="checkbox" id="terrain-toggle" style="margin-top:0.2rem" />
+            <span>3D terrain (MapLibre demo — free, no key). Adds hills; works best with a tilted view (drag with right mouse or Ctrl).</span>
+          </label>
+        </div>
+        <div class="field" id="satellite-labels-field">
+          <label style="display:flex;align-items:flex-start;gap:0.5rem;cursor:pointer;font-size:0.875rem">
+            <input type="checkbox" id="satellite-labels-toggle" style="margin-top:0.2rem" />
+            <span>Show place names on satellite (Esri reference overlay — cities, borders; no extra key).</span>
+          </label>
+        </div>
+        <div class="field">
+          <label for="sources-text">Sources (HTML)</label>
+          <textarea
+            id="sources-text"
+            rows="5"
+            placeholder="e.g. &lt;p&gt;Data from …&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://…&quot;&gt;Source&lt;/a&gt;&lt;/p&gt; — rendered under Map Credits in Credits and Sources."
+          ></textarea>
+        </div>
+        <div class="field">
+          <label for="card-bg-color">Card background color</label>
+          <input type="color" id="card-bg-color" value="#ffffff" />
+          <label for="card-bg-opacity">Card background opacity</label>
+          <div class="opacity-slider-row">
+            <input
+              type="range"
+              id="card-bg-opacity"
+              min="0"
+              max="100"
+              step="1"
+              value="86"
+              aria-valuemin="0"
+              aria-valuemax="100"
+            />
+            <span class="coords" id="card-bg-opacity-value">86%</span>
+          </div>
+          <div class="builder-card-preview"><p>Card preview</p></div>
+        </div>
+      </div>
+      <button
+        type="button"
+        class="btn preferences-toggle-btn"
+        id="btn-preferences-toggle"
+        aria-expanded="false"
+        aria-controls="preferences-panel"
+      >
+        Global Options
+      </button>
+      </div>
+    </aside>
+  </div>
+
+  <div id="text-prompt-modal" class="text-prompt-modal" hidden>
+    <div class="text-prompt-backdrop" aria-hidden="true"></div>
+    <div
+      class="text-prompt-panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="text-prompt-title"
+    >
+      <h2 id="text-prompt-title" class="text-prompt-title"></h2>
+      <p id="text-prompt-message" class="text-prompt-message"></p>
+      <label for="text-prompt-input" class="hidden">Text</label>
+      <input type="text" id="text-prompt-input" class="text-prompt-input" autocomplete="off" />
+      <div class="text-prompt-actions row">
+        <button type="button" class="btn" id="text-prompt-cancel">Cancel</button>
+        <button type="button" class="btn primary" id="text-prompt-ok">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.min.js" crossorigin=""></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mapbox/mapbox-gl-draw@1.4.3/dist/mapbox-gl-draw.js" crossorigin=""></script>
+  <script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js" crossorigin=""></script>
+  <script>
+(function () {
+  var STORAGE_KEY = "scroll-map-story-config";
+
+  var BASE_MAPS = [
+    {
+      id: "openfreemap-bright",
+      label: "OpenFreeMap — bright",
+      url: "https://tiles.openfreemap.org/styles/bright"
+    },
+    {
+      id: "carto-voyager",
+      label: "Carto — Voyager",
+      url: "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json"
+    },
+    {
+      id: "esri-satellite",
+      label: "Satellite (Esri — free, attribution)",
+      url: null
+    }
+  ];
+
+  /* No API key; raster tiles + attribution. Optional Reference overlay adds place names (hybrid). */
+  function buildSatelliteEsriStyle(showLabels) {
+    var style = {
+      version: 8,
+      sources: {
+        esri_world: {
+          type: "raster",
+          tiles: [
+            "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+          ],
+          tileSize: 256,
+          attribution:
+            "Esri, Maxar, Earthstar Geographics, and the GIS User Community"
+        }
+      },
+      layers: [
+        {
+          id: "esri_world",
+          type: "raster",
+          source: "esri_world",
+          minzoom: 0,
+          maxzoom: 22
+        }
+      ]
+    };
+    if (showLabels) {
+      style.sources.esri_ref = {
+        type: "raster",
+        tiles: [
+          "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+        ],
+        tileSize: 256,
+        attribution:
+          "Labels and places: Esri, HERE, Garmin, FAO, NOAA, USGS, EPA, NPS, NRCAN, GeoBase, IGN, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), (c) OpenStreetMap contributors, and the GIS User Community"
+      };
+      style.layers.push({
+        id: "esri_ref",
+        type: "raster",
+        source: "esri_ref",
+        minzoom: 0,
+        maxzoom: 22
+      });
+    }
+    return style;
+  }
+
+  var DEFAULT_CONFIG = {
+    version: 1,
+    baseMap: "openfreemap-bright",
+    terrain: false,
+    satelliteLabels: true,
+    sources: "",
+    cardBackgroundColor: "#ffffff",
+    cardBackgroundOpacity: 0.86,
+    initialMap: { lat: 40.7128, lng: -74.006, zoom: 9 },
+    steps: [
+      {
+        id: "location-1",
+        lat: 40.7128,
+        lng: -74.006,
+        zoom: 9,
+        html: "<p>First card — edit in the builder.</p>",
+        overlays: { geojson: { type: "FeatureCollection", features: [] } }
+      },
+      {
+        id: "location-2",
+        lat: 34.0522,
+        lng: -118.2437,
+        zoom: 8,
+        html: "<p>Second card.</p>",
+        overlays: { geojson: { type: "FeatureCollection", features: [] } }
+      },
+      {
+        id: "location-3",
+        lat: 41.8781,
+        lng: -87.6298,
+        zoom: 7,
+        html: "<p>Third card.</p>",
+        overlays: { geojson: { type: "FeatureCollection", features: [] } }
+      }
+    ]
+  };
+
+  var config;
+  var map;
+  var creditsPanelControl = null;
+  var selectedIndex = 0;
+  var captureButtonEl = null;
+  var mapResizeObserverAttached = false;
+  var storyApiOk = false;
+  var currentSlug = null;
+  var drawControl = null;
+  var drawCreateWired = false;
+  var markerPlacementMode = false;
+  var currentBuilderBaseMap = null; /** tracks which basemap the builder map currently shows */
+  var cardQuill = null;
+  var cardEditorMode = "visual";
+
+  /** After a successful save, remember so Preview stays visible if the dev server reloads the page. */
+  var PREVIEW_SESSION_KEY = "mapsandcards-builder-preview-slug";
+
+  function showPreviewLinkForStory(slug) {
+    var preview = el("preview-story-link");
+    if (!preview || !slug) return;
+    preview.href = "/story-viewer.html?story=" + encodeURIComponent(slug);
+    preview.classList.remove("hidden");
+    try {
+      sessionStorage.setItem(PREVIEW_SESSION_KEY, slug);
+    } catch (e) {}
+  }
+
+  function restorePreviewLinkAfterLoad() {
+    var preview = el("preview-story-link");
+    if (!preview || !currentSlug) return;
+    try {
+      var saved = sessionStorage.getItem(PREVIEW_SESSION_KEY);
+      if (saved === currentSlug) {
+        preview.href = "/story-viewer.html?story=" + encodeURIComponent(currentSlug);
+        preview.classList.remove("hidden");
+      }
+    } catch (e) {}
+  }
+
+  var MAX_OVERLAY_FEATURES = 500;
+  var STORY_OV_LAYERS = [
+    "story-ov-symbol",
+    "story-ov-circle",
+    "story-ov-circle-label",
+    "story-ov-line",
+    "story-ov-line-poly",
+    "story-ov-fill"
+  ];
+  var STORY_OV_SOURCES = [
+    "story-ov-src-pt-l",
+    "story-ov-src-pt-m",
+    "story-ov-src-line",
+    "story-ov-src-poly"
+  ];
+
+  function el(id) {
+    return document.getElementById(id);
+  }
+
+  function clone(o) {
+    return JSON.parse(JSON.stringify(o));
+  }
+
+  function storageKeyForDraft() {
+    return currentSlug ? STORAGE_KEY + ":" + currentSlug : STORAGE_KEY;
+  }
+
+  function loadConfigFromStorage() {
+    try {
+      var raw = localStorage.getItem(storageKeyForDraft());
+      if (raw) return normalizeConfig(JSON.parse(raw));
+      raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) return normalizeConfig(JSON.parse(raw));
+    } catch (e) {}
+    return normalizeConfig(clone(DEFAULT_CONFIG));
+  }
+
+  function baseMapUrlById(id) {
+    for (var i = 0; i < BASE_MAPS.length; i++) {
+      if (BASE_MAPS[i].id === id) {
+        return BASE_MAPS[i].url != null ? BASE_MAPS[i].url : null;
+      }
+    }
+    return BASE_MAPS[0].url;
+  }
+
+  function styleUrlsForConfig(baseMapId) {
+    var preferred = baseMapUrlById(baseMapId);
+    var urls = [];
+    if (preferred) urls.push(preferred);
+    BASE_MAPS.forEach(function (b) {
+      if (b.url && b.url !== preferred) urls.push(b.url);
+    });
+    return urls;
+  }
+
+  function getBaseMapStylePromise(baseMapId) {
+    if (baseMapId === "esri-satellite") {
+      return Promise.resolve(
+        buildSatelliteEsriStyle(config.satelliteLabels !== false)
+      );
+    }
+    return pickMapStyleUrl(styleUrlsForConfig(baseMapId));
+  }
+
+  function applyTerrainIfNeeded() {
+    if (!map) return;
+    var enable = config.terrain === true;
+    if (!enable) {
+      try {
+        map.setTerrain(null);
+        if (map.getSource("terrain")) {
+          map.removeSource("terrain");
+        }
+      } catch (e) {}
+      try {
+        map.setPitch(0);
+      } catch (e2) {}
+      return;
+    }
+    try {
+      if (!map.getSource("terrain")) {
+        map.addSource("terrain", {
+          type: "raster-dem",
+          url: "https://demotiles.maplibre.org/terrain-tiles/tiles.json",
+          tileSize: 256
+        });
+      }
+      map.setTerrain({ source: "terrain", exaggeration: 1.4 });
+      map.setPitch(42);
+    } catch (e) {
+      console.warn("Terrain:", e);
+    }
+  }
+
+  function syncTerrainToggle() {
+    var c = el("terrain-toggle");
+    if (!c || !config) return;
+    c.checked = config.terrain === true;
+  }
+
+  function syncSatelliteLabelsUi() {
+    var wrap = el("satellite-labels-field");
+    var cb = el("satellite-labels-toggle");
+    if (!wrap || !cb || !config) return;
+    var onSat = config.baseMap === "esri-satellite";
+    wrap.style.display = onSat ? "" : "none";
+    cb.checked = config.satelliteLabels !== false;
+    cb.disabled = !onSat;
+  }
+
+  function populateBaseMapSelect() {
+    var sel = el("base-map-select");
+    if (!sel) return;
+    sel.innerHTML = "";
+    BASE_MAPS.forEach(function (b) {
+      var o = document.createElement("option");
+      o.value = b.id;
+      o.textContent = b.label;
+      sel.appendChild(o);
+    });
+  }
+
+  function syncBaseMapSelect() {
+    var sel = el("base-map-select");
+    if (!sel || !config) return;
+    sel.value = config.baseMap || "openfreemap-bright";
+  }
+
+  /** Populate the per-step basemap override select (runs once; options persist). */
+  function populateStepBasemapSelect() {
+    var sel = el("step-basemap-select");
+    if (!sel || sel.dataset.populated) return;
+    sel.dataset.populated = "1";
+    BASE_MAPS.forEach(function (b) {
+      var o = document.createElement("option");
+      o.value = b.id;
+      o.textContent = b.label;
+      sel.appendChild(o);
+    });
+  }
+
+  /** Reflect the current step's baseMap override (or blank = use default). */
+  function syncStepBasemapSelect() {
+    var sel = el("step-basemap-select");
+    if (!sel || !config) return;
+    var s = config.steps[selectedIndex];
+    sel.value = (s && s.baseMap) ? s.baseMap : "";
+  }
+
+  /**
+   * Apply the effective basemap for the currently selected step in the builder.
+   * If the step has no override, use config.baseMap (global default).
+   * Returns immediately if no change needed.
+   */
+  function applyStepBasemapInBuilder(stepIndex) {
+    if (!map) return;
+    var s = config.steps[stepIndex];
+    var targetBaseMap = (s && s.baseMap) ? s.baseMap : (config.baseMap || "openfreemap-bright");
+    if (targetBaseMap === currentBuilderBaseMap) return;
+    currentBuilderBaseMap = targetBaseMap;
+    getBaseMapStylePromise(targetBaseMap)
+      .then(function (style) {
+        map.setStyle(style);
+        map.once("style.load", function () {
+          applyEnglishLabels(map);
+          applyTerrainIfNeeded();
+          map.resize();
+          applyStepOverlays(stepIndex);
+        });
+      })
+      .catch(function (err) {
+        console.error("Step basemap switch failed:", err);
+      });
+  }
+
+  function normalizeCardBackgroundColor(v) {
+    if (typeof v !== "string") return "#ffffff";
+    var s = v.trim();
+    if (/^#[0-9a-fA-F]{6}$/.test(s)) return s.toLowerCase();
+    if (/^#[0-9a-fA-F]{3}$/.test(s)) {
+      return (
+        "#" +
+        s[1].toLowerCase() +
+        s[1].toLowerCase() +
+        s[2].toLowerCase() +
+        s[2].toLowerCase() +
+        s[3].toLowerCase() +
+        s[3].toLowerCase()
+      );
+    }
+    return "#ffffff";
+  }
+
+  function hexToRgb(hex) {
+    var h = normalizeCardBackgroundColor(hex).slice(1);
+    return {
+      r: parseInt(h.slice(0, 2), 16),
+      g: parseInt(h.slice(2, 4), 16),
+      b: parseInt(h.slice(4, 6), 16)
+    };
+  }
+
+  function normalizeConfig(data) {
+    if (!data.steps || !Array.isArray(data.steps)) {
+      throw new Error('Invalid JSON: need a "steps" array of locations.');
+    }
+    if (!data.version) data.version = 1;
+    var validBase = {};
+    BASE_MAPS.forEach(function (b) {
+      validBase[b.id] = true;
+    });
+    if (!data.baseMap || !validBase[data.baseMap]) {
+      data.baseMap = "openfreemap-bright";
+    }
+    if (typeof data.terrain !== "boolean") {
+      data.terrain = false;
+    }
+    if (typeof data.satelliteLabels !== "boolean") {
+      data.satelliteLabels = true;
+    }
+    if (typeof data.sources !== "string") {
+      data.sources = "";
+    }
+    data.cardBackgroundOpacity = normalizeCardBackgroundOpacity(data.cardBackgroundOpacity);
+    data.cardBackgroundColor = normalizeCardBackgroundColor(data.cardBackgroundColor);
+    if (data.steps[0]) {
+      var s0 = data.steps[0];
+      data.initialMap = {
+        lat: s0.lat,
+        lng: s0.lng,
+        zoom: typeof s0.zoom === "number" ? s0.zoom : 6
+      };
+    } else if (!data.initialMap) {
+      data.initialMap = { lat: 20, lng: 0, zoom: 2 };
+    }
+    data.steps.forEach(function (step) {
+      normalizeStepOverlays(step);
+    });
+    return data;
+  }
+
+  function normalizeStepOverlays(step) {
+    if (!step || typeof step !== "object") return;
+    if (!step.overlays || typeof step.overlays !== "object") {
+      step.overlays = { geojson: { type: "FeatureCollection", features: [] } };
+      return;
+    }
+    var g = step.overlays.geojson;
+    if (!g || g.type !== "FeatureCollection" || !Array.isArray(g.features)) {
+      step.overlays.geojson = { type: "FeatureCollection", features: [] };
+      return;
+    }
+    if (g.features.length > MAX_OVERLAY_FEATURES) {
+      g.features = g.features.slice(0, MAX_OVERLAY_FEATURES);
+    }
+    g.features.forEach(function (f) {
+      if (!f || !f.properties || !f.geometry || f.geometry.type !== "Point") return;
+      var p = f.properties;
+      var isLabel =
+        p.kind === "label" ||
+        (typeof p.text === "string" && p.text.trim() !== "") ||
+        (typeof p.title === "string" && p.title.trim() !== "");
+      if (!isLabel) return;
+      if (p.color === "#111111" || p.color === "#1a1a1a") {
+        p.color = "#f0f0f0";
+        p.haloColor = p.haloColor || "#0f1419";
+      }
+      /* ensure legacy label markers without dotColor get a visible dot */
+      if (!p.dotColor) {
+        p.dotColor = "#3388ff";
+      }
+    });
+  }
+
+  function ensureStepOverlays(step) {
+    normalizeStepOverlays(step);
+  }
+
+  function splitOverlayFeatures(fc) {
+    var poly = { type: "FeatureCollection", features: [] };
+    var lines = { type: "FeatureCollection", features: [] };
+    var ptMark = { type: "FeatureCollection", features: [] };
+    var ptLabel = { type: "FeatureCollection", features: [] };
+    if (!fc || !Array.isArray(fc.features)) {
+      return { poly: poly, lines: lines, ptMark: ptMark, ptLabel: ptLabel };
+    }
+    fc.features.forEach(function (f) {
+      if (!f || !f.geometry) return;
+      var g = f.geometry.type;
+      var p = f.properties || {};
+      if (g === "Polygon" || g === "MultiPolygon") {
+        poly.features.push(f);
+      } else if (g === "LineString" || g === "MultiLineString") {
+        lines.features.push(f);
+      } else if (g === "Point") {
+        var hasText =
+          (typeof p.text === "string" && p.text.trim() !== "") ||
+          (typeof p.title === "string" && p.title.trim() !== "");
+        if (p.kind === "label" || hasText) {
+          ptLabel.features.push(f);
+        } else {
+          ptMark.features.push(f);
+        }
+      }
+    });
+    return { poly: poly, lines: lines, ptMark: ptMark, ptLabel: ptLabel };
+  }
+
+  function removeStepOverlayLayers(m) {
+    if (!m) return;
+    STORY_OV_LAYERS.forEach(function (id) {
+      if (m.getLayer(id)) {
+        try {
+          m.removeLayer(id);
+        } catch (e) {}
+      }
+    });
+    STORY_OV_SOURCES.forEach(function (id) {
+      if (m.getSource(id)) {
+        try {
+          m.removeSource(id);
+        } catch (e) {}
+      }
+    });
+  }
+
+  function applyStepOverlays(stepIndex) {
+    if (!map || !config || !config.steps) return;
+    removeStepOverlayLayers(map);
+    var step = config.steps[stepIndex];
+    if (!step) return;
+    normalizeStepOverlays(step);
+    var fc = step.overlays.geojson;
+    var split = splitOverlayFeatures(fc);
+    function addGeoSource(id, data) {
+      map.addSource(id, { type: "geojson", data: data });
+    }
+    try {
+      if (split.poly.features.length) {
+        addGeoSource("story-ov-src-poly", split.poly);
+        map.addLayer({
+          id: "story-ov-fill",
+          type: "fill",
+          source: "story-ov-src-poly",
+          paint: {
+            "fill-color": ["coalesce", ["get", "fillColor"], "#3388ff"],
+            "fill-opacity": 0.35
+          }
+        });
+        map.addLayer({
+          id: "story-ov-line-poly",
+          type: "line",
+          source: "story-ov-src-poly",
+          paint: {
+            "line-color": ["coalesce", ["get", "strokeColor"], ["get", "color"], "#1a5fb4"],
+            "line-width": 2
+          }
+        });
+      }
+      if (split.lines.features.length) {
+        addGeoSource("story-ov-src-line", split.lines);
+        map.addLayer({
+          id: "story-ov-line",
+          type: "line",
+          source: "story-ov-src-line",
+          paint: {
+            "line-color": ["coalesce", ["get", "color"], "#3388ff"],
+            "line-width": 3
+          }
+        });
+      }
+      if (split.ptMark.features.length) {
+        addGeoSource("story-ov-src-pt-m", split.ptMark);
+        map.addLayer({
+          id: "story-ov-circle",
+          type: "circle",
+          source: "story-ov-src-pt-m",
+          paint: {
+            "circle-radius": 70,
+            "circle-color": ["coalesce", ["get", "color"], "#3388ff"],
+            "circle-stroke-width": 3,
+            "circle-stroke-color": "#ffffff"
+          }
+        });
+      }
+      if (split.ptLabel.features.length) {
+        addGeoSource("story-ov-src-pt-l", split.ptLabel);
+        map.addLayer({
+          id: "story-ov-circle-label",
+          type: "circle",
+          source: "story-ov-src-pt-l",
+          paint: {
+            "circle-radius": 70,
+            "circle-color": ["coalesce", ["get", "dotColor"], ["get", "color"], "#3388ff"],
+            "circle-stroke-width": 3,
+            "circle-stroke-color": "#ffffff"
+          }
+        });
+        map.addLayer({
+          id: "story-ov-symbol",
+          type: "symbol",
+          source: "story-ov-src-pt-l",
+          layout: {
+            "text-field": [
+              "to-string",
+              ["coalesce", ["get", "text"], ["get", "title"], ""]
+            ],
+            "text-size": 16,
+            "text-anchor": "bottom",
+            "text-offset": [0, -5.5],
+            "text-allow-overlap": true
+          },
+          paint: {
+            "text-color": ["coalesce", ["get", "color"], "#f0f0f0"],
+            "text-halo-color": ["coalesce", ["get", "haloColor"], "#0f1419"],
+            "text-halo-width": 2
+          }
+        });
+      }
+    } catch (err) {
+      console.warn("Location overlays:", err);
+    }
+  }
+
+  function sanitizeDrawFeatureProperties(props) {
+    if (!props || typeof props !== "object") return {};
+    var skip = { meta: true, active: true, coord_path: true, parent: true };
+    var p = {};
+    Object.keys(props).forEach(function (k) {
+      if (skip[k]) return;
+      if (/^user_/.test(k)) return;
+      p[k] = props[k];
+    });
+    return p;
+  }
+
+  function ensureDrawSimpleSelect() {
+    if (!drawControl) return;
+    try {
+      drawControl.changeMode("simple_select");
+    } catch (err) {}
+  }
+
+  function setMarkerPlacementMode(on) {
+    markerPlacementMode = !!on;
+    if (map) {
+      var canvas = map.getCanvas();
+      if (canvas) canvas.style.cursor = markerPlacementMode ? "crosshair" : "";
+    }
+    if (markerPlacementMode) {
+      ensureDrawSimpleSelect();
+    }
+    updateDrawToolUi();
+  }
+
+  function updateDrawToolUi() {
+    var hint = el("draw-tools-hint");
+    var markerBtn = el("btn-draw-marker");
+    if (markerBtn) markerBtn.classList.toggle("primary", markerPlacementMode);
+    if (hint) {
+      hint.textContent = markerPlacementMode
+        ? "Marker: click the map. You’ll be asked for a name or label (optional). Esc exits placement mode."
+        : "";
+    }
+  }
+
+  /**
+   * In-page text dialog (embedded browser previews often block window.prompt).
+   * Resolves with string (may be empty) or null if cancelled.
+   */
+  function promptTextModal(opts) {
+    opts = opts || {};
+    return new Promise(function (resolve) {
+      var modal = el("text-prompt-modal");
+      var input = el("text-prompt-input");
+      var titleEl = el("text-prompt-title");
+      var msgEl = el("text-prompt-message");
+      var okBtn = el("text-prompt-ok");
+      var cancelBtn = el("text-prompt-cancel");
+      var backdrop = modal ? modal.querySelector(".text-prompt-backdrop") : null;
+      if (!modal || !input || !okBtn || !cancelBtn || !titleEl) {
+        resolve(null);
+        return;
+      }
+      titleEl.textContent = opts.title || "Enter text";
+      if (msgEl) {
+        msgEl.textContent = opts.message || "";
+      }
+      input.value = opts.defaultValue != null ? String(opts.defaultValue) : "";
+      input.placeholder = opts.placeholder || "";
+      okBtn.textContent = opts.okLabel || "OK";
+      cancelBtn.textContent = opts.cancelLabel || "Cancel";
+      modal.removeAttribute("hidden");
+
+      function cleanup() {
+        okBtn.removeEventListener("click", onOk);
+        cancelBtn.removeEventListener("click", onCancel);
+        if (backdrop) backdrop.removeEventListener("click", onCancel);
+        input.removeEventListener("keydown", onInputKey);
+        document.removeEventListener("keydown", onDocKey, true);
+        modal.setAttribute("hidden", "");
+      }
+      function onOk() {
+        var v = String(input.value);
+        if (opts.trimOk !== false) v = v.trim();
+        if (opts.requireNonEmpty && !v) {
+          input.focus();
+          return;
+        }
+        cleanup();
+        resolve(v);
+      }
+      function onCancel() {
+        cleanup();
+        resolve(null);
+      }
+      function onInputKey(ev) {
+        if (ev.key === "Enter") {
+          ev.preventDefault();
+          onOk();
+        }
+      }
+      function onDocKey(ev) {
+        if (ev.key === "Escape") {
+          ev.preventDefault();
+          onCancel();
+        }
+      }
+      okBtn.addEventListener("click", onOk);
+      cancelBtn.addEventListener("click", onCancel);
+      if (backdrop) backdrop.addEventListener("click", onCancel);
+      input.addEventListener("keydown", onInputKey);
+      document.addEventListener("keydown", onDocKey, true);
+      window.setTimeout(function () {
+        input.focus();
+        input.select();
+      }, 0);
+    });
+  }
+
+  /**
+   * Mapbox Draw listens on the map canvas in bubble phase; our map.on("click") ran too late and
+   * never saw the click. A capture-phase listener on the canvas runs first, stops propagation
+   * while in marker mode; shows an inline map popup (geojson.io style) so it works everywhere.
+   */
+  function closeMarkerEditPopup() {
+    if (map && map.__markerEditPopup) {
+      map.__markerEditPopup.remove();
+      map.__markerEditPopup = null;
+    }
+  }
+
+  function showMarkerEditPopup(ll, s, featureIndex) {
+    closeMarkerEditPopup();
+    var popupEl = document.createElement("div");
+    popupEl.innerHTML =
+      '<p class="marker-popup-label-hint">Label (optional — leave blank for a dot only)</p>' +
+      '<input type="text" class="marker-popup-input" placeholder="e.g. Times Square" autocomplete="off" />' +
+      '<div class="marker-popup-actions">' +
+      '  <button type="button" class="btn" data-action="discard">Discard</button>' +
+      '  <button type="button" class="btn primary" data-action="save">Save</button>' +
+      "</div>";
+
+    var popup = new maplibregl.Popup({
+      closeButton: false,
+      closeOnClick: false,
+      anchor: "bottom",
+      offset: [0, -6],
+      maxWidth: "240px",
+      className: "marker-edit-popup"
+    })
+      .setLngLat([ll.lng, ll.lat])
+      .setDOMContent(popupEl)
+      .addTo(map);
+
+    map.__markerEditPopup = popup;
+    var input = popupEl.querySelector(".marker-popup-input");
+    if (input) window.setTimeout(function () { input.focus(); }, 50);
+
+    function finish(save) {
+      closeMarkerEditPopup();
+      document.removeEventListener("keydown", onDocKey, true);
+      var feat = s.overlays.geojson.features[featureIndex];
+      if (!save) {
+        s.overlays.geojson.features.splice(featureIndex, 1);
+      } else if (feat) {
+        var t = input ? String(input.value).trim() : "";
+        if (t) {
+          feat.properties.kind = "label";
+          feat.properties.text = t;
+          feat.properties.dotColor = feat.properties.dotColor || "#3388ff"; /* dot visible on any basemap */
+          feat.properties.color = "#f0f0f0";     /* text color (light, with dark halo) */
+          feat.properties.haloColor = "#0f1419";
+        }
+      }
+      saveConfig();
+      syncOverlayFieldsFromStep();
+      renderOverlayFeatureList();
+      applyStepOverlays(selectedIndex);
+      setMarkerPlacementMode(false);
+    }
+
+    popupEl.addEventListener("click", function (ev) {
+      var action = ev.target && ev.target.getAttribute("data-action");
+      if (action === "save") finish(true);
+      if (action === "discard") finish(false);
+    });
+    if (input) {
+      input.addEventListener("keydown", function (ev) {
+        if (ev.key === "Enter") { ev.preventDefault(); finish(true); }
+        if (ev.key === "Escape") { ev.preventDefault(); finish(false); }
+      });
+    }
+    function onDocKey(ev) {
+      if (ev.key === "Escape") { ev.stopPropagation(); finish(false); }
+    }
+    document.addEventListener("keydown", onDocKey, true);
+  }
+
+  function installMarkerPlacementClickCapture() {
+    if (!map || map.__markerPlacementCaptureInstalled) return;
+    var canvas = map.getCanvas();
+    if (!canvas) return;
+    map.__markerPlacementCaptureInstalled = true;
+    canvas.addEventListener(
+      "click",
+      function (domEv) {
+        if (!markerPlacementMode || !config || !config.steps[selectedIndex]) return;
+        domEv.stopPropagation();
+        domEv.stopImmediatePropagation();
+        var container = map.getContainer();
+        var rect = container.getBoundingClientRect();
+        var x = domEv.clientX - rect.left;
+        var y = domEv.clientY - rect.top;
+        var ll = map.unproject([x, y]);
+        var s = config.steps[selectedIndex];
+        ensureStepOverlays(s);
+        var featureIndex = s.overlays.geojson.features.length;
+        s.overlays.geojson.features.push({
+          type: "Feature",
+          properties: { kind: "marker", color: "#3388ff" },
+          geometry: { type: "Point", coordinates: [ll.lng, ll.lat] }
+        });
+        applyStepOverlays(selectedIndex);
+        showMarkerEditPopup(ll, s, featureIndex);
+      },
+      true
+    );
+  }
+
+  function wireDrawCreateHandler() {
+    if (drawCreateWired || !map || !drawControl) return;
+    drawCreateWired = true;
+    map.on("draw.create", function (e) {
+      var s = config.steps[selectedIndex];
+      if (!s) return;
+      ensureStepOverlays(s);
+      var feats = e.features || [];
+
+      function deleteAllDrawFeats() {
+        feats.forEach(function (feat) {
+          try {
+            drawControl.delete(feat.id);
+          } catch (err) {}
+        });
+      }
+
+      function afterSave(addedAny) {
+        deleteAllDrawFeats();
+        if (!addedAny) return;
+        saveConfig();
+        syncOverlayFieldsFromStep();
+        renderOverlayFeatureList();
+        applyStepOverlays(selectedIndex);
+      }
+
+      var chain = Promise.resolve(false);
+      feats.forEach(function (feat) {
+        chain = chain.then(function (addedAny) {
+          var f = JSON.parse(JSON.stringify(feat));
+          f.properties = sanitizeDrawFeatureProperties(f.properties);
+          if (!f.properties) f.properties = {};
+          var gt = f.geometry && f.geometry.type;
+          if (gt === "Polygon" || gt === "MultiPolygon") {
+            if (!f.properties.kind) f.properties.kind = "region";
+            s.overlays.geojson.features.push(f);
+            return addedAny || true;
+          }
+          if (gt === "LineString" || gt === "MultiLineString") {
+            if (!f.properties.kind) f.properties.kind = "line";
+            s.overlays.geojson.features.push(f);
+            return addedAny || true;
+          }
+          if (gt === "Point") {
+            return promptTextModal({
+              title: "Point label",
+              message:
+                "Name or label (optional — leave blank for a dot only). Cancel discards this point.",
+              defaultValue: ""
+            }).then(function (t) {
+              if (t === null) {
+                try {
+                  drawControl.delete(feat.id);
+                } catch (err) {}
+                return addedAny;
+              }
+              t = String(t).trim();
+              if (t) {
+                f.properties.kind = "label";
+                f.properties.text = t;
+                if (!f.properties.color) f.properties.color = "#f0f0f0";
+                if (!f.properties.haloColor) f.properties.haloColor = "#0f1419";
+              } else {
+                f.properties.kind = "marker";
+              }
+              s.overlays.geojson.features.push(f);
+              return true;
+            });
+          }
+          s.overlays.geojson.features.push(f);
+          return addedAny || true;
+        });
+      });
+      chain.then(afterSave);
+    });
+  }
+
+  function initDrawControl() {
+    if (drawControl || !map) return;
+    var Draw = typeof MapboxDraw !== "undefined" ? MapboxDraw : window.MapboxDraw;
+    if (typeof Draw !== "function") {
+      console.warn("MapboxDraw not loaded; drawing tools disabled.");
+      return;
+    }
+    drawControl = new Draw({
+      displayControlsDefault: false,
+      defaultMode: "simple_select"
+    });
+    map.addControl(drawControl, "top-left");
+    map.on("draw.modechange", updateDrawToolUi);
+    wireDrawCreateHandler();
+    updateDrawToolUi();
+  }
+
+  function syncOverlayFieldsFromStep() {
+    var ta = el("overlay-geojson");
+    var err = el("overlay-json-error");
+    if (!ta || !config || !config.steps[selectedIndex]) return;
+    ensureStepOverlays(config.steps[selectedIndex]);
+    try {
+      ta.value = JSON.stringify(config.steps[selectedIndex].overlays.geojson, null, 2);
+      if (err) {
+        err.hidden = true;
+        err.textContent = "";
+      }
+    } catch (e) {
+      ta.value = '{"type":"FeatureCollection","features":[]}';
+    }
+  }
+
+  function showOverlayJsonError(msg) {
+    var err = el("overlay-json-error");
+    if (!err) return;
+    if (!msg) {
+      err.hidden = true;
+      err.textContent = "";
+    } else {
+      err.hidden = false;
+      err.textContent = msg;
+    }
+  }
+
+  function renderOverlayFeatureList() {
+    var ul = el("overlay-feature-list");
+    if (!ul || !config || !config.steps[selectedIndex]) return;
+    ensureStepOverlays(config.steps[selectedIndex]);
+    var feats = config.steps[selectedIndex].overlays.geojson.features;
+    ul.innerHTML = "";
+    feats.forEach(function (f, idx) {
+      var g = f.geometry && f.geometry.type;
+      var k = (f.properties && f.properties.kind) || g || "feature";
+      var summary = g || "";
+      if (f.properties && f.properties.text) summary += ": " + String(f.properties.text).slice(0, 40);
+      var li = document.createElement("li");
+      var meta = document.createElement("span");
+      meta.className = "of-meta";
+      meta.textContent = idx + 1 + ". " + k + " — " + summary;
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn";
+      btn.textContent = "Remove";
+      btn.addEventListener("click", function () {
+        feats.splice(idx, 1);
+        saveConfig();
+        syncOverlayFieldsFromStep();
+        renderOverlayFeatureList();
+        applyStepOverlays(selectedIndex);
+      });
+      li.appendChild(meta);
+      li.appendChild(btn);
+      ul.appendChild(li);
+    });
+  }
+
+  function saveConfig() {
+    try {
+      localStorage.setItem(storageKeyForDraft(), JSON.stringify(config));
+    } catch (e) {}
+  }
+
+  function syncSourcesField() {
+    var ta = el("sources-text");
+    if (!ta || !config) return;
+    ta.value = typeof config.sources === "string" ? config.sources : "";
+  }
+
+  function normalizeCardBackgroundOpacity(v) {
+    if (typeof v === "number" && !isNaN(v)) {
+      return Math.max(0, Math.min(1, v));
+    }
+    if (typeof v === "string" && v.trim() !== "") {
+      var p = parseFloat(v.trim());
+      if (!isNaN(p)) return Math.max(0, Math.min(1, p));
+    }
+    return 0.86;
+  }
+
+  function getCardBackgroundRgbaString() {
+    var a = config ? normalizeCardBackgroundOpacity(config.cardBackgroundOpacity) : 0.86;
+    if (config) config.cardBackgroundOpacity = a;
+    var hex = config ? normalizeCardBackgroundColor(config.cardBackgroundColor) : "#ffffff";
+    if (config) config.cardBackgroundColor = hex;
+    var rgb = hexToRgb(hex);
+    return "rgba(" + rgb.r + ", " + rgb.g + ", " + rgb.b + ", " + a + ")";
+  }
+
+  function applyCardBackgroundOpacity() {
+    document.documentElement.style.setProperty("--card-bg", getCardBackgroundRgbaString());
+  }
+
+  function syncCardColorField() {
+    var inp = el("card-bg-color");
+    if (!inp || !config) return;
+    inp.value = normalizeCardBackgroundColor(config.cardBackgroundColor);
+  }
+
+  function syncCardOpacitySlider() {
+    var rng = el("card-bg-opacity");
+    var lab = el("card-bg-opacity-value");
+    if (!rng || !config) return;
+    var a = normalizeCardBackgroundOpacity(config.cardBackgroundOpacity);
+    rng.value = String(Math.round(a * 100));
+    if (lab) lab.textContent = Math.round(a * 100) + "%";
+    applyCardBackgroundOpacity();
+  }
+
+  function syncCardBackgroundFields() {
+    syncCardColorField();
+    syncCardOpacitySlider();
+  }
+
+  function normalizeSlug(s) {
+    return String(s || "")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9-]/g, "");
+  }
+
+  function getStorySlugFromUrl() {
+    var q = new URLSearchParams(window.location.search).get("story");
+    return q ? normalizeSlug(q) : null;
+  }
+
+  function populateStorySelect(stories) {
+    var sel = el("story-select");
+    if (!sel) return;
+    sel.innerHTML = "";
+    stories.forEach(function (slug) {
+      var o = document.createElement("option");
+      o.value = slug;
+      o.textContent = slug;
+      sel.appendChild(o);
+    });
+    if (!stories.length) {
+      var empty = document.createElement("option");
+      empty.value = "";
+      empty.textContent = "(no stories — create one)";
+      sel.appendChild(empty);
+    }
+  }
+
+  function syncStorySelectValue() {
+    var sel = el("story-select");
+    if (!sel) return;
+    if (currentSlug) {
+      var i;
+      for (i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value === currentSlug) {
+          sel.value = currentSlug;
+          return;
+        }
+      }
+    }
+    if (sel.options.length && sel.options[0].value) {
+      sel.value = sel.options[0].value;
+      currentSlug = sel.options[0].value;
+    }
+  }
+
+  function showStoryApiHint() {
+    var n = el("story-api-hint");
+    if (!n) return;
+    if (storyApiOk) n.classList.add("hidden");
+    else n.classList.remove("hidden");
+  }
+
+  function loadConfigThen(then) {
+    fetch("/__story-api/list", { cache: "no-store" })
+      .then(function (r) {
+        if (!r.ok) throw new Error();
+        return r.json();
+      })
+      .then(function (data) {
+        storyApiOk = true;
+        var stories = data.stories || [];
+        populateStorySelect(stories);
+        var fromUrl = getStorySlugFromUrl();
+        var fromLs = null;
+        try {
+          fromLs = localStorage.getItem("mapsandcards-active-story-slug");
+        } catch (e) {}
+        currentSlug = fromUrl || fromLs || stories[0] || null;
+        if (currentSlug && stories.indexOf(currentSlug) === -1) {
+          currentSlug = stories[0] || null;
+        }
+        if (currentSlug) {
+          try {
+            localStorage.setItem("mapsandcards-active-story-slug", currentSlug);
+          } catch (e) {}
+          return fetch(
+            "/Stories/" + encodeURIComponent(currentSlug) + "/scroll-map-story.json",
+            { cache: "no-store" }
+          )
+            .then(function (r) {
+              if (!r.ok) throw new Error();
+              return r.json();
+            })
+            .then(function (json) {
+              config = normalizeConfig(json);
+              selectedIndex = 0;
+              saveConfig();
+            })
+            .catch(function () {
+              config = loadConfigFromStorage();
+              selectedIndex = 0;
+            });
+        }
+        config = loadConfigFromStorage();
+        selectedIndex = 0;
+      })
+      .catch(function () {
+        storyApiOk = false;
+        currentSlug = null;
+        populateStorySelect([]);
+        config = loadConfigFromStorage();
+        selectedIndex = 0;
+      })
+      .then(function () {
+        syncBaseMapSelect();
+        syncTerrainToggle();
+        syncSatelliteLabelsUi();
+        syncStorySelectValue();
+        showStoryApiHint();
+        restorePreviewLinkAfterLoad();
+        then();
+      });
+  }
+
+  function pickMapStyleUrl(urls) {
+    return new Promise(function (resolve, reject) {
+      var i = 0;
+      function tryNext() {
+        if (i >= urls.length) {
+          reject(new Error("No map style reachable"));
+          return;
+        }
+        var url = urls[i++];
+        fetch(url, { mode: "cors" })
+          .then(function (r) {
+            if (!r.ok) throw new Error();
+            return r.json();
+          })
+          .then(function () {
+            resolve(url);
+          })
+          .catch(tryNext);
+      }
+      tryNext();
+    });
+  }
+
+  function showMapLoadError() {
+    var n = el("map-load-error");
+    if (n) n.classList.remove("hidden");
+  }
+
+  /** MapLibre v3+ removed maplibregl.supported(); use a canvas probe instead. */
+  function webglAvailable() {
+    try {
+      var c = document.createElement("canvas");
+      return !!(c.getContext("webgl2") || c.getContext("webgl"));
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /** IControl: short label; full provider text in a toggled panel (avoids MapLibre compact <details> quirks). */
+  function CreditsAttributionControl(options) {
+    this._options = options || {};
+  }
+  CreditsAttributionControl.prototype.getDefaultPosition = function () {
+    return "bottom-left";
+  };
+  CreditsAttributionControl.prototype.onAdd = function (map) {
+    var self = this;
+    self._map = map;
+    function getStorySourcesText() {
+      var fn = self._options && self._options.getSourcesText;
+      if (typeof fn === "function") {
+        try {
+          return String(fn() || "");
+        } catch (e) {
+          return "";
+        }
+      }
+      return "";
+    }
+    var wrap = document.createElement("div");
+    wrap.className = "maplibregl-ctrl credits-attrib";
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "credits-attrib-toggle";
+    btn.textContent = "Credits and Sources";
+    var bar = document.createElement("div");
+    bar.className = "credits-attrib-bar";
+    var closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "credits-attrib-close";
+    closeBtn.setAttribute("aria-label", "Close credits");
+    closeBtn.textContent = "\u00d7";
+    closeBtn.setAttribute("hidden", "");
+    var panel = document.createElement("div");
+    panel.className = "credits-attrib-panel";
+    panel.id = "credits-panel-" + String(Math.random()).slice(2);
+    panel.setAttribute("hidden", "");
+    var panelBody = document.createElement("div");
+    panelBody.className = "credits-attrib-panel-body";
+    panel.appendChild(panelBody);
+    btn.setAttribute("aria-expanded", "false");
+    btn.setAttribute("aria-controls", panel.id);
+    bar.appendChild(btn);
+    bar.appendChild(closeBtn);
+    wrap.appendChild(bar);
+    wrap.appendChild(panel);
+
+    function dedupeAttributions(list) {
+      var a = list.filter(function (s) {
+        return String(s).trim();
+      });
+      a.sort(function (x, y) {
+        return x.length - y.length;
+      });
+      return a.filter(function (attrib, i) {
+        for (var j = i + 1; j < a.length; j++) {
+          if (a[j].indexOf(attrib) >= 0) return false;
+        }
+        return true;
+      });
+    }
+
+    function gatherAttributions() {
+      var attributions = ["MapLibre"];
+      try {
+        var style = map.style;
+        if (style && style.sourceCaches) {
+          for (var id in style.sourceCaches) {
+            if (!Object.prototype.hasOwnProperty.call(style.sourceCaches, id)) continue;
+            var sc = style.sourceCaches[id];
+            if (!sc || (!sc.used && !sc.usedForTerrain)) continue;
+            var source = sc.getSource && sc.getSource();
+            if (source && source.attribution && attributions.indexOf(source.attribution) < 0) {
+              attributions.push(source.attribution);
+            }
+          }
+        }
+        if (attributions.length <= 1 && map.getStyle && map.getStyle().sources) {
+          var sources = map.getStyle().sources;
+          for (var sid in sources) {
+            if (!Object.prototype.hasOwnProperty.call(sources, sid)) continue;
+            var src = sources[sid];
+            if (src && src.attribution && attributions.indexOf(src.attribution) < 0) {
+              attributions.push(src.attribution);
+            }
+          }
+        }
+      } catch (e) {}
+      return dedupeAttributions(attributions);
+    }
+
+    function updatePanelText() {
+      while (panelBody.firstChild) {
+        panelBody.removeChild(panelBody.firstChild);
+      }
+      var parts = gatherAttributions();
+      var mapBlock = document.createElement("div");
+      mapBlock.className = "credits-block";
+      var mapTitle = document.createElement("div");
+      mapTitle.className = "credits-block-title";
+      mapTitle.textContent = "Map Credits";
+      var mapText = document.createElement("div");
+      mapText.className = "credits-block-text";
+      mapText.textContent = parts.join(" | ");
+      mapBlock.appendChild(mapTitle);
+      mapBlock.appendChild(mapText);
+      panelBody.appendChild(mapBlock);
+
+      var extra = getStorySourcesText().trim();
+      if (extra) {
+        var srcBlock = document.createElement("div");
+        srcBlock.className = "credits-block credits-block-sources";
+        var srcTitle = document.createElement("div");
+        srcTitle.className = "credits-block-title";
+        srcTitle.textContent = "Sources";
+        var srcText = document.createElement("div");
+        srcText.className = "credits-block-text credits-sources-html";
+        srcText.innerHTML = getStorySourcesText();
+        srcBlock.appendChild(srcTitle);
+        srcBlock.appendChild(srcText);
+        panelBody.appendChild(srcBlock);
+      }
+    }
+
+    function closeCreditsPanel() {
+      panel.setAttribute("hidden", "");
+      closeBtn.setAttribute("hidden", "");
+      btn.setAttribute("aria-expanded", "false");
+    }
+
+    function toggleCreditsPanel() {
+      if (panel.hasAttribute("hidden")) {
+        panel.removeAttribute("hidden");
+        closeBtn.removeAttribute("hidden");
+        btn.setAttribute("aria-expanded", "true");
+      } else {
+        closeCreditsPanel();
+      }
+    }
+
+    function onData() {
+      updatePanelText();
+    }
+
+    map.on("styledata", onData);
+    map.on("sourcedata", onData);
+    map.on("terrain", onData);
+
+    btn.addEventListener("click", function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      toggleCreditsPanel();
+    });
+
+    closeBtn.addEventListener("click", function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      closeCreditsPanel();
+    });
+
+    updatePanelText();
+    self._onData = onData;
+    self.refreshPanel = updatePanelText;
+    self._container = wrap;
+    return wrap;
+  };
+  CreditsAttributionControl.prototype.onRemove = function () {
+    if (this._map && this._onData) {
+      this._map.off("styledata", this._onData);
+      this._map.off("sourcedata", this._onData);
+      this._map.off("terrain", this._onData);
+    }
+    this._map = undefined;
+  };
+
+  function applyEnglishLabels(m) {
+    var enField = [
+      "coalesce",
+      ["get", "name:en"],
+      ["get", "name_en"],
+      ["get", "name:latin"],
+      ["get", "name"]
+    ];
+    var style = m.getStyle();
+    if (!style || !style.layers) return;
+    style.layers.forEach(function (layer) {
+      if (layer.type !== "symbol") return;
+      if (/shield|oneway/i.test(layer.id)) return;
+      var tf = layer.layout && layer.layout["text-field"];
+      if (!tf) return;
+      var tfs = JSON.stringify(tf);
+      if (
+        tfs.indexOf('"name"') === -1 &&
+        tfs.indexOf("name_en") === -1 &&
+        tfs.indexOf("name:") === -1
+      ) {
+        return;
+      }
+      try {
+        m.setLayoutProperty(layer.id, "text-field", enField);
+      } catch (err) {}
+    });
+  }
+
+  function initMap(onReady) {
+    var im = config.initialMap || { lat: 20, lng: 0, zoom: 2 };
+    if (!webglAvailable()) {
+      console.error("WebGL not available");
+      showMapLoadError();
+      if (typeof onReady === "function") onReady();
+      return;
+    }
+    getBaseMapStylePromise(config.baseMap)
+      .then(function (style) {
+        map = new maplibregl.Map({
+          container: "map",
+          style: style,
+          center: [im.lng, im.lat],
+          zoom: im.zoom,
+          scrollZoom: true,
+          attributionControl: false,
+          pitch: config.terrain ? 42 : 0,
+          dragRotate: config.terrain === true
+        });
+        var creditsCtrl = new CreditsAttributionControl({
+          getSourcesText: function () {
+            return config && typeof config.sources === "string" ? config.sources : "";
+          }
+        });
+        map.addControl(creditsCtrl, "bottom-left");
+        creditsPanelControl = creditsCtrl;
+        map.addControl(
+          new maplibregl.NavigationControl({ showCompass: config.terrain === true }),
+          "top-right"
+        );
+        map.on("error", function (e) {
+          if (e && e.error) console.warn("Map error:", e.error);
+        });
+        map.on("moveend", function () {
+          updateMapLocationButtonState();
+        });
+        map.on("load", function () {
+          applyEnglishLabels(map);
+          applyTerrainIfNeeded();
+          initDrawControl();
+          installMarkerPlacementClickCapture();
+          applyStepOverlays(selectedIndex);
+          function afterLayout() {
+            map.resize();
+            if (!mapResizeObserverAttached && typeof ResizeObserver !== "undefined") {
+              var wrap = el("map-wrap");
+              if (wrap) {
+                mapResizeObserverAttached = true;
+                new ResizeObserver(function () {
+                  if (map) map.resize();
+                }).observe(wrap);
+              }
+            }
+            requestAnimationFrame(function () {
+              map.resize();
+              if (typeof onReady === "function") onReady();
+            });
+          }
+          requestAnimationFrame(afterLayout);
+        });
+      })
+      .catch(function (err) {
+        console.error(err);
+        showMapLoadError();
+        if (typeof onReady === "function") onReady();
+      });
+  }
+
+  function flyToStep(i, animate) {
+    var s = config.steps[i];
+    if (!s || !map) return;
+    var targetBase = (s.baseMap) ? s.baseMap : (config.baseMap || "openfreemap-bright");
+    var needSwitch = targetBase !== currentBuilderBaseMap;
+    function go() {
+      var z = typeof s.zoom === "number" ? s.zoom : 6;
+      if (animate === false) {
+        map.jumpTo({ center: [s.lng, s.lat], zoom: z });
+      } else {
+        map.flyTo({ center: [s.lng, s.lat], zoom: z, duration: 1200 });
+      }
+      applyStepOverlays(i);
+    }
+    function doFly() {
+      if (!map.loaded()) {
+        map.once("load", go);
+      } else {
+        go();
+      }
+    }
+    if (needSwitch) {
+      currentBuilderBaseMap = targetBase;
+      getBaseMapStylePromise(targetBase)
+        .then(function (style) {
+          map.setStyle(style);
+          map.once("style.load", function () {
+            applyEnglishLabels(map);
+            applyTerrainIfNeeded();
+            map.resize();
+            go();
+          });
+        })
+        .catch(function (err) {
+          console.error("Step basemap switch failed:", err);
+          doFly();
+        });
+    } else {
+      doFly();
+    }
+  }
+
+  function mapViewMatchesStoredLocation() {
+    if (!map || !config || !config.steps[selectedIndex]) return false;
+    var s = config.steps[selectedIndex];
+    if (typeof s.lat !== "number" || typeof s.lng !== "number" || typeof s.zoom !== "number") {
+      return false;
+    }
+    var c = map.getCenter();
+    var z = map.getZoom();
+    var latOk = Math.abs(c.lat - s.lat) < 1e-5;
+    var lngOk = Math.abs(c.lng - s.lng) < 1e-5;
+    var zoomOk = Math.abs(z - s.zoom) < 0.02;
+    return latOk && lngOk && zoomOk;
+  }
+
+  function updateMapLocationButtonState() {
+    var btn = captureButtonEl;
+    if (!btn) return;
+    if (!map || !config || !config.steps[selectedIndex]) {
+      btn.classList.remove("btn-map-loc-set");
+      btn.classList.add("btn-map-loc-unset");
+      btn.setAttribute("aria-pressed", "false");
+      return;
+    }
+    var match = mapViewMatchesStoredLocation();
+    btn.classList.toggle("btn-map-loc-set", match);
+    btn.classList.toggle("btn-map-loc-unset", !match);
+    btn.setAttribute("aria-pressed", match ? "true" : "false");
+  }
+
+  function onCaptureClick() {
+    var c = map.getCenter();
+    var z = map.getZoom();
+    var s = config.steps[selectedIndex];
+    if (!s) return;
+    s.lat = c.lat;
+    s.lng = c.lng;
+    s.zoom = z;
+    saveConfig();
+    syncEditorFromStep();
+  }
+
+  function ensureCaptureButton() {
+    if (!captureButtonEl) {
+      captureButtonEl = document.createElement("button");
+      captureButtonEl.id = "btn-capture";
+      captureButtonEl.type = "button";
+      captureButtonEl.className = "btn btn-map-loc-unset";
+      captureButtonEl.textContent = "Set Map Location";
+      captureButtonEl.setAttribute("aria-pressed", "false");
+    }
+    if (!captureButtonEl.dataset.captureWired) {
+      captureButtonEl.addEventListener("click", onCaptureClick);
+      captureButtonEl.dataset.captureWired = "1";
+    }
+    return captureButtonEl;
+  }
+
+  function renderStepList() {
+    var list = el("step-list");
+    if (!list) return;
+    var cap = ensureCaptureButton();
+    if (cap.parentNode) cap.parentNode.removeChild(cap);
+    list.innerHTML = "";
+    config.steps.forEach(function (s, i) {
+      var row = document.createElement("div");
+      row.className = "step-list-row";
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "step-location-btn";
+      b.textContent = "Location " + (i + 1);
+      if (s.id) b.title = s.id;
+      if (i === selectedIndex) b.classList.add("active");
+      b.addEventListener("click", function () {
+        selectedIndex = i;
+        setMarkerPlacementMode(false);
+        ensureDrawSimpleSelect();
+        renderStepList();
+        syncEditorFromStep();
+        flyToStep(i, true);
+      });
+      row.appendChild(b);
+      if (i === selectedIndex) row.appendChild(cap);
+      list.appendChild(row);
+    });
+    if (config.steps.length === 0) {
+      var emptyRow = document.createElement("div");
+      emptyRow.className = "step-list-row";
+      emptyRow.appendChild(cap);
+      list.appendChild(emptyRow);
+    }
+  }
+
+  function initCardQuill() {
+    if (cardQuill) return;
+    if (typeof Quill === "undefined") {
+      var wrap = el("card-quill-wrap");
+      var btnV = el("card-mode-visual");
+      var btnH = el("card-mode-html");
+      if (wrap) wrap.classList.add("hidden");
+      if (btnV) btnV.classList.add("hidden");
+      if (btnH) btnH.classList.add("hidden");
+      var ta = el("card-text");
+      if (ta) ta.classList.remove("hidden");
+      cardEditorMode = "html";
+      return;
+    }
+    cardQuill = new Quill("#card-quill-editor", {
+      theme: "snow",
+      modules: {
+        toolbar: [
+          [{ header: [1, 2, 3, false] }],
+          ["bold", "italic", "underline"],
+          ["link"],
+          [{ list: "ordered" }, { list: "bullet" }],
+          ["clean"]
+        ]
+      },
+      placeholder: "Write your story card text…"
+    });
+    cardQuill.on("text-change", function () {
+      if (cardEditorMode === "visual") applyEditorToStep();
+    });
+  }
+
+  function setCardEditorMode(mode) {
+    cardEditorMode = mode === "html" ? "html" : "visual";
+    var wrap = el("card-quill-wrap");
+    var ta = el("card-text");
+    var btnV = el("card-mode-visual");
+    var btnH = el("card-mode-html");
+    if (!ta) return;
+    if (cardEditorMode === "html") {
+      if (cardQuill) {
+        ta.value = cardQuill.root.innerHTML;
+      }
+      if (wrap) wrap.classList.add("hidden");
+      ta.classList.remove("hidden");
+      if (btnV) {
+        btnV.classList.remove("primary");
+        btnV.setAttribute("aria-pressed", "false");
+      }
+      if (btnH) {
+        btnH.classList.add("primary");
+        btnH.setAttribute("aria-pressed", "true");
+      }
+    } else {
+      if (cardQuill) {
+        var html = ta.value || "";
+        cardQuill.root.innerHTML = html.replace(/^\s+|\s+$/g, "") ? html : "<p><br></p>";
+      }
+      if (wrap) wrap.classList.remove("hidden");
+      ta.classList.add("hidden");
+      if (btnV) {
+        btnV.classList.add("primary");
+        btnV.setAttribute("aria-pressed", "true");
+      }
+      if (btnH) {
+        btnH.classList.remove("primary");
+        btnH.setAttribute("aria-pressed", "false");
+      }
+      applyEditorToStep();
+    }
+  }
+
+  function syncEditorFromStep() {
+    var s = config.steps[selectedIndex];
+    if (!s) return;
+    var html = s.html || "";
+    el("card-text").value = html;
+    if (cardQuill) {
+      cardQuill.root.innerHTML = html.replace(/^\s+|\s+$/g, "") ? html : "<p><br></p>";
+    }
+    el("step-coords").textContent =
+      "lat " + s.lat.toFixed(5) + ", lng " + s.lng.toFixed(5) + ", zoom " + s.zoom;
+    syncOverlayFieldsFromStep();
+    renderOverlayFeatureList();
+    updateMapLocationButtonState();
+    syncStepBasemapSelect();
+  }
+
+  function applyEditorToStep() {
+    var s = config.steps[selectedIndex];
+    if (!s) return;
+    if (cardEditorMode === "visual" && cardQuill) {
+      s.html = cardQuill.root.innerHTML;
+      el("card-text").value = s.html;
+    } else {
+      s.html = el("card-text").value;
+    }
+    saveConfig();
+  }
+
+  el("card-text").addEventListener("input", applyEditorToStep);
+
+  var cardModeVis = el("card-mode-visual");
+  var cardModeHtml = el("card-mode-html");
+  if (cardModeVis) {
+    cardModeVis.addEventListener("click", function () {
+      setCardEditorMode("visual");
+    });
+  }
+  if (cardModeHtml) {
+    cardModeHtml.addEventListener("click", function () {
+      setCardEditorMode("html");
+    });
+  }
+
+  el("card-bg-color").addEventListener("input", function () {
+    config.cardBackgroundColor = normalizeCardBackgroundColor(el("card-bg-color").value);
+    saveConfig();
+    applyCardBackgroundOpacity();
+  });
+
+  el("card-bg-opacity").addEventListener("input", function () {
+    var v = parseInt(el("card-bg-opacity").value, 10);
+    if (isNaN(v)) v = 86;
+    v = Math.max(0, Math.min(100, v));
+    config.cardBackgroundOpacity = v / 100;
+    el("card-bg-opacity-value").textContent = v + "%";
+    saveConfig();
+    applyCardBackgroundOpacity();
+  });
+
+  el("sources-text").addEventListener("input", function () {
+    config.sources = el("sources-text").value;
+    saveConfig();
+    if (creditsPanelControl && typeof creditsPanelControl.refreshPanel === "function") {
+      creditsPanelControl.refreshPanel();
+    }
+  });
+
+  el("btn-add-step").addEventListener("click", function () {
+    setMarkerPlacementMode(false);
+    ensureDrawSimpleSelect();
+    var c = map.getCenter();
+    var z = map.getZoom();
+    var n = config.steps.length + 1;
+    config.steps.push({
+      id: "location-" + n,
+      lat: c.lat,
+      lng: c.lng,
+      zoom: z,
+      html: "<p>New location.</p>",
+      overlays: { geojson: { type: "FeatureCollection", features: [] } }
+    });
+    selectedIndex = config.steps.length - 1;
+    saveConfig();
+    renderStepList();
+    syncEditorFromStep();
+  });
+
+  el("btn-remove-step").addEventListener("click", function () {
+    setMarkerPlacementMode(false);
+    ensureDrawSimpleSelect();
+    if (config.steps.length <= 1) return;
+    config.steps.splice(selectedIndex, 1);
+    selectedIndex = Math.min(selectedIndex, config.steps.length - 1);
+    saveConfig();
+    renderStepList();
+    syncEditorFromStep();
+  });
+
+  el("btn-move-up").addEventListener("click", function () {
+    setMarkerPlacementMode(false);
+    ensureDrawSimpleSelect();
+    if (selectedIndex <= 0) return;
+    var t = config.steps[selectedIndex - 1];
+    config.steps[selectedIndex - 1] = config.steps[selectedIndex];
+    config.steps[selectedIndex] = t;
+    selectedIndex--;
+    saveConfig();
+    renderStepList();
+    syncEditorFromStep();
+  });
+
+  el("btn-move-down").addEventListener("click", function () {
+    setMarkerPlacementMode(false);
+    ensureDrawSimpleSelect();
+    if (selectedIndex >= config.steps.length - 1) return;
+    var t = config.steps[selectedIndex + 1];
+    config.steps[selectedIndex + 1] = config.steps[selectedIndex];
+    config.steps[selectedIndex] = t;
+    selectedIndex++;
+    saveConfig();
+    renderStepList();
+    syncEditorFromStep();
+  });
+
+  function saveStoryToFolder() {
+    if (!currentSlug) {
+      alert("Select or create a story first.");
+      return;
+    }
+    if (!storyApiOk) {
+      alert(
+        'Saving updates scroll-map-story.json in that story\'s folder under Stories/. Run "npm run dev" (Vite) so the save API is available.'
+      );
+      return;
+    }
+    config = normalizeConfig(config);
+    fetch("/__story-api/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug: currentSlug, json: config })
+    })
+      .then(function (r) {
+        return r.json().then(function (j) {
+          return { ok: r.ok, j: j };
+        });
+      })
+      .then(function (o) {
+        if (!o.ok) throw new Error(o.j.error || "Save failed");
+        saveConfig();
+        showPreviewLinkForStory(currentSlug);
+      })
+      .catch(function (e) {
+        alert("Save failed: " + (e.message || e));
+      });
+  }
+
+  el("btn-save").addEventListener("click", saveStoryToFolder);
+
+  (function initPreferencesToggle() {
+    var panel = el("preferences-panel");
+    var btn = el("btn-preferences-toggle");
+    if (!panel || !btn) return;
+    btn.addEventListener("click", function () {
+      var open = panel.hidden;
+      panel.hidden = !open;
+      btn.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+  })();
+
+  (function initAnnotateToggle() {
+    var panel = el("annotate-panel");
+    var btn = el("btn-annotate-toggle");
+    if (!panel || !btn) return;
+    btn.addEventListener("click", function () {
+      var wasHidden = panel.hidden;
+      panel.hidden = !wasHidden;
+      btn.setAttribute("aria-expanded", wasHidden ? "true" : "false");
+      if (!panel.hidden) {
+        requestAnimationFrame(function () {
+          panel.scrollIntoView({ block: "nearest", behavior: "smooth" });
+          if (map) map.resize();
+        });
+      }
+    });
+  })();
+
+  window.addEventListener("resize", function () {
+    if (map) map.resize();
+  });
+
+  el("story-select").addEventListener("change", function () {
+    var v = el("story-select").value;
+    if (v) {
+      window.location.href = "?story=" + encodeURIComponent(v);
+    }
+  });
+
+  el("btn-new-story").addEventListener("click", function () {
+    promptTextModal({
+      title: "New story folder",
+      message:
+        "Folder name: lowercase letters, numbers, and hyphens only. Example: my-road-trip",
+      defaultValue: "",
+      placeholder: "my-road-trip",
+      requireNonEmpty: true
+    }).then(function (raw) {
+      if (raw === null) return;
+      var slug = normalizeSlug(raw);
+      if (!slug || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+        alert("Use only lowercase letters, numbers, and hyphens (e.g. my-story).");
+        return;
+      }
+      fetch("/__story-api/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug: slug, defaultJson: clone(DEFAULT_CONFIG) })
+      })
+        .then(function (r) {
+          return r.json().then(function (j) {
+            return { ok: r.ok, status: r.status, j: j };
+          });
+        })
+        .then(function (o) {
+          if (!o.ok) throw new Error(o.j.error || "HTTP " + o.status);
+          window.location.href = "?story=" + encodeURIComponent(slug);
+        })
+        .catch(function (e) {
+          alert("Could not create story: " + (e.message || e));
+        });
+    });
+  });
+
+  populateBaseMapSelect();
+  populateStepBasemapSelect();
+
+  el("step-basemap-select").addEventListener("change", function () {
+    var s = config.steps[selectedIndex];
+    if (!s) return;
+    var val = el("step-basemap-select").value;
+    if (val) {
+      s.baseMap = val;
+    } else {
+      delete s.baseMap;
+    }
+    saveConfig();
+    /* switch the builder map to reflect this step's effective basemap */
+    var targetBase = val || config.baseMap || "openfreemap-bright";
+    if (targetBase === currentBuilderBaseMap) return;
+    currentBuilderBaseMap = targetBase;
+    getBaseMapStylePromise(targetBase)
+      .then(function (style) {
+        map.setStyle(style);
+        map.once("style.load", function () {
+          applyEnglishLabels(map);
+          applyTerrainIfNeeded();
+          map.resize();
+          applyStepOverlays(selectedIndex);
+        });
+      })
+      .catch(function (err) {
+        console.error("Step basemap switch failed:", err);
+      });
+  });
+
+  el("base-map-select").addEventListener("change", function () {
+    config.baseMap = el("base-map-select").value;
+    saveConfig();
+    syncSatelliteLabelsUi();
+    if (!map) return;
+    getBaseMapStylePromise(config.baseMap)
+      .then(function (style) {
+        map.setStyle(style);
+        map.once("style.load", function () {
+          applyEnglishLabels(map);
+          applyTerrainIfNeeded();
+          map.resize();
+          applyStepOverlays(selectedIndex);
+        });
+      })
+      .catch(function (err) {
+        console.error(err);
+        showMapLoadError();
+      });
+  });
+
+  el("terrain-toggle").addEventListener("change", function () {
+    config.terrain = el("terrain-toggle").checked;
+    saveConfig();
+    applyTerrainIfNeeded();
+  });
+
+  el("satellite-labels-toggle").addEventListener("change", function () {
+    config.satelliteLabels = el("satellite-labels-toggle").checked;
+    saveConfig();
+    if (!map || config.baseMap !== "esri-satellite") return;
+    getBaseMapStylePromise(config.baseMap)
+      .then(function (style) {
+        map.setStyle(style);
+        map.once("style.load", function () {
+          applyEnglishLabels(map);
+          applyTerrainIfNeeded();
+          map.resize();
+          applyStepOverlays(selectedIndex);
+        });
+      })
+      .catch(function (err) {
+        console.error(err);
+        showMapLoadError();
+      });
+  });
+
+  el("btn-apply-overlay-json").addEventListener("click", function () {
+    var s = config.steps[selectedIndex];
+    if (!s) return;
+    var raw = el("overlay-geojson").value.trim();
+    try {
+      var parsed = JSON.parse(raw);
+      if (parsed.type !== "FeatureCollection" || !Array.isArray(parsed.features)) {
+        throw new Error("JSON must be a FeatureCollection with a features array.");
+      }
+      ensureStepOverlays(s);
+      s.overlays.geojson = parsed;
+      normalizeStepOverlays(s);
+      saveConfig();
+      showOverlayJsonError("");
+      syncOverlayFieldsFromStep();
+      renderOverlayFeatureList();
+      applyStepOverlays(selectedIndex);
+    } catch (e) {
+      showOverlayJsonError(e.message || String(e));
+    }
+  });
+
+  el("overlay-import-file").addEventListener("change", function (ev) {
+    var file = ev.target.files && ev.target.files[0];
+    ev.target.value = "";
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      el("overlay-geojson").value = reader.result;
+      el("btn-apply-overlay-json").click();
+    };
+    reader.readAsText(file);
+  });
+
+  el("btn-draw-marker").addEventListener("click", function () {
+    if (!map) return;
+    closeMarkerEditPopup();
+    if (markerPlacementMode) {
+      setMarkerPlacementMode(false);
+    } else {
+      setMarkerPlacementMode(true);
+    }
+  });
+
+  document.addEventListener("keydown", function (ev) {
+    if (ev.key !== "Escape" || !markerPlacementMode) return;
+    setMarkerPlacementMode(false);
+  });
+
+  el("btn-add-label").addEventListener("click", function () {
+    setMarkerPlacementMode(false);
+    ensureDrawSimpleSelect();
+    var s = config.steps[selectedIndex];
+    if (!s || !map) return;
+    promptTextModal({
+      title: "Label",
+      message: "Text shown on the map at the center of the current view.",
+      defaultValue: "Label",
+      requireNonEmpty: true
+    }).then(function (t) {
+      if (t === null) return;
+      var c = map.getCenter();
+      ensureStepOverlays(s);
+      s.overlays.geojson.features.push({
+        type: "Feature",
+        properties: {
+          kind: "label",
+          text: String(t).trim(),
+          color: "#f0f0f0",
+          haloColor: "#0f1419"
+        },
+        geometry: { type: "Point", coordinates: [c.lng, c.lat] }
+      });
+      saveConfig();
+      syncOverlayFieldsFromStep();
+      renderOverlayFeatureList();
+      applyStepOverlays(selectedIndex);
+    });
+  });
+
+  loadConfigThen(function () {
+    initCardQuill();
+    initMap(function () {
+      /* set initial tracker so the first flyToStep knows not to switch styles unnecessarily */
+      var firstStep = config.steps && config.steps[0];
+      currentBuilderBaseMap = (firstStep && firstStep.baseMap)
+        ? firstStep.baseMap
+        : (config.baseMap || "openfreemap-bright");
+      renderStepList();
+      syncBaseMapSelect();
+      syncTerrainToggle();
+      syncSatelliteLabelsUi();
+      syncSourcesField();
+      syncCardBackgroundFields();
+      syncEditorFromStep();
+      flyToStep(selectedIndex, false);
+      updateMapLocationButtonState();
+    });
+  });
+})();
+  </script>
+</body>
+</html>

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Scroll Map Builder</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a2332;
+      --text: #e8eaed;
+      --muted: #9aa7b2;
+      --border: #2a3544;
+      --accent: #3d8bfd;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 2rem clamp(1rem, 4vw, 3rem);
+      line-height: 1.55;
+      background: var(--bg);
+      color: var(--text);
+      max-width: 40rem;
+    }
+    h1 {
+      margin: 0 0 0.35rem;
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+    .lede {
+      margin: 0 0 2rem;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    section {
+      margin-bottom: 2rem;
+    }
+    section:last-of-type {
+      margin-bottom: 0;
+    }
+    h2 {
+      margin: 0 0 0.75rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel);
+      overflow: hidden;
+    }
+    li {
+      border-bottom: 1px solid var(--border);
+    }
+    li:last-child {
+      border-bottom: none;
+    }
+    a {
+      display: block;
+      padding: 0.75rem 1rem;
+      color: var(--text);
+      text-decoration: none;
+      transition: background 0.12s ease;
+    }
+    a:hover {
+      background: rgba(61, 139, 253, 0.12);
+      color: var(--accent);
+    }
+    a .path {
+      display: block;
+      margin-top: 0.25rem;
+      font-size: 0.75rem;
+      font-family: ui-monospace, monospace;
+      color: var(--muted);
+    }
+    .empty-hint {
+      padding: 0.75rem 1rem;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <h1>Scroll Map Builder</h1>
+  <p class="lede">Run <code style="color: var(--accent)">npm run dev</code> — Vite serves this project. Saving from the builder writes into <code>Stories/&lt;name&gt;/</code> (dev server API).</p>
+
+  <section aria-labelledby="tools-heading">
+    <h2 id="tools-heading">Tools</h2>
+    <ul>
+      <li>
+        <a href="/Tools/scroll-map-builder.html">
+          Scroll map builder
+          <span class="path">/Tools/scroll-map-builder.html</span>
+        </a>
+      </li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="built-heading">
+    <h2 id="built-heading">Stories</h2>
+    <ul id="story-links">
+      <li class="empty-hint" id="story-links-loading">Loading story list…</li>
+    </ul>
+    <p class="lede" id="story-links-fallback" style="display: none; margin-top: 1rem; font-size: 0.8rem;">
+      Each folder under <code>Stories/</code> is one publishable story (<code>scroll-map-story.html</code> + JSON). Links here open the <strong>preview shell</strong> (<code>story-viewer.html</code>); the story file itself has no site navigation.
+    </p>
+  </section>
+
+  <script>
+(function () {
+  var ul = document.getElementById("story-links");
+  var loading = document.getElementById("story-links-loading");
+  var fallback = document.getElementById("story-links-fallback");
+
+  function addStory(slug) {
+    var li = document.createElement("li");
+    var a = document.createElement("a");
+    a.href = "/story-viewer.html?story=" + encodeURIComponent(slug);
+    a.textContent = slug;
+    var path = document.createElement("span");
+    path.className = "path";
+    path.textContent = "/story-viewer.html?story=" + slug;
+    a.appendChild(path);
+    li.appendChild(a);
+    ul.appendChild(li);
+  }
+
+  fetch("/__story-api/list", { cache: "no-store" })
+    .then(function (r) {
+      if (!r.ok) throw new Error();
+      return r.json();
+    })
+    .then(function (data) {
+      if (loading) loading.remove();
+      var stories = (data && data.stories) || [];
+      if (!stories.length) {
+        var li = document.createElement("li");
+        li.className = "empty-hint";
+        li.textContent = "No stories yet — use the builder and “New story”, or add a folder under Stories/.";
+        ul.appendChild(li);
+      } else {
+        stories.forEach(addStory);
+      }
+      if (fallback) fallback.style.display = "block";
+    })
+    .catch(function () {
+      if (loading) loading.remove();
+      ul.innerHTML = "";
+      [
+        { slug: "demo", label: "demo (example)" },
+        { slug: "micron", label: "micron" }
+      ].forEach(function (s) {
+        addStory(s.slug);
+      });
+      var note = document.createElement("li");
+      note.className = "empty-hint";
+      note.textContent = "Story API unavailable (run npm run dev). Showing common paths only.";
+      ul.appendChild(note);
+    });
+})();
+  </script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+{
+  "version": 1,
+  "initialMap": {
+    "lat": 43.04465093803179,
+    "lng": -76.14323154315792,
+    "zoom": 14.441635865890806
+  },
+  "steps": [
+    {
+      "id": "step-1",
+      "lat": 43.04465093803179,
+      "lng": -76.14323154315792,
+      "zoom": 14.441635865890806,
+      "html": "<p>This is the area around downtown Syracuse and Syracuse University. The population of Syracuse city is 148,000.  The population of its greater area including suburbs is 652,000.</p>",
+      "overlays": {
+        "geojson": {
+          "type": "FeatureCollection",
+          "features": [
+            {
+              "type": "Feature",
+              "properties": {
+                "kind": "label",
+                "color": "#f0f0f0",
+                "text": "Syracuse",
+                "dotColor": "#3388ff",
+                "haloColor": "#0f1419"
+              },
+              "geometry": {
+                "type": "Point",
+                "coordinates": [
+                  -76.14405155181885,
+                  43.04753396802843
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "step-2",
+      "lat": 43.18478209315856,
+      "lng": -76.16607413325067,
+      "zoom": 13.218890625590452,
+      "html": "<p>This is Clay, New York, which has a population of 62,527. This spring, the chip manufacturer Micron is starting development on what will ultimately be a \nmassive 1,400-acre complex featuring four individual fabrication buildings totaling approximately 7.2 million square feet. At full build-out by 2041, the site will house 2.4 million square feet of cleanroom space—roughly the size of 40 football fields—making it the largest semiconductor manufacturing facility in United States history.</p>",
+      "overlays": {
+        "geojson": {
+          "type": "FeatureCollection",
+          "features": [
+            {
+              "type": "Feature",
+              "properties": {
+                "kind": "label",
+                "color": "#f0f0f0",
+                "text": "Future site of Micron",
+                "dotColor": "#3388ff",
+                "haloColor": "#0f1419"
+              },
+              "geometry": {
+                "type": "Point",
+                "coordinates": [
+                  -76.17164611816406,
+                  43.190346685902085
+                ]
+              }
+            },
+            {
+              "type": "Feature",
+              "properties": {
+                "kind": "label",
+                "text": "Future Site of Micron",
+                "color": "#f0f0f0",
+                "haloColor": "#0f1419",
+                "dotColor": "#3388ff"
+              },
+              "geometry": {
+                "type": "Point",
+                "coordinates": [
+                  -76.16607413325067,
+                  43.18478209315856
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "step-3",
+      "lat": 43.49519930880214,
+      "lng": -76.45072938616289,
+      "zoom": 10.071073710060078,
+      "html": "<p>The Micron megafab will draw its water from Lake Ontario, the 14th largest freshwater lake in the world, which was a primary reason the company chose the Clay site. To satisfy the plant's massive \"thirst\"—estimated at 48 million gallons per day at full build-out—infrastructure plans include a new 25-mile, 54-inch diameter pipeline running from a treatment plant in Oswego directly to the facility. This volume is staggering, as it exceeds the daily water usage of the entire city of Syracuse.</p>",
+      "overlays": {
+        "geojson": {
+          "type": "FeatureCollection",
+          "features": []
+        }
+      }
+    },
+    {
+      "id": "step-4",
+      "lat": 43.46852860710959,
+      "lng": -116.09382255903847,
+      "zoom": 8.015641661067756,
+      "html": "<p>Micron Technology is based in Boise, Idaho. While it is now a global giant with facilities across the world, its origin story is a classic example of American \"basement-to-billion-dollar-company\" entrepreneurship.</p>",
+      "overlays": {
+        "geojson": {
+          "type": "FeatureCollection",
+          "features": []
+        }
+      }
+    },
+    {
+      "id": "step-5",
+      "lat": 31.434576657801202,
+      "lng": -100.622206307189,
+      "zoom": 2.2813912645472456,
+      "html": "<p>While the Clay, NY, site will eventually be their largest, Micron already operates a massive global network of 13 manufacturing sites across North America and Asia. They generally divide their facilities into Front-End Fabs (where the actual silicon wafers are made) and Back-End Facilities (where those wafers are cut, tested, and packaged into final products).</p>",
+      "overlays": {
+        "geojson": {
+          "type": "FeatureCollection",
+          "features": []
+        }
+      }
+    }
+  ],
+  "baseMap": "openfreemap-bright",
+  "terrain": true,
+  "satelliteLabels": true,
+  "sources": "<a href=\"https://syracuse.edu\">https://syracuse.edu</a><br/>\n<a href=\"https://syracuse.com\">https://syracuse.com</a>\n",
+  "cardBackgroundOpacity": 0.75,
+  "cardBackgroundColor": "#f5ffdb"
+}

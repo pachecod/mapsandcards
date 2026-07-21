@@ -837,6 +837,7 @@
       <div class="build-panel-footer">
       <div class="row">
         <button type="button" class="btn primary" id="btn-save">Save</button>
+        <button type="button" class="btn" id="btn-export" title="Export as standalone ZIP">Export</button>
         <a
           id="preview-story-link"
           class="preview-story-link hidden"
@@ -2741,6 +2742,68 @@
   }
 
   el("btn-save").addEventListener("click", saveStoryToFolder);
+
+  el("btn-export").addEventListener("click", function () {
+    if (!currentSlug) {
+      alert("Select or create a story first.");
+      return;
+    }
+    if (!storyApiOk) {
+      alert("Export requires the dev server. Run \"npm run dev\" first.");
+      return;
+    }
+    var btn = el("btn-export");
+    btn.disabled = true;
+    btn.textContent = "Saving\u2026";
+
+    config = normalizeConfig(config);
+    fetch("/__story-api/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug: currentSlug, json: config })
+    })
+      .then(function (r) {
+        return r.json().then(function (j) {
+          if (!r.ok) throw new Error(j.error || "Save failed");
+          saveConfig();
+          showPreviewLinkForStory(currentSlug);
+        });
+      })
+      .then(function () {
+        btn.textContent = "Exporting\u2026";
+        return fetch("/__story-api/export", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ slug: currentSlug })
+        });
+      })
+      .then(function (r) {
+        if (!r.ok) {
+          return r.json().then(function (j) {
+            throw new Error(j.error || "Export failed");
+          });
+        }
+        return r.blob();
+      })
+      .then(function (blob) {
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = currentSlug + ".zip";
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function () {
+          URL.revokeObjectURL(a.href);
+          a.remove();
+        }, 1000);
+      })
+      .catch(function (e) {
+        alert("Export failed: " + (e.message || e));
+      })
+      .finally(function () {
+        btn.disabled = false;
+        btn.textContent = "Export";
+      });
+  });
 
   (function initPreferencesToggle() {
     var panel = el("preferences-panel");

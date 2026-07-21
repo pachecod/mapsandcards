@@ -2,6 +2,7 @@ import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 import { existsSync } from "fs";
+import { deflateRawSync } from "zlib";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -56,6 +57,113 @@ async function readJsonBody(req) {
   } catch {
     return null;
   }
+}
+
+/* ── Minimal ZIP builder using Node built-ins ── */
+
+function crc32(buf) {
+  let crc = 0xffffffff;
+  for (let i = 0; i < buf.length; i++) {
+    crc ^= buf[i];
+    for (let j = 0; j < 8; j++) crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function buildZip(entries) {
+  const localHeaders = [];
+  const centralHeaders = [];
+  let offset = 0;
+  for (const { name, data } of entries) {
+    const nameBytes = Buffer.from(name, "utf8");
+    const compressed = deflateRawSync(data, { level: 9 });
+    const crc = crc32(data);
+    const local = Buffer.alloc(30 + nameBytes.length);
+    local.writeUInt32LE(0x04034b50, 0);      // signature
+    local.writeUInt16LE(20, 4);               // version needed
+    local.writeUInt16LE(0, 6);                // flags
+    local.writeUInt16LE(8, 8);                // compression: deflate
+    local.writeUInt16LE(0, 10);               // mod time
+    local.writeUInt16LE(0, 12);               // mod date
+    local.writeUInt32LE(crc, 14);
+    local.writeUInt32LE(compressed.length, 18);
+    local.writeUInt32LE(data.length, 22);
+    local.writeUInt16LE(nameBytes.length, 26);
+    local.writeUInt16LE(0, 28);               // extra length
+    nameBytes.copy(local, 30);
+
+    const central = Buffer.alloc(46 + nameBytes.length);
+    central.writeUInt32LE(0x02014b50, 0);
+    central.writeUInt16LE(20, 4);
+    central.writeUInt16LE(20, 6);
+    central.writeUInt16LE(0, 8);
+    central.writeUInt16LE(8, 10);
+    central.writeUInt16LE(0, 12);
+    central.writeUInt16LE(0, 14);
+    central.writeUInt32LE(crc, 16);
+    central.writeUInt32LE(compressed.length, 20);
+    central.writeUInt32LE(data.length, 24);
+    central.writeUInt16LE(nameBytes.length, 28);
+    central.writeUInt16LE(0, 30);
+    central.writeUInt16LE(0, 32);
+    central.writeUInt16LE(0, 34);
+    central.writeUInt16LE(0, 36);
+    central.writeUInt32LE(0, 38);
+    central.writeUInt32LE(offset, 42);
+    nameBytes.copy(central, 46);
+
+    localHeaders.push(Buffer.concat([local, compressed]));
+    centralHeaders.push(central);
+    offset += local.length + compressed.length;
+  }
+  const centralDir = Buffer.concat(centralHeaders);
+  const eocd = Buffer.alloc(22);
+  eocd.writeUInt32LE(0x06054b50, 0);
+  eocd.writeUInt16LE(0, 4);
+  eocd.writeUInt16LE(0, 6);
+  eocd.writeUInt16LE(entries.length, 8);
+  eocd.writeUInt16LE(entries.length, 10);
+  eocd.writeUInt32LE(centralDir.length, 12);
+  eocd.writeUInt32LE(offset, 16);
+  eocd.writeUInt16LE(0, 20);
+  return Buffer.concat([...localHeaders, centralDir, eocd]);
+}
+
+/* ── CDN asset cache for export ── */
+
+const MAPLIBRE_VERSION = "4.7.1";
+const CDN_ASSETS = [
+  {
+    url: `https://cdn.jsdelivr.net/npm/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.min.js`,
+    file: "maplibre-gl.min.js",
+  },
+  {
+    url: `https://cdn.jsdelivr.net/npm/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.css`,
+    file: "maplibre-gl.css",
+  },
+];
+
+async function getCachedAsset(cacheDir, asset) {
+  const cached = path.join(cacheDir, asset.file);
+  if (existsSync(cached)) return fs.readFile(cached);
+  const res = await fetch(asset.url);
+  if (!res.ok) throw new Error(`Failed to download ${asset.url}: ${res.status}`);
+  const buf = Buffer.from(await res.arrayBuffer());
+  await fs.mkdir(cacheDir, { recursive: true });
+  await fs.writeFile(cached, buf);
+  return buf;
+}
+
+function rewriteCdnToLocal(html) {
+  return html
+    .replace(
+      /href="https:\/\/cdn\.jsdelivr\.net\/npm\/maplibre-gl@[^"]*\/dist\/maplibre-gl\.css"/,
+      'href="assets/maplibre-gl.css"'
+    )
+    .replace(
+      /src="https:\/\/cdn\.jsdelivr\.net\/npm\/maplibre-gl@[^"]*\/dist\/maplibre-gl\.min\.js"/,
+      'src="assets/maplibre-gl.min.js"'
+    );
 }
 
 function storyApiMiddleware(rootDir) {
@@ -153,6 +261,49 @@ function storyApiMiddleware(rootDir) {
           viewerTemplate
         );
         return sendJson(200, { ok: true });
+      }
+
+      if (req.method === "POST" && url === "/__story-api/export") {
+        const body = await readJsonBody(req);
+        const slug = body && body.slug;
+        if (!isValidSlug(slug)) {
+          return sendJson(400, { error: "Invalid slug." });
+        }
+        const dir = path.join(storiesRoot, slug);
+        const jsonPath = path.join(dir, "scroll-map-story.json");
+        if (!existsSync(dir) || !existsSync(jsonPath)) {
+          return sendJson(404, { error: "Story not found. Save it first." });
+        }
+        if (!existsSync(viewerTemplate)) {
+          return sendJson(500, { error: "Missing viewer template." });
+        }
+
+        const jsonStr = (await fs.readFile(jsonPath, "utf8")).trim();
+        let html = await fs.readFile(viewerTemplate, "utf8");
+        html = injectEmbeddedStoryJson(html, jsonStr);
+        html = rewriteCdnToLocal(html);
+
+        const cacheDir = path.join(rootDir, ".cache", "maplibre");
+        const assetBuffers = await Promise.all(
+          CDN_ASSETS.map((a) => getCachedAsset(cacheDir, a))
+        );
+
+        const zipBuf = buildZip([
+          { name: "index.html", data: Buffer.from(html, "utf8") },
+          { name: "scroll-map-story.json", data: Buffer.from(jsonStr, "utf8") },
+          { name: "assets/maplibre-gl.min.js", data: assetBuffers[0] },
+          { name: "assets/maplibre-gl.css", data: assetBuffers[1] },
+        ]);
+
+        res.statusCode = 200;
+        res.setHeader("Content-Type", "application/zip");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="${slug}.zip"`
+        );
+        res.setHeader("Content-Length", zipBuf.length);
+        res.end(zipBuf);
+        return;
       }
 
       return sendJson(404, { error: "Unknown story API route." });

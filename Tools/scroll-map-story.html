@@ -883,6 +883,9 @@
           }
         });
       }
+      STORY_OV_LAYERS.forEach(function (id) {
+        if (map.getLayer(id)) map.moveLayer(id);
+      });
     } catch (err) {
       console.warn("Step overlays:", err);
     }

@@ -35,7 +35,44 @@
       "overlays": {
         "geojson": {
           "type": "FeatureCollection",
-          "features": []
+          "features": [
+            {
+              "type": "Feature",
+              "properties": {
+                "kind": "label",
+                "color": "#f0f0f0",
+                "radius": 8,
+                "text": "French Quarter",
+                "dotColor": "#3388ff",
+                "haloColor": "#0f1419"
+              },
+              "geometry": {
+                "type": "Point",
+                "coordinates": [
+                  -90.06468199311553,
+                  29.961046634924728
+                ]
+              }
+            },
+            {
+              "type": "Feature",
+              "properties": {
+                "kind": "label",
+                "color": "#f0f0f0",
+                "radius": 17,
+                "text": "French Quarter",
+                "dotColor": "#3388ff",
+                "haloColor": "#0f1419"
+              },
+              "geometry": {
+                "type": "Point",
+                "coordinates": [
+                  -90.06380222855887,
+                  29.96149279822214
+                ]
+              }
+            }
+          ]
         }
       },
       "baseMap": "esri-satellite"

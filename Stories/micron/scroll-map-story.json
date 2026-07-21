@@ -23,7 +23,8 @@
                 "color": "#f0f0f0",
                 "text": "Syracuse",
                 "dotColor": "#3388ff",
-                "haloColor": "#0f1419"
+                "haloColor": "#0f1419",
+                "radius": 8
               },
               "geometry": {
                 "type": "Point",
@@ -54,7 +55,8 @@
                 "color": "#f0f0f0",
                 "text": "Future site of Micron",
                 "dotColor": "#3388ff",
-                "haloColor": "#0f1419"
+                "haloColor": "#0f1419",
+                "radius": 8
               },
               "geometry": {
                 "type": "Point",
@@ -71,7 +73,8 @@
                 "text": "Future Site of Micron",
                 "color": "#f0f0f0",
                 "haloColor": "#0f1419",
-                "dotColor": "#3388ff"
+                "dotColor": "#3388ff",
+                "radius": 8
               },
               "geometry": {
                 "type": "Point",

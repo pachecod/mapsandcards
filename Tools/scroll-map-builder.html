@@ -818,7 +818,7 @@
   <a href="/index.html" class="back-home">Home</a>
   <header class="topbar">
     <div class="topbar-left">
-      <h1>Scroll map story — builder <span class="builder-version">v1.5</span></h1>
+      <h1>Scroll map story — builder <span class="builder-version">v1.5</span> <span id="guest-mode-badge" class="builder-version hidden" style="color:var(--accent)">· Guest</span></h1>
       <div class="story-toolbar">
         <label for="story-select">Story</label>
         <select id="story-select" aria-label="Current story"></select>
@@ -828,6 +828,10 @@
       </div>
       <p id="story-api-hint" class="api-offline-hint hidden" role="status">
         Saving into <code>Stories/</code> needs <code>npm run dev</code> (Vite).
+      </p>
+      <p id="guest-mode-hint" class="api-offline-hint hidden" role="status">
+        <strong>Guest Mode</strong> — edits stay in this browser (<code>localStorage</code>, WebxRide playground format).
+        No server save. Use <strong>Export</strong> for a ZIP you can open offline.
       </p>
     </div>
     <a
@@ -938,6 +942,7 @@
       <div class="row">
         <button type="button" class="btn primary" id="btn-save">Save</button>
         <button type="button" class="btn" id="btn-export" title="Export as standalone ZIP">Export</button>
+        <button type="button" class="btn hidden" id="btn-guest-preview" title="Open local preview (blob URL)">Preview</button>
         <a
           id="preview-story-link"
           class="preview-story-link hidden"
@@ -1097,9 +1102,12 @@
   <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.min.js" crossorigin=""></script>
   <script src="https://cdn.jsdelivr.net/npm/@mapbox/mapbox-gl-draw@1.4.3/dist/mapbox-gl-draw.js" crossorigin=""></script>
   <script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js" crossorigin=""></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" crossorigin=""></script>
+  <script src="/Tools/guest-playground.js"></script>
   <script>
 (function () {
   var STORAGE_KEY = "scroll-map-story-config";
+  var VIEWER_TEMPLATE_URL = "/Tools/scroll-map-story.html";
 
   var BASE_MAPS = [
     {
@@ -1211,6 +1219,10 @@
   var captureButtonEl = null;
   var mapResizeObserverAttached = false;
   var storyApiOk = false;
+  var guestMode = false;
+  var guestViewerTemplate = null;
+  var guestViewerTemplatePromise = null;
+  var guestPreviewBlobUrl = null;
   var currentSlug = null;
   var drawControl = null;
   var drawCreateWired = false;
@@ -1223,9 +1235,154 @@
   /** After a successful save, remember so Preview stays visible if the dev server reloads the page. */
   var PREVIEW_SESSION_KEY = "mapsandcards-builder-preview-slug";
 
+  function isGuestModeFromUrl() {
+    var p = new URLSearchParams(window.location.search);
+    return p.get("guest") === "1" || p.get("mode") === "guest";
+  }
+
+  function guestBuilderUrl(slug) {
+    var q = "?guest=1";
+    if (slug) q += "&story=" + encodeURIComponent(slug);
+    return window.location.pathname + q;
+  }
+
+  function ensureGuestViewerTemplate() {
+    if (guestViewerTemplate) return Promise.resolve(guestViewerTemplate);
+    if (guestViewerTemplatePromise) return guestViewerTemplatePromise;
+    guestViewerTemplatePromise = fetch(VIEWER_TEMPLATE_URL, { cache: "force-cache" })
+      .then(function (r) {
+        if (!r.ok) throw new Error("Could not load story viewer template");
+        return r.text();
+      })
+      .then(function (html) {
+        guestViewerTemplate = html;
+        return html;
+      })
+      .catch(function (e) {
+        guestViewerTemplatePromise = null;
+        throw e;
+      });
+    return guestViewerTemplatePromise;
+  }
+
+  function buildGuestProject(slug, storyConfig) {
+    var Guest = window.MapsAndCardsGuest;
+    if (!Guest || !guestViewerTemplate) {
+      throw new Error("Guest playground helpers not ready");
+    }
+    return Guest.projectFromStoryConfig(slug, storyConfig, guestViewerTemplate);
+  }
+
+  function persistGuestProject(opts) {
+    opts = opts || {};
+    var quiet = opts.quiet !== false;
+    if (!guestMode || !currentSlug || !window.MapsAndCardsGuest) return Promise.resolve();
+    config = normalizeConfig(config);
+    if (quiet) setSaveButtonLabel("Saving…", false);
+    return ensureGuestViewerTemplate()
+      .then(function () {
+        var project = buildGuestProject(currentSlug, config);
+        if (!window.MapsAndCardsGuest.saveProject(currentSlug, project)) {
+          throw new Error("localStorage full or unavailable");
+        }
+        saveConfig();
+        showGuestPreviewControls();
+        setSaveButtonLabel("Saved", true);
+      })
+      .catch(function (e) {
+        if (quiet) {
+          setSaveButtonLabel("Save failed", true);
+          console.warn("Guest save failed:", e.message || e);
+        } else {
+          setSaveButtonLabel("Save", false);
+          alert("Save failed: " + (e.message || e));
+        }
+      });
+  }
+
+  function revokeGuestPreviewBlob() {
+    if (guestPreviewBlobUrl) {
+      try {
+        URL.revokeObjectURL(guestPreviewBlobUrl);
+      } catch (e) {}
+      guestPreviewBlobUrl = null;
+    }
+  }
+
+  function openGuestPreviewTab() {
+    if (!currentSlug || !window.MapsAndCardsGuest) return;
+    return persistGuestProject({ quiet: true }).then(function () {
+      var project = window.MapsAndCardsGuest.loadProject(currentSlug);
+      if (!project) {
+        alert("Nothing to preview yet.");
+        return;
+      }
+      revokeGuestPreviewBlob();
+      var indexFile = window.MapsAndCardsGuest.findFile(project, "index.html");
+      if (!indexFile || !indexFile.content) {
+        alert("Preview HTML missing.");
+        return;
+      }
+      var blob = new Blob([indexFile.content], { type: "text/html" });
+      guestPreviewBlobUrl = URL.createObjectURL(blob);
+      window.open(guestPreviewBlobUrl, "_blank", "noopener,noreferrer");
+    });
+  }
+
+  function showGuestPreviewControls() {
+    var guestBtn = el("btn-guest-preview");
+    var preview = el("preview-story-link");
+    var viewBtn = el("btn-view-story");
+    if (guestBtn) guestBtn.classList.remove("hidden");
+    if (preview) preview.classList.add("hidden");
+    if (viewBtn) {
+      viewBtn.href = "#";
+      viewBtn.classList.remove("hidden");
+      viewBtn.onclick = function (e) {
+        e.preventDefault();
+        openGuestPreviewTab();
+      };
+    }
+  }
+
+  function applyGuestModeUi() {
+    var apiHint = el("story-api-hint");
+    var guestHint = el("guest-mode-hint");
+    var exportBtn = el("btn-export");
+    var saveBtn = el("btn-save");
+    var guestBtn = el("btn-guest-preview");
+    var badge = el("guest-mode-badge");
+    if (apiHint) apiHint.classList.add("hidden");
+    if (guestHint) guestHint.classList.remove("hidden");
+    if (badge) badge.classList.remove("hidden");
+    if (exportBtn) {
+      exportBtn.textContent = "Export Local Site";
+      exportBtn.title = "Download ZIP (WebxRide Public Playground style)";
+    }
+    if (saveBtn) saveBtn.title = "Save draft in this browser (localStorage)";
+    if (guestBtn) guestBtn.classList.remove("hidden");
+    document.body.classList.add("guest-mode");
+    showGuestPreviewControls();
+  }
+
   function updateViewButton(slug) {
     var viewBtn = el("btn-view-story");
     if (!viewBtn) return;
+    if (guestMode) {
+      if (slug) {
+        viewBtn.href = "#";
+        viewBtn.classList.remove("hidden");
+        viewBtn.onclick = function (e) {
+          e.preventDefault();
+          openGuestPreviewTab();
+        };
+      } else {
+        viewBtn.classList.add("hidden");
+        viewBtn.onclick = null;
+      }
+      return;
+    }
+    viewBtn.onclick = null;
     if (slug) {
       viewBtn.href = "/Stories/" + encodeURIComponent(slug) + "/scroll-map-story.html";
       viewBtn.classList.remove("hidden");
@@ -1235,6 +1392,10 @@
   }
 
   function showPreviewLinkForStory(slug) {
+    if (guestMode) {
+      showGuestPreviewControls();
+      return;
+    }
     var preview = el("preview-story-link");
     if (!preview || !slug) return;
     preview.href = "/story-viewer.html?story=" + encodeURIComponent(slug);
@@ -1246,6 +1407,10 @@
   }
 
   function restorePreviewLinkAfterLoad() {
+    if (guestMode) {
+      showGuestPreviewControls();
+      return;
+    }
     var preview = el("preview-story-link");
     if (!preview || !currentSlug) return;
     updateViewButton(currentSlug);
@@ -2574,14 +2739,32 @@
   }
 
   /**
-   * Persist story JSON to disk/API. Debounced by default for continuous edits.
+   * Persist story JSON to disk/API (or Guest Mode localStorage Project).
+   * Debounced by default for continuous edits.
    * @param {{ immediate?: boolean, delay?: number, quiet?: boolean }} opts
    */
   function persistStory(opts) {
     opts = opts || {};
     var quiet = opts.quiet !== false;
     _persistQuiet = quiet;
-    if (!currentSlug || !storyApiOk) return;
+    if (!currentSlug) return;
+    if (guestMode) {
+      var delay = opts.immediate ? 0 : (typeof opts.delay === "number" ? opts.delay : 700);
+      if (_persistTimer) {
+        window.clearTimeout(_persistTimer);
+        _persistTimer = null;
+      }
+      if (delay <= 0) {
+        persistGuestProject({ quiet: quiet });
+      } else {
+        _persistTimer = window.setTimeout(function () {
+          _persistTimer = null;
+          persistGuestProject({ quiet: _persistQuiet });
+        }, delay);
+      }
+      return;
+    }
+    if (!storyApiOk) return;
 
     var delay = opts.immediate ? 0 : (typeof opts.delay === "number" ? opts.delay : 700);
     if (_persistTimer) {
@@ -2756,6 +2939,54 @@
   }
 
   function loadConfigThen(then) {
+    guestMode = isGuestModeFromUrl();
+    if (guestMode) {
+      storyApiOk = false;
+      ensureGuestViewerTemplate().catch(function () {});
+      var Guest = window.MapsAndCardsGuest;
+      var stories = Guest ? Guest.listIds() : [];
+      populateStorySelect(stories);
+      var fromUrl = getStorySlugFromUrl();
+      currentSlug = fromUrl || stories[0] || null;
+      if (currentSlug && stories.indexOf(currentSlug) === -1 && fromUrl) {
+        /* New slug from URL — create empty guest project after load */
+      } else if (currentSlug && stories.indexOf(currentSlug) === -1) {
+        currentSlug = stories[0] || null;
+      }
+      if (currentSlug && Guest) {
+        var project = Guest.loadProject(currentSlug);
+        var fromProject = project ? Guest.configFromProject(project) : null;
+        if (fromProject) {
+          config = normalizeConfig(fromProject);
+        } else {
+          config = loadConfigFromStorage();
+        }
+        selectedIndex = 0;
+        saveConfig();
+      } else {
+        config = loadConfigFromStorage();
+        selectedIndex = 0;
+      }
+      syncBaseMapSelect();
+      syncTerrainToggle();
+      syncProjectionSelect();
+      syncSatelliteLabelsUi();
+      syncStorySelectValue();
+      applyGuestModeUi();
+      restorePreviewLinkAfterLoad();
+      updateViewButton(currentSlug);
+      then();
+      if (!currentSlug) {
+        window.setTimeout(function () {
+          promptNewStoryModal().then(function (result) {
+            if (!result) return;
+            createGuestStory(result.slug, result.defaults);
+          });
+        }, 0);
+      }
+      return;
+    }
+
     fetch("/__story-api/list", { cache: "no-store" })
       .then(function (r) {
         if (!r.ok) throw new Error();
@@ -2816,6 +3047,32 @@
         restorePreviewLinkAfterLoad();
         updateViewButton(currentSlug);
         then();
+      });
+  }
+
+  function createGuestStory(slug, defaultsPatch) {
+    var defaults = clone(DEFAULT_CONFIG);
+    if (defaultsPatch) {
+      Object.keys(defaultsPatch).forEach(function (k) {
+        defaults[k] = defaultsPatch[k];
+      });
+    }
+    defaults = normalizeConfig(defaults);
+    ensureGuestViewerTemplate()
+      .then(function () {
+        if (window.MapsAndCardsGuest.loadProject(slug)) {
+          if (!confirm('Guest draft "' + slug + '" already exists. Overwrite it?')) {
+            return;
+          }
+        }
+        var project = buildGuestProject(slug, defaults);
+        if (!window.MapsAndCardsGuest.saveProject(slug, project)) {
+          throw new Error("localStorage full or unavailable");
+        }
+        window.location.assign(guestBuilderUrl(slug));
+      })
+      .catch(function (e) {
+        alert("Could not create guest story: " + (e.message || e));
       });
   }
 
@@ -3529,6 +3786,11 @@
       alert("Select or create a story first.");
       return;
     }
+    if (guestMode) {
+      saveConfig();
+      persistGuestProject({ quiet: false });
+      return;
+    }
     if (!storyApiOk) {
       alert(
         'Saving updates scroll-map-story.json in that story\'s folder under Stories/. Run "npm run dev" (Vite) so the save API is available.'
@@ -3546,12 +3808,33 @@
       alert("Select or create a story first.");
       return;
     }
-    if (!storyApiOk) {
-      alert("Export requires the dev server. Run \"npm run dev\" first.");
-      return;
-    }
     var btn = el("btn-export");
     btn.disabled = true;
+
+    if (guestMode) {
+      btn.textContent = "Exporting\u2026";
+      config = normalizeConfig(config);
+      persistGuestProject({ quiet: true })
+        .then(function () {
+          var project = window.MapsAndCardsGuest.loadProject(currentSlug);
+          if (!project) throw new Error("No guest project to export");
+          return window.MapsAndCardsGuest.exportLocalSite(project);
+        })
+        .catch(function (e) {
+          alert("Export failed: " + (e.message || e));
+        })
+        .finally(function () {
+          btn.disabled = false;
+          btn.textContent = "Export Local Site";
+        });
+      return;
+    }
+
+    if (!storyApiOk) {
+      alert("Export requires the dev server. Run \"npm run dev\" first.");
+      btn.disabled = false;
+      return;
+    }
     btn.textContent = "Saving\u2026";
 
     config = normalizeConfig(config);
@@ -3603,6 +3886,13 @@
       });
   });
 
+  var guestPreviewBtn = el("btn-guest-preview");
+  if (guestPreviewBtn) {
+    guestPreviewBtn.addEventListener("click", function () {
+      openGuestPreviewTab();
+    });
+  }
+
   (function initPreferencesToggle() {
     var panel = el("preferences-panel");
     var btn = el("btn-preferences-toggle");
@@ -3640,7 +3930,9 @@
   el("story-select").addEventListener("change", function () {
     var v = el("story-select").value;
     if (v) {
-      window.location.href = "?story=" + encodeURIComponent(v);
+      window.location.href = guestMode
+        ? guestBuilderUrl(v)
+        : "?story=" + encodeURIComponent(v);
     }
   });
 
@@ -3648,6 +3940,10 @@
     promptNewStoryModal().then(function (result) {
       if (!result) return;
       var slug = result.slug;
+      if (guestMode) {
+        createGuestStory(slug, result.defaults);
+        return;
+      }
       var defaults = clone(DEFAULT_CONFIG);
       Object.keys(result.defaults).forEach(function (k) {
         defaults[k] = result.defaults[k];
@@ -3675,6 +3971,16 @@
   el("btn-delete-story").addEventListener("click", function () {
     if (!currentSlug) {
       alert("No story selected.");
+      return;
+    }
+    if (guestMode) {
+      if (!confirm("Delete guest draft \"" + currentSlug + "\" from this browser?\n\nThis cannot be undone.")) {
+        return;
+      }
+      try { localStorage.removeItem(storageKeyForDraft()); } catch (e) {}
+      if (window.MapsAndCardsGuest) window.MapsAndCardsGuest.removeProject(currentSlug);
+      revokeGuestPreviewBlob();
+      window.location.href = guestBuilderUrl(null);
       return;
     }
     if (!storyApiOk) {

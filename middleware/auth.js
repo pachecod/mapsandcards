@@ -22,15 +22,20 @@ const LOGIN_PAGE = `<!DOCTYPE html>
            color:#fff; font-size:0.95rem; cursor:pointer; font-weight:500; }
   button:hover { opacity:0.9; }
   .err { color:#dc3545; font-size:0.85rem; text-align:center; margin-bottom:1rem; }
+  .hint { margin:0 0 1rem; font-size:0.8rem; color:#9aa7b2; text-align:center; line-height:1.4; }
+  .hint a { color:var(--accent); }
 </style>
 </head>
 <body>
 <form method="POST" action="/__auth/login">
   <h1>Scroll Map Builder</h1>
+  <p class="hint">Enter a password to use the full editor. If you are a guest, click cancel, then click Guest Mode.</p>
   %%ERROR%%
+  <input type="hidden" name="next" value="%%NEXT%%"/>
   <label for="pw">Password</label>
   <input type="password" id="pw" name="password" autofocus required/>
   <button type="submit">Sign in</button>
+  <p class="hint" style="margin:1rem 0 0"><a href="/">Cancel</a></p>
 </form>
 </body>
 </html>`;
@@ -49,6 +54,42 @@ function parseCookies(header) {
   return cookies;
 }
 
+function safeNextPath(raw) {
+  if (typeof raw !== "string") return "/Tools/scroll-map-builder.html";
+  const t = raw.trim();
+  if (!t.startsWith("/") || t.startsWith("//")) return "/Tools/scroll-map-builder.html";
+  return t;
+}
+
+/** Paths that require a signed-in session when APP_PASSWORD is set. */
+function requiresAuth(pathname, searchParams) {
+  // Non-guest builder UI
+  if (
+    pathname === "/Tools/scroll-map-builder.html" ||
+    pathname.endsWith("/scroll-map-builder.html")
+  ) {
+    const guest =
+      searchParams.get("guest") === "1" || searchParams.get("mode") === "guest";
+    return !guest;
+  }
+
+  // Story authoring API (reads stay public so home + viewers work)
+  if (pathname.startsWith("/__story-api/")) {
+    const action = pathname.slice("/__story-api/".length).split("/")[0];
+    return ["create", "save", "delete", "export"].includes(action);
+  }
+
+  return false;
+}
+
+function renderLogin(res, { error = false, next = "/Tools/scroll-map-builder.html" } = {}) {
+  const html = LOGIN_PAGE
+    .replace("%%ERROR%%", error ? '<p class="err">Wrong password.</p>' : "")
+    .replace("%%NEXT%%", safeNextPath(next).replace(/"/g, "&quot;"));
+  res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+  res.end(html);
+}
+
 export function authMiddleware() {
   const password = (process.env.APP_PASSWORD || "").trim();
   if (!password) {
@@ -58,35 +99,43 @@ export function authMiddleware() {
   const validToken = makeToken(password);
 
   return (req, res, next) => {
-    const url = req.url.split("?")[0];
+    const rawUrl = req.url || "/";
+    const qIndex = rawUrl.indexOf("?");
+    const pathname = qIndex === -1 ? rawUrl : rawUrl.slice(0, qIndex);
+    const search = qIndex === -1 ? "" : rawUrl.slice(qIndex + 1);
+    const searchParams = new URLSearchParams(search);
 
-    if (req.method === "POST" && url === "/__auth/login") {
+    if (req.method === "POST" && pathname === "/__auth/login") {
       let body = "";
       req.on("data", (c) => (body += c));
       req.on("end", () => {
         const params = new URLSearchParams(body);
         const attempt = (params.get("password") || "").trim();
+        const next = safeNextPath(params.get("next"));
         if (attempt === password) {
           res.writeHead(302, {
             "Set-Cookie": `mc_auth=${validToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800`,
-            Location: "/",
+            Location: next,
           });
           res.end();
         } else {
-          const html = LOGIN_PAGE.replace("%%ERROR%%", '<p class="err">Wrong password.</p>');
-          res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-          res.end(html);
+          renderLogin(res, { error: true, next });
         }
       });
       return;
     }
 
-    if (url === "/__auth/logout") {
+    if (pathname === "/__auth/logout") {
       res.writeHead(302, {
         "Set-Cookie": "mc_auth=; Path=/; HttpOnly; Max-Age=0",
-        Location: "/__auth/login",
+        Location: "/",
       });
       res.end();
+      return;
+    }
+
+    if (pathname === "/__auth/login") {
+      renderLogin(res, { next: safeNextPath(searchParams.get("next")) });
       return;
     }
 
@@ -95,8 +144,11 @@ export function authMiddleware() {
       return next();
     }
 
-    const html = LOGIN_PAGE.replace("%%ERROR%%", "");
-    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-    res.end(html);
+    if (!requiresAuth(pathname, searchParams)) {
+      return next();
+    }
+
+    const nextPath = pathname + (search ? `?${search}` : "");
+    renderLogin(res, { next: nextPath });
   };
 }

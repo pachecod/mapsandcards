@@ -154,7 +154,7 @@
 </head>
 <body>
   <h1>Scroll Map Builder</h1>
-  <p class="lede">Run <code style="color: var(--accent)">npm run dev</code> — Vite serves this project. Saving from the builder writes into <code>Stories/&lt;name&gt;/</code> (dev server API).</p>
+  <p class="lede">Run <code style="color: var(--accent)">npm run dev</code> — Vite serves this project. Saving from the builder writes into <code>Stories/&lt;name&gt;/</code> (dev server API). Or use <strong>Guest Mode</strong> to author locally in the browser (WebxRide-compatible).</p>
 
   <section aria-labelledby="tools-heading">
     <h2 id="tools-heading">Tools</h2>
@@ -165,6 +165,19 @@
           <span class="path">/Tools/scroll-map-builder.html</span>
         </a>
       </li>
+      <li>
+        <a href="/Tools/scroll-map-builder.html?guest=1">
+          Guest Mode (local only)
+          <span class="path">Edits in localStorage · Export Local Site ZIP · same as WebxRide Public Playground</span>
+        </a>
+      </li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="guest-heading">
+    <h2 id="guest-heading">Guest drafts</h2>
+    <ul id="guest-links">
+      <li class="empty-hint" id="guest-links-loading">Loading guest drafts…</li>
     </ul>
   </section>
 
@@ -182,11 +195,14 @@
     <a href="https://github.com/pachecod/mapsandcards" target="_blank" rel="noopener noreferrer">Github</a>
   </footer>
 
+  <script src="/Tools/guest-playground.js"></script>
   <script>
 (function () {
   var ul = document.getElementById("story-links");
   var loading = document.getElementById("story-links-loading");
   var fallback = document.getElementById("story-links-fallback");
+  var guestUl = document.getElementById("guest-links");
+  var guestLoading = document.getElementById("guest-links-loading");
 
   function deleteStory(slug, li) {
     if (!confirm('Are you sure you want to delete "' + slug + '"?\n\nThis cannot be undone.')) return;
@@ -207,6 +223,18 @@
         }
       })
       .catch(function (e) { alert("Delete failed: " + (e.message || e)); });
+  }
+
+  function deleteGuestDraft(slug, li) {
+    if (!confirm('Delete guest draft "' + slug + '" from this browser?\n\nThis cannot be undone.')) return;
+    if (window.MapsAndCardsGuest) window.MapsAndCardsGuest.removeProject(slug);
+    li.remove();
+    if (!guestUl.querySelector("li")) {
+      var empty = document.createElement("li");
+      empty.className = "empty-hint";
+      empty.textContent = "No guest drafts yet — open Guest Mode to create one.";
+      guestUl.appendChild(empty);
+    }
   }
 
   function addStory(slug) {
@@ -240,6 +268,43 @@
     ul.appendChild(li);
   }
 
+  function addGuestDraft(slug) {
+    var li = document.createElement("li");
+    var row = document.createElement("div");
+    row.className = "story-row";
+    var name = document.createElement("span");
+    name.className = "story-name";
+    name.style.cssText = "flex:1;padding:0.75rem 1rem;min-width:0";
+    name.textContent = slug;
+    var editLink = document.createElement("a");
+    editLink.href = "/Tools/scroll-map-builder.html?guest=1&story=" + encodeURIComponent(slug);
+    editLink.className = "btn-edit";
+    editLink.textContent = "Edit";
+    var delBtn = document.createElement("button");
+    delBtn.type = "button";
+    delBtn.className = "btn-delete";
+    delBtn.textContent = "Delete";
+    delBtn.addEventListener("click", function () { deleteGuestDraft(slug, li); });
+    row.appendChild(name);
+    row.appendChild(editLink);
+    row.appendChild(delBtn);
+    li.appendChild(row);
+    guestUl.appendChild(li);
+  }
+
+  (function loadGuestDrafts() {
+    if (guestLoading) guestLoading.remove();
+    var ids = window.MapsAndCardsGuest ? window.MapsAndCardsGuest.listIds() : [];
+    if (!ids.length) {
+      var empty = document.createElement("li");
+      empty.className = "empty-hint";
+      empty.textContent = "No guest drafts yet — open Guest Mode to create one.";
+      guestUl.appendChild(empty);
+    } else {
+      ids.forEach(addGuestDraft);
+    }
+  })();
+
   fetch("/__story-api/list", { cache: "no-store" })
     .then(function (r) {
       if (!r.ok) throw new Error();
@@ -269,7 +334,7 @@
       });
       var note = document.createElement("li");
       note.className = "empty-hint";
-      note.textContent = "Story API unavailable (run npm run dev). Showing common paths only.";
+      note.textContent = "Story API unavailable (run npm run dev). Showing common paths only. Guest Mode still works without the API.";
       ul.appendChild(note);
     });
 })();

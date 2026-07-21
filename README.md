@@ -21,6 +21,7 @@ Built with [MapLibre GL](https://maplibre.org/). Licensed under the [MIT License
 - **Globe or flat** — globe is the default for new stories; Mercator also available
 - **Optional 3D terrain** — MapLibre demo tiles (no API key)
 - **Export** — download a standalone ZIP that works offline
+- **Guest Mode** — author locally in the browser (no server); same `localStorage` + ZIP pattern as WebxRide Public Playground
 
 ### Reader experience
 
@@ -44,6 +45,20 @@ Vite opens the home page (default [http://localhost:5173](http://localhost:5173)
 
 > **Note:** `Stories/` is local-only and not committed to this repository.
 
+### Guest Mode (WebxRide-compatible)
+
+Open **Guest Mode** from the home page, or go to `/Tools/scroll-map-builder.html?guest=1`.
+
+| Behavior | Detail |
+|----------|--------|
+| Persistence | Browser `localStorage` key `playground-{slug}` (same as WebxRide Public Playground) |
+| Project shape | `{ name, framework: "html", files: [index.html, scroll-map-story.json] }` |
+| Save | Local only — never calls `/__story-api` |
+| Preview | Blob URL of standalone viewer HTML |
+| Share | **Export Local Site** — client-side JSZip download |
+
+Shared helpers live in [`Tools/guest-playground.js`](Tools/guest-playground.js) so embedding into WebxRide’s `/play/:templateId` path can reuse the same contract.
+
 ### Useful scripts
 
 | Command | What it does |
@@ -60,7 +75,7 @@ The included [`render.yaml`](render.yaml) targets [Render](https://render.com/) 
 
 1. Set environment variables from [`.env.example`](.env.example):
    - `DATABASE_URL` / `DATABASE_SSL` — required for the production story API
-   - `APP_PASSWORD` — optional site-wide password gate (leave blank to disable)
+   - `APP_PASSWORD` — optional; gates the non-guest builder and story write API (Guest Mode + story viewing stay public)
    - `B2_*` — optional Backblaze B2 keys (reserved for future media uploads)
    - `PORT` — set automatically on most hosts
 2. Start with `npm run db:migrate && npm start` (as in `render.yaml`).
@@ -74,6 +89,7 @@ index.html                 Home / story list
 Tools/
   scroll-map-builder.html  Authoring UI
   scroll-map-story.html    Viewer template
+  guest-playground.js      Guest Mode / WebxRide playground helpers
   STORY-OVERLAYS.md        Overlay schema notes
 story-api-plugin.js        Vite plugin: local story CRUD
 server.js                  Express app for production

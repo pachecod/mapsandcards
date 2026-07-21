@@ -35,25 +35,7 @@
       "overlays": {
         "geojson": {
           "type": "FeatureCollection",
-          "features": [
-            {
-              "type": "Feature",
-              "properties": {
-                "kind": "label",
-                "color": "#f0f0f0",
-                "text": "The French Quarter",
-                "dotColor": "#3388ff",
-                "haloColor": "#0f1419"
-              },
-              "geometry": {
-                "type": "Point",
-                "coordinates": [
-                  -90.06609819947613,
-                  29.961771649264207
-                ]
-              }
-            }
-          ]
+          "features": []
         }
       },
       "baseMap": "esri-satellite"
@@ -75,7 +57,8 @@
                 "color": "#f0f0f0",
                 "text": "Quebec, Canada",
                 "dotColor": "#3388ff",
-                "haloColor": "#0f1419"
+                "haloColor": "#0f1419",
+                "radius": 8
               },
               "geometry": {
                 "type": "Point",

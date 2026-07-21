@@ -1454,7 +1454,7 @@
           type: "circle",
           source: "story-ov-src-pt-m",
           paint: {
-            "circle-radius": ["get", "radius"],
+            "circle-radius": ["coalesce", ["get", "radius"], 8],
             "circle-color": ["coalesce", ["get", "color"], "#3388ff"],
             "circle-stroke-width": 2,
             "circle-stroke-color": "#ffffff"
@@ -1468,7 +1468,7 @@
           type: "circle",
           source: "story-ov-src-pt-l",
           paint: {
-            "circle-radius": ["get", "radius"],
+            "circle-radius": ["coalesce", ["get", "radius"], 8],
             "circle-color": ["coalesce", ["get", "dotColor"], ["get", "color"], "#3388ff"],
             "circle-stroke-width": 2,
             "circle-stroke-color": "#ffffff"

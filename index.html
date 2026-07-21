@@ -88,12 +88,11 @@
       font-family: ui-monospace, monospace;
       color: var(--muted);
     }
-    .btn-view,
-    .btn-edit {
+    .btn-view {
       display: inline-flex;
       align-items: center;
       padding: 0.4rem 0.75rem;
-      margin-right: 0.5rem;
+      margin-right: 0.75rem;
       font-size: 0.8rem;
       border-radius: 6px;
       border: 1px solid var(--border);
@@ -103,29 +102,9 @@
       white-space: nowrap;
       transition: background 0.12s ease, border-color 0.12s ease;
     }
-    .btn-view:hover,
-    .btn-edit:hover {
+    .btn-view:hover {
       background: rgba(61, 139, 253, 0.15);
       border-color: var(--accent);
-    }
-    .btn-delete {
-      display: inline-flex;
-      align-items: center;
-      padding: 0.4rem 0.75rem;
-      margin-right: 0.75rem;
-      font-size: 0.8rem;
-      border-radius: 6px;
-      border: 1px solid rgba(220, 53, 69, 0.4);
-      background: transparent;
-      color: #dc3545;
-      cursor: pointer;
-      white-space: nowrap;
-      font-family: inherit;
-      transition: background 0.12s ease, border-color 0.12s ease;
-    }
-    .btn-delete:hover {
-      background: rgba(220, 53, 69, 0.12);
-      border-color: #dc3545;
     }
     .empty-hint {
       padding: 0.75rem 1rem;
@@ -204,39 +183,6 @@
   var guestUl = document.getElementById("guest-links");
   var guestLoading = document.getElementById("guest-links-loading");
 
-  function deleteStory(slug, li) {
-    if (!confirm('Are you sure you want to delete "' + slug + '"?\n\nThis cannot be undone.')) return;
-    fetch("/__story-api/delete", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug: slug })
-    })
-      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
-      .then(function (o) {
-        if (!o.ok) throw new Error(o.j.error || "Delete failed");
-        li.remove();
-        if (!ul.querySelector("li")) {
-          var empty = document.createElement("li");
-          empty.className = "empty-hint";
-          empty.textContent = "No stories yet.";
-          ul.appendChild(empty);
-        }
-      })
-      .catch(function (e) { alert("Delete failed: " + (e.message || e)); });
-  }
-
-  function deleteGuestDraft(slug, li) {
-    if (!confirm('Delete guest draft "' + slug + '" from this browser?\n\nThis cannot be undone.')) return;
-    if (window.MapsAndCardsGuest) window.MapsAndCardsGuest.removeProject(slug);
-    li.remove();
-    if (!guestUl.querySelector("li")) {
-      var empty = document.createElement("li");
-      empty.className = "empty-hint";
-      empty.textContent = "No guest drafts yet — open Guest Mode to create one.";
-      guestUl.appendChild(empty);
-    }
-  }
-
   function addStory(slug) {
     var li = document.createElement("li");
     var row = document.createElement("div");
@@ -245,50 +191,28 @@
     name.className = "story-name";
     name.style.cssText = "flex:1;padding:0.75rem 1rem;min-width:0";
     name.textContent = slug;
-    var editLink = document.createElement("a");
-    editLink.href = "/Tools/scroll-map-builder.html?story=" + encodeURIComponent(slug);
-    editLink.className = "btn-edit";
-    editLink.textContent = "Edit";
     var viewLink = document.createElement("a");
     viewLink.href = "/Stories/" + encodeURIComponent(slug) + "/scroll-map-story.html";
     viewLink.className = "btn-view";
     viewLink.target = "_blank";
     viewLink.rel = "noopener noreferrer";
     viewLink.textContent = "View";
-    var delBtn = document.createElement("button");
-    delBtn.type = "button";
-    delBtn.className = "btn-delete";
-    delBtn.textContent = "Delete";
-    delBtn.addEventListener("click", function () { deleteStory(slug, li); });
     row.appendChild(name);
-    row.appendChild(editLink);
     row.appendChild(viewLink);
-    row.appendChild(delBtn);
     li.appendChild(row);
     ul.appendChild(li);
   }
 
   function addGuestDraft(slug) {
     var li = document.createElement("li");
-    var row = document.createElement("div");
-    row.className = "story-row";
-    var name = document.createElement("span");
-    name.className = "story-name";
-    name.style.cssText = "flex:1;padding:0.75rem 1rem;min-width:0";
-    name.textContent = slug;
-    var editLink = document.createElement("a");
-    editLink.href = "/Tools/scroll-map-builder.html?guest=1&story=" + encodeURIComponent(slug);
-    editLink.className = "btn-edit";
-    editLink.textContent = "Edit";
-    var delBtn = document.createElement("button");
-    delBtn.type = "button";
-    delBtn.className = "btn-delete";
-    delBtn.textContent = "Delete";
-    delBtn.addEventListener("click", function () { deleteGuestDraft(slug, li); });
-    row.appendChild(name);
-    row.appendChild(editLink);
-    row.appendChild(delBtn);
-    li.appendChild(row);
+    var a = document.createElement("a");
+    a.href = "/Tools/scroll-map-builder.html?guest=1&story=" + encodeURIComponent(slug);
+    a.textContent = slug;
+    var path = document.createElement("span");
+    path.className = "path";
+    path.textContent = "Open in Guest Mode";
+    a.appendChild(path);
+    li.appendChild(a);
     guestUl.appendChild(li);
   }
 

@@ -473,24 +473,6 @@
                   29.961046634924728
                 ]
               }
-            },
-            {
-              "type": "Feature",
-              "properties": {
-                "kind": "label",
-                "color": "#f0f0f0",
-                "radius": 17,
-                "text": "French Quarter",
-                "dotColor": "#3388ff",
-                "haloColor": "#0f1419"
-              },
-              "geometry": {
-                "type": "Point",
-                "coordinates": [
-                  -90.06380222855887,
-                  29.96149279822214
-                ]
-              }
             }
           ]
         }
@@ -539,7 +521,26 @@
       "overlays": {
         "geojson": {
           "type": "FeatureCollection",
-          "features": []
+          "features": [
+            {
+              "type": "Feature",
+              "properties": {
+                "kind": "label",
+                "color": "#f0f0f0",
+                "radius": 13,
+                "text": "Paris",
+                "dotColor": "#3388ff",
+                "haloColor": "#0f1419"
+              },
+              "geometry": {
+                "type": "Point",
+                "coordinates": [
+                  2.3225544382304975,
+                  48.85701513860286
+                ]
+              }
+            }
+          ]
         }
       },
       "baseMap": "esri-satellite"
@@ -915,117 +916,124 @@
     return { poly: poly, lines: lines, ptMark: ptMark, ptLabel: ptLabel };
   }
 
-  function removeStepOverlayLayers(m) {
-    if (!m) return;
-    STORY_OV_LAYERS.forEach(function (id) {
-      if (m.getLayer(id)) {
-        try {
-          m.removeLayer(id);
-        } catch (e) {}
+  var OV_SRC_POLY = "sov-poly";
+  var OV_SRC_LINE = "sov-line";
+  var OV_SRC_PTM  = "sov-ptm";
+  var OV_SRC_PTL  = "sov-ptl";
+  var EMPTY_FC = { type: "FeatureCollection", features: [] };
+
+  function getStyleFont() {
+    if (!map) return ["Noto Sans Regular"];
+    try {
+      var style = map.getStyle();
+      if (style && style.layers) {
+        for (var i = 0; i < style.layers.length; i++) {
+          var l = style.layers[i];
+          if (l.type === "symbol" && l.layout && Array.isArray(l.layout["text-font"])) {
+            return l.layout["text-font"];
+          }
+        }
+      }
+    } catch (e) {}
+    return ["Noto Sans Regular"];
+  }
+
+  function ensureOverlaySources() {
+    if (!map) return;
+    var srcIds = [OV_SRC_POLY, OV_SRC_LINE, OV_SRC_PTM, OV_SRC_PTL];
+    srcIds.forEach(function (id) {
+      if (!map.getSource(id)) {
+        map.addSource(id, { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       }
     });
-    STORY_OV_SOURCES.forEach(function (id) {
-      if (m.getSource(id)) {
-        try {
-          m.removeSource(id);
-        } catch (e) {}
-      }
+    if (!map.getLayer("story-ov-fill")) {
+      map.addLayer({
+        id: "story-ov-fill", type: "fill", source: OV_SRC_POLY,
+        paint: {
+          "fill-color": ["coalesce", ["get", "fillColor"], "#3388ff"],
+          "fill-opacity": 0.35
+        }
+      });
+    }
+    if (!map.getLayer("story-ov-line-poly")) {
+      map.addLayer({
+        id: "story-ov-line-poly", type: "line", source: OV_SRC_POLY,
+        paint: {
+          "line-color": ["coalesce", ["get", "strokeColor"], ["get", "color"], "#1a5fb4"],
+          "line-width": 2
+        }
+      });
+    }
+    if (!map.getLayer("story-ov-line")) {
+      map.addLayer({
+        id: "story-ov-line", type: "line", source: OV_SRC_LINE,
+        paint: {
+          "line-color": ["coalesce", ["get", "color"], "#3388ff"],
+          "line-width": 3
+        }
+      });
+    }
+    if (!map.getLayer("story-ov-circle")) {
+      map.addLayer({
+        id: "story-ov-circle", type: "circle", source: OV_SRC_PTM,
+        paint: {
+          "circle-radius": ["coalesce", ["get", "radius"], 8],
+          "circle-color": ["coalesce", ["get", "color"], "#3388ff"],
+          "circle-stroke-width": 2,
+          "circle-stroke-color": "#ffffff"
+        }
+      });
+    }
+    if (!map.getLayer("story-ov-circle-label")) {
+      map.addLayer({
+        id: "story-ov-circle-label", type: "circle", source: OV_SRC_PTL,
+        paint: {
+          "circle-radius": ["coalesce", ["get", "radius"], 8],
+          "circle-color": ["coalesce", ["get", "dotColor"], ["get", "color"], "#3388ff"],
+          "circle-stroke-width": 2,
+          "circle-stroke-color": "#ffffff"
+        }
+      });
+    }
+    if (!map.getLayer("story-ov-symbol")) {
+      map.addLayer({
+        id: "story-ov-symbol", type: "symbol", source: OV_SRC_PTL,
+        layout: {
+          "text-field": ["to-string", ["coalesce", ["get", "text"], ["get", "title"], ""]],
+          "text-font": getStyleFont(),
+          "text-size": 16,
+          "text-anchor": "bottom",
+          "text-offset": [0, -1.5],
+          "text-allow-overlap": true
+        },
+        paint: {
+          "text-color": ["coalesce", ["get", "color"], "#f0f0f0"],
+          "text-halo-color": ["coalesce", ["get", "haloColor"], "#0f1419"],
+          "text-halo-width": 2
+        }
+      });
+    }
+    STORY_OV_LAYERS.forEach(function (id) {
+      if (map.getLayer(id)) map.moveLayer(id);
     });
   }
 
   function applyStepOverlays(stepIndex) {
     if (!map || !config || !config.steps) return;
-    removeStepOverlayLayers(map);
+    ensureOverlaySources();
     var step = config.steps[stepIndex];
-    if (!step) return;
-    normalizeStepOverlays(step);
-    var fc = step.overlays.geojson;
-    var split = splitOverlayFeatures(fc);
-    function addGeoSource(id, data) {
-      map.addSource(id, { type: "geojson", data: data });
+    var split;
+    if (step) {
+      normalizeStepOverlays(step);
+      split = splitOverlayFeatures(step.overlays.geojson);
+    } else {
+      split = { poly: EMPTY_FC, lines: EMPTY_FC, ptMark: EMPTY_FC, ptLabel: EMPTY_FC };
     }
     try {
-      if (split.poly.features.length) {
-        addGeoSource("story-ov-src-poly", split.poly);
-        map.addLayer({
-          id: "story-ov-fill",
-          type: "fill",
-          source: "story-ov-src-poly",
-          paint: {
-            "fill-color": ["coalesce", ["get", "fillColor"], "#3388ff"],
-            "fill-opacity": 0.35
-          }
-        });
-        map.addLayer({
-          id: "story-ov-line-poly",
-          type: "line",
-          source: "story-ov-src-poly",
-          paint: {
-            "line-color": ["coalesce", ["get", "strokeColor"], ["get", "color"], "#1a5fb4"],
-            "line-width": 2
-          }
-        });
-      }
-      if (split.lines.features.length) {
-        addGeoSource("story-ov-src-line", split.lines);
-        map.addLayer({
-          id: "story-ov-line",
-          type: "line",
-          source: "story-ov-src-line",
-          paint: {
-            "line-color": ["coalesce", ["get", "color"], "#3388ff"],
-            "line-width": 3
-          }
-        });
-      }
-      if (split.ptMark.features.length) {
-        addGeoSource("story-ov-src-pt-m", split.ptMark);
-        map.addLayer({
-          id: "story-ov-circle",
-          type: "circle",
-          source: "story-ov-src-pt-m",
-          paint: {
-            "circle-radius": ["coalesce", ["get", "radius"], 8],
-            "circle-color": ["coalesce", ["get", "color"], "#3388ff"],
-            "circle-stroke-width": 2,
-            "circle-stroke-color": "#ffffff"
-          }
-        });
-      }
-      if (split.ptLabel.features.length) {
-        addGeoSource("story-ov-src-pt-l", split.ptLabel);
-        map.addLayer({
-          id: "story-ov-circle-label",
-          type: "circle",
-          source: "story-ov-src-pt-l",
-          paint: {
-            "circle-radius": ["coalesce", ["get", "radius"], 8],
-            "circle-color": ["coalesce", ["get", "dotColor"], ["get", "color"], "#3388ff"],
-            "circle-stroke-width": 2,
-            "circle-stroke-color": "#ffffff"
-          }
-        });
-        map.addLayer({
-          id: "story-ov-symbol",
-          type: "symbol",
-          source: "story-ov-src-pt-l",
-          layout: {
-            "text-field": [
-              "to-string",
-              ["coalesce", ["get", "text"], ["get", "title"], ""]
-            ],
-            "text-size": 16,
-            "text-anchor": "bottom",
-            "text-offset": [0, -1.5],
-            "text-allow-overlap": true
-          },
-          paint: {
-            "text-color": ["coalesce", ["get", "color"], "#f0f0f0"],
-            "text-halo-color": ["coalesce", ["get", "haloColor"], "#0f1419"],
-            "text-halo-width": 2
-          }
-        });
-      }
+      map.getSource(OV_SRC_POLY).setData(split.poly);
+      map.getSource(OV_SRC_LINE).setData(split.lines);
+      map.getSource(OV_SRC_PTM).setData(split.ptMark);
+      map.getSource(OV_SRC_PTL).setData(split.ptLabel);
     } catch (err) {
       console.warn("Step overlays:", err);
     }
@@ -1284,7 +1292,7 @@
     }
     getBaseMapStylePromise(viewerBaseMap)
       .then(function (style) {
-        map = new maplibregl.Map({
+        map = window._m = new maplibregl.Map({
           container: "map",
           style: style,
           center: [im.lng, im.lat],
@@ -1358,6 +1366,8 @@
     function go() {
       var z = typeof s.zoom === "number" ? s.zoom : 6;
       var pitch = config.terrain ? 42 : 0;
+      lastFlownIndex = i;
+      applyStepOverlays(i);
       if (animate === false) {
         map.jumpTo({ center: [s.lng, s.lat], zoom: z, pitch: pitch });
       } else {
@@ -1367,15 +1377,6 @@
           duration: 1200,
           pitch: pitch
         });
-      }
-      lastFlownIndex = i;
-      applyStepOverlays(i);
-    }
-    function doFly() {
-      if (!map.loaded()) {
-        map.once("load", go);
-      } else {
-        go();
       }
     }
     if (needSwitch) {
@@ -1392,10 +1393,10 @@
         })
         .catch(function (err) {
           console.warn("Step basemap switch failed, falling back:", err);
-          doFly();
+          go();
         });
     } else {
-      doFly();
+      go();
     }
   }
 

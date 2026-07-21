@@ -591,6 +591,22 @@
   /** Tracks the basemap that is currently loaded in the map, so we only call setStyle when it actually changes. */
   var currentLoadedBaseMap = "openfreemap-bright";
 
+  var MAX_OVERLAY_FEATURES = 500;
+  var STORY_OV_LAYERS = [
+    "story-ov-symbol",
+    "story-ov-circle",
+    "story-ov-circle-label",
+    "story-ov-line",
+    "story-ov-line-poly",
+    "story-ov-fill"
+  ];
+  var STORY_OV_SOURCES = [
+    "story-ov-src-pt-l",
+    "story-ov-src-pt-m",
+    "story-ov-src-line",
+    "story-ov-src-poly"
+  ];
+
   function el(id) {
     return document.getElementById(id);
   }
@@ -740,7 +756,199 @@
     } else if (!data.initialMap) {
       data.initialMap = { lat: 20, lng: 0, zoom: 2 };
     }
+    data.steps.forEach(function (step) {
+      normalizeStepOverlays(step);
+    });
     return data;
+  }
+
+  function normalizeStepOverlays(step) {
+    if (!step || typeof step !== "object") return;
+    if (!step.overlays || typeof step.overlays !== "object") {
+      step.overlays = { geojson: { type: "FeatureCollection", features: [] } };
+      return;
+    }
+    var g = step.overlays.geojson;
+    if (!g || g.type !== "FeatureCollection" || !Array.isArray(g.features)) {
+      step.overlays.geojson = { type: "FeatureCollection", features: [] };
+      return;
+    }
+    if (g.features.length > MAX_OVERLAY_FEATURES) {
+      g.features = g.features.slice(0, MAX_OVERLAY_FEATURES);
+    }
+    g.features.forEach(function (f) {
+      if (!f || !f.properties || !f.geometry || f.geometry.type !== "Point") return;
+      var p = f.properties;
+      if (typeof p.radius !== "number" || p.radius < 1) p.radius = 8;
+      var isLabel =
+        p.kind === "label" ||
+        (typeof p.text === "string" && p.text.trim() !== "") ||
+        (typeof p.title === "string" && p.title.trim() !== "");
+      if (!isLabel) {
+        if (!p.color) p.color = "#3388ff";
+        return;
+      }
+      if (p.color === "#111111" || p.color === "#1a1a1a") {
+        p.color = "#f0f0f0";
+        p.haloColor = p.haloColor || "#0f1419";
+      }
+      if (!p.dotColor) {
+        p.dotColor = "#3388ff";
+      }
+    });
+  }
+
+  function splitOverlayFeatures(fc) {
+    var poly = { type: "FeatureCollection", features: [] };
+    var lines = { type: "FeatureCollection", features: [] };
+    var ptMark = { type: "FeatureCollection", features: [] };
+    var ptLabel = { type: "FeatureCollection", features: [] };
+    if (!fc || !Array.isArray(fc.features)) {
+      return { poly: poly, lines: lines, ptMark: ptMark, ptLabel: ptLabel };
+    }
+    fc.features.forEach(function (f) {
+      if (!f || !f.geometry) return;
+      var g = f.geometry.type;
+      var p = f.properties || {};
+      if (g === "Polygon" || g === "MultiPolygon") {
+        poly.features.push(f);
+      } else if (g === "LineString" || g === "MultiLineString") {
+        lines.features.push(f);
+      } else if (g === "Point") {
+        var hasText =
+          (typeof p.text === "string" && p.text.trim() !== "") ||
+          (typeof p.title === "string" && p.title.trim() !== "");
+        if (p.kind === "label" || hasText) {
+          ptLabel.features.push(f);
+        } else {
+          ptMark.features.push(f);
+        }
+      }
+    });
+    return { poly: poly, lines: lines, ptMark: ptMark, ptLabel: ptLabel };
+  }
+
+  var OV_SRC_POLY = "sov-poly";
+  var OV_SRC_LINE = "sov-line";
+  var OV_SRC_PTM  = "sov-ptm";
+  var OV_SRC_PTL  = "sov-ptl";
+  var EMPTY_FC = { type: "FeatureCollection", features: [] };
+
+  function getStyleFont() {
+    if (!map) return ["Noto Sans Regular"];
+    try {
+      var style = map.getStyle();
+      if (style && style.layers) {
+        for (var i = 0; i < style.layers.length; i++) {
+          var l = style.layers[i];
+          if (l.type === "symbol" && l.layout && Array.isArray(l.layout["text-font"])) {
+            return l.layout["text-font"];
+          }
+        }
+      }
+    } catch (e) {}
+    return ["Noto Sans Regular"];
+  }
+
+  function ensureOverlaySources() {
+    if (!map) return;
+    var srcIds = [OV_SRC_POLY, OV_SRC_LINE, OV_SRC_PTM, OV_SRC_PTL];
+    srcIds.forEach(function (id) {
+      if (!map.getSource(id)) {
+        map.addSource(id, { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      }
+    });
+    if (!map.getLayer("story-ov-fill")) {
+      map.addLayer({
+        id: "story-ov-fill", type: "fill", source: OV_SRC_POLY,
+        paint: {
+          "fill-color": ["coalesce", ["get", "fillColor"], "#3388ff"],
+          "fill-opacity": 0.35
+        }
+      });
+    }
+    if (!map.getLayer("story-ov-line-poly")) {
+      map.addLayer({
+        id: "story-ov-line-poly", type: "line", source: OV_SRC_POLY,
+        paint: {
+          "line-color": ["coalesce", ["get", "strokeColor"], ["get", "color"], "#1a5fb4"],
+          "line-width": 2
+        }
+      });
+    }
+    if (!map.getLayer("story-ov-line")) {
+      map.addLayer({
+        id: "story-ov-line", type: "line", source: OV_SRC_LINE,
+        paint: {
+          "line-color": ["coalesce", ["get", "color"], "#3388ff"],
+          "line-width": 3
+        }
+      });
+    }
+    if (!map.getLayer("story-ov-circle")) {
+      map.addLayer({
+        id: "story-ov-circle", type: "circle", source: OV_SRC_PTM,
+        paint: {
+          "circle-radius": ["coalesce", ["get", "radius"], 8],
+          "circle-color": ["coalesce", ["get", "color"], "#3388ff"],
+          "circle-stroke-width": 2,
+          "circle-stroke-color": "#ffffff"
+        }
+      });
+    }
+    if (!map.getLayer("story-ov-circle-label")) {
+      map.addLayer({
+        id: "story-ov-circle-label", type: "circle", source: OV_SRC_PTL,
+        paint: {
+          "circle-radius": ["coalesce", ["get", "radius"], 8],
+          "circle-color": ["coalesce", ["get", "dotColor"], ["get", "color"], "#3388ff"],
+          "circle-stroke-width": 2,
+          "circle-stroke-color": "#ffffff"
+        }
+      });
+    }
+    if (!map.getLayer("story-ov-symbol")) {
+      map.addLayer({
+        id: "story-ov-symbol", type: "symbol", source: OV_SRC_PTL,
+        layout: {
+          "text-field": ["to-string", ["coalesce", ["get", "text"], ["get", "title"], ""]],
+          "text-font": getStyleFont(),
+          "text-size": 16,
+          "text-anchor": "bottom",
+          "text-offset": [0, -1.5],
+          "text-allow-overlap": true
+        },
+        paint: {
+          "text-color": ["coalesce", ["get", "color"], "#f0f0f0"],
+          "text-halo-color": ["coalesce", ["get", "haloColor"], "#0f1419"],
+          "text-halo-width": 2
+        }
+      });
+    }
+    STORY_OV_LAYERS.forEach(function (id) {
+      if (map.getLayer(id)) map.moveLayer(id);
+    });
+  }
+
+  function applyStepOverlays(stepIndex) {
+    if (!map || !config || !config.steps) return;
+    ensureOverlaySources();
+    var step = config.steps[stepIndex];
+    var split;
+    if (step) {
+      normalizeStepOverlays(step);
+      split = splitOverlayFeatures(step.overlays.geojson);
+    } else {
+      split = { poly: EMPTY_FC, lines: EMPTY_FC, ptMark: EMPTY_FC, ptLabel: EMPTY_FC };
+    }
+    try {
+      map.getSource(OV_SRC_POLY).setData(split.poly);
+      map.getSource(OV_SRC_LINE).setData(split.lines);
+      map.getSource(OV_SRC_PTM).setData(split.ptMark);
+      map.getSource(OV_SRC_PTL).setData(split.ptLabel);
+    } catch (err) {
+      console.warn("Step overlays:", err);
+    }
   }
 
   function pickMapStyleUrl(urls) {
@@ -996,7 +1204,7 @@
     }
     getBaseMapStylePromise(viewerBaseMap)
       .then(function (style) {
-        map = new maplibregl.Map({
+        map = window._m = new maplibregl.Map({
           container: "map",
           style: style,
           center: [im.lng, im.lat],
@@ -1062,12 +1270,16 @@
   function flyToStep(i, animate) {
     var s = config.steps[i];
     if (!s || !map) return;
+    /* Determine the effective basemap for this step.
+       Per-step override wins; in explore mode the user's live selection wins. */
     var stepBase = s.baseMap || null;
     var effectiveBase = stepBase || viewerBaseMap;
     var needSwitch = effectiveBase !== currentLoadedBaseMap;
     function go() {
       var z = typeof s.zoom === "number" ? s.zoom : 6;
       var pitch = config.terrain ? 42 : 0;
+      lastFlownIndex = i;
+      applyStepOverlays(i);
       if (animate === false) {
         map.jumpTo({ center: [s.lng, s.lat], zoom: z, pitch: pitch });
       } else {
@@ -1077,14 +1289,6 @@
           duration: 1200,
           pitch: pitch
         });
-      }
-      lastFlownIndex = i;
-    }
-    function doFly() {
-      if (!map.loaded()) {
-        map.once("load", go);
-      } else {
-        go();
       }
     }
     if (needSwitch) {
@@ -1101,10 +1305,10 @@
         })
         .catch(function (err) {
           console.warn("Step basemap switch failed, falling back:", err);
-          doFly();
+          go();
         });
     } else {
-      doFly();
+      go();
     }
   }
 
@@ -1250,6 +1454,11 @@
           if (storyInteractionMode === "scroll") {
             var stepIdx = getCurrentVisibleStepIndex();
             flyToStep(stepIdx, false);
+          } else {
+            var si = lastFlownIndex >= 0 ? lastFlownIndex : 0;
+            if (config.steps && config.steps.length) {
+              applyStepOverlays(Math.min(si, config.steps.length - 1));
+            }
           }
         });
       })
@@ -1367,6 +1576,7 @@
     .then(function (data) {
       config = normalizeConfig(data);
       viewerBaseMap = config.baseMap;
+      /* Initialise currentLoadedBaseMap to the actual basemap the initMap call will load. */
       var firstStep = config.steps && config.steps[0];
       currentLoadedBaseMap = (firstStep && firstStep.baseMap) ? firstStep.baseMap : viewerBaseMap;
       applyCardBackgroundOpacity();
@@ -1374,7 +1584,6 @@
         renderStory();
         lastFlownIndex = -1;
         if (config.steps[0]) flyToStep(0, false);
-        lastFlownIndex = -1;
       });
     })
     .catch(function (err) {

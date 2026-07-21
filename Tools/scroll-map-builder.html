@@ -732,6 +732,7 @@
         <label for="story-select">Story</label>
         <select id="story-select" aria-label="Current story"></select>
         <button type="button" class="btn" id="btn-new-story">New story</button>
+        <a id="btn-view-story" class="btn hidden" href="#" target="_blank" rel="noopener noreferrer">View</a>
         <button type="button" class="btn btn-danger" id="btn-delete-story">Delete</button>
       </div>
       <p id="story-api-hint" class="api-offline-hint hidden" role="status">
@@ -1053,11 +1054,23 @@
   /** After a successful save, remember so Preview stays visible if the dev server reloads the page. */
   var PREVIEW_SESSION_KEY = "mapsandcards-builder-preview-slug";
 
+  function updateViewButton(slug) {
+    var viewBtn = el("btn-view-story");
+    if (!viewBtn) return;
+    if (slug) {
+      viewBtn.href = "/Stories/" + encodeURIComponent(slug) + "/scroll-map-story.html";
+      viewBtn.classList.remove("hidden");
+    } else {
+      viewBtn.classList.add("hidden");
+    }
+  }
+
   function showPreviewLinkForStory(slug) {
     var preview = el("preview-story-link");
     if (!preview || !slug) return;
     preview.href = "/story-viewer.html?story=" + encodeURIComponent(slug);
     preview.classList.remove("hidden");
+    updateViewButton(slug);
     try {
       sessionStorage.setItem(PREVIEW_SESSION_KEY, slug);
     } catch (e) {}
@@ -1066,6 +1079,7 @@
   function restorePreviewLinkAfterLoad() {
     var preview = el("preview-story-link");
     if (!preview || !currentSlug) return;
+    updateViewButton(currentSlug);
     try {
       var saved = sessionStorage.getItem(PREVIEW_SESSION_KEY);
       if (saved === currentSlug) {
@@ -2072,6 +2086,7 @@
         syncStorySelectValue();
         showStoryApiHint();
         restorePreviewLinkAfterLoad();
+        updateViewButton(currentSlug);
         then();
       });
   }

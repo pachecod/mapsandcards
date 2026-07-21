@@ -62,6 +62,14 @@
     li:last-child {
       border-bottom: none;
     }
+    li .story-row {
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+    li .story-row a {
+      flex: 1;
+    }
     a {
       display: block;
       padding: 0.75rem 1rem;
@@ -79,6 +87,24 @@
       font-size: 0.75rem;
       font-family: ui-monospace, monospace;
       color: var(--muted);
+    }
+    .btn-view {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.4rem 0.75rem;
+      margin-right: 0.75rem;
+      font-size: 0.8rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--accent);
+      text-decoration: none;
+      white-space: nowrap;
+      transition: background 0.12s ease, border-color 0.12s ease;
+    }
+    .btn-view:hover {
+      background: rgba(61, 139, 253, 0.15);
+      border-color: var(--accent);
     }
     .empty-hint {
       padding: 0.75rem 1rem;
@@ -121,14 +147,24 @@
 
   function addStory(slug) {
     var li = document.createElement("li");
+    var row = document.createElement("div");
+    row.className = "story-row";
     var a = document.createElement("a");
-    a.href = "/story-viewer.html?story=" + encodeURIComponent(slug);
+    a.href = "/Tools/scroll-map-builder.html?story=" + encodeURIComponent(slug);
     a.textContent = slug;
     var path = document.createElement("span");
     path.className = "path";
-    path.textContent = "/story-viewer.html?story=" + slug;
+    path.textContent = "Edit in builder";
     a.appendChild(path);
-    li.appendChild(a);
+    var viewLink = document.createElement("a");
+    viewLink.href = "/Stories/" + encodeURIComponent(slug) + "/scroll-map-story.html";
+    viewLink.className = "btn-view";
+    viewLink.target = "_blank";
+    viewLink.rel = "noopener noreferrer";
+    viewLink.textContent = "View";
+    row.appendChild(a);
+    row.appendChild(viewLink);
+    li.appendChild(row);
     ul.appendChild(li);
   }
 

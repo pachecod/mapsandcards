@@ -1,0 +1,30 @@
+databases:
+  - name: mapsandcards-db
+    plan: free
+    databaseName: mapsandcards
+    postgresMajorVersion: 16
+
+services:
+  - type: web
+    name: mapsandcards
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm run db:migrate && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: mapsandcards-db
+          property: connectionString
+      - key: DATABASE_SSL
+        value: "true"
+      - key: B2_KEY_ID
+        sync: false
+      - key: B2_APP_KEY
+        sync: false
+      - key: B2_BUCKET_NAME
+        sync: false
+      - key: B2_BUCKET_ID
+        sync: false

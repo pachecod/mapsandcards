@@ -2906,7 +2906,7 @@
       alert("Delete requires the dev server. Run \"npm run dev\" first.");
       return;
     }
-    if (!confirm("Delete story \"" + currentSlug + "\"?\n\nThis permanently removes the Stories/" + currentSlug + "/ folder. This cannot be undone.")) {
+    if (!confirm("Are you sure you want to delete \"" + currentSlug + "\"?\n\nThis cannot be undone.")) {
       return;
     }
     fetch("/__story-api/delete", {

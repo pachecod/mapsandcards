@@ -238,6 +238,45 @@
       color: var(--m-white);
     }
 
+    .video-section {
+      width: min(900px, calc(100% - 2rem));
+      margin: 0 auto 3.5rem;
+      text-align: center;
+    }
+    .video-section .section-head {
+      margin-bottom: 1.25rem;
+    }
+    .video-frame {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: #0a0a0a;
+      box-shadow:
+        0 0 0 1px rgba(74, 222, 128, 0.06),
+        0 18px 50px rgba(0, 0, 0, 0.65),
+        0 0 60px rgba(74, 222, 128, 0.08);
+    }
+    .video-frame iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+    }
+    .video-link {
+      display: inline-block;
+      margin-top: 0.85rem;
+      font-size: 0.8rem;
+      color: var(--m-muted);
+      text-decoration: underline;
+      text-underline-offset: 0.15em;
+    }
+    .video-link:hover { color: var(--m-green); }
+
     .section {
       width: min(1260px, calc(100% - 2rem));
       margin: 0 auto;
@@ -458,6 +497,28 @@
         <a class="cta cta-ghost" href="/Tools/scroll-map-builder.html">Full editor</a>
       </div>
     </div>
+
+    <section class="video-section" id="watch" aria-labelledby="watch-heading">
+      <div class="section-head centered">
+        <h2 class="section-title" id="watch-heading">See it in action</h2>
+      </div>
+      <div class="video-frame">
+        <iframe
+          src="https://www.youtube-nocookie.com/embed/dKXjAFKlGqc"
+          title="Maps &amp; Cards demo video"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          referrerpolicy="strict-origin-when-cross-origin"
+          allowfullscreen
+          loading="lazy"
+        ></iframe>
+      </div>
+      <a
+        class="video-link"
+        href="https://www.youtube.com/watch?v=dKXjAFKlGqc"
+        target="_blank"
+        rel="noopener noreferrer"
+      >Watch on YouTube</a>
+    </section>
 
     <section class="section" id="stories" aria-labelledby="stories-heading">
       <div class="section-head centered">

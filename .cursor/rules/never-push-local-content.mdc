@@ -1,0 +1,14 @@
+---
+description: Never commit or push Stories, env files, or inspiring/
+alwaysApply: true
+---
+
+# Do not push local-only content
+
+Never stage, commit, or push any of the following:
+
+- **`Stories/`** — all story folders and their generated HTML/JSON
+- **Environment variables** — `.env`, `.env.*`, credentials, secrets (`.env.example` templates only are OK)
+- **`inspiring/`** — reference/inspiration code and assets
+
+When committing or pushing, exclude these paths even if they appear modified or untracked. Prefer updating `.gitignore` over adding them to the repo. If they are already tracked, untrack with `git rm --cached` and leave local files intact.

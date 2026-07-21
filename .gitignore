@@ -4,4 +4,7 @@ dist/
 .DS_Store
 Exports/
 inspiring/
+Stories/
 .env
+.env.*
+!.env.example

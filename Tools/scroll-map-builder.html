@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Scroll map story — builder v1.2</title>
-  <link href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" crossorigin="" />
+  <title>Scroll map story — builder v1.5</title>
+  <link href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.css" rel="stylesheet" crossorigin="" />
   <link
     href="https://cdn.jsdelivr.net/npm/@mapbox/mapbox-gl-draw@1.4.3/dist/mapbox-gl-draw.css"
     rel="stylesheet"
@@ -348,11 +348,25 @@
     .build-panel-main {
       flex: 1 1 auto;
       min-height: 0;
-      overflow-y: auto;
+      overflow-y: scroll;
       display: flex;
       flex-direction: column;
       gap: 0.75rem;
       padding-bottom: 0.75rem;
+    }
+    .build-panel-main::-webkit-scrollbar {
+      width: 8px;
+    }
+    .build-panel-main::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+    }
+    .build-panel-main::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.18);
+      border-radius: 4px;
+    }
+    .build-panel-main::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.3);
     }
     .build-panel-footer {
       flex-shrink: 0;
@@ -373,8 +387,7 @@
     .annotate-panel[hidden] {
       display: none !important;
     }
-    .preferences-toggle-btn,
-    .annotate-toggle-btn {
+    .preferences-toggle-btn {
       width: 100%;
     }
     @media (max-width: 900px) {
@@ -606,6 +619,13 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+    .annotation-editor {
+      margin-top: 0.45rem;
+      padding: 0.5rem;
+      border-top: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.15);
+      border-radius: 0 0 6px 6px;
+    }
     .annotate-advanced {
       margin-top: 0.5rem;
       border-top: 1px solid var(--border);
@@ -715,6 +735,67 @@
       box-sizing: border-box;
     }
     .text-prompt-actions { margin-top: 0.25rem; }
+    .new-story-modal .text-prompt-panel {
+      width: min(32rem, 100%);
+      max-height: min(90vh, 40rem);
+      overflow-y: auto;
+    }
+    .new-story-modal .ns-field {
+      margin: 0 0 0.75rem;
+    }
+    .new-story-modal .ns-field label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 0.3rem;
+    }
+    .new-story-modal .ns-field select,
+    .new-story-modal .ns-field textarea,
+    .new-story-modal .ns-field input[type="text"],
+    .new-story-modal .ns-field input[type="color"] {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 0.45rem 0.55rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 0.875rem;
+    }
+    .new-story-modal .ns-field input[type="color"] {
+      max-width: 10rem;
+      height: 2.2rem;
+      padding: 0.15rem;
+      cursor: pointer;
+    }
+    .new-story-modal .ns-check {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.45rem;
+      font-size: 0.8rem;
+      color: var(--text);
+      cursor: pointer;
+      line-height: 1.4;
+    }
+    .new-story-modal .ns-check input {
+      margin-top: 0.15rem;
+    }
+    .new-story-modal .ns-opacity-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .new-story-modal .ns-opacity-row input[type="range"] {
+      flex: 1;
+    }
+    .new-story-modal .ns-section-label {
+      margin: 0.85rem 0 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
     .map-load-error {
       margin: 0.35rem 0 0;
       font-size: 0.8rem;
@@ -727,7 +808,7 @@
   <a href="/index.html" class="back-home">Home</a>
   <header class="topbar">
     <div class="topbar-left">
-      <h1>Scroll map story — builder <span class="builder-version">v1.2</span></h1>
+      <h1>Scroll map story — builder <span class="builder-version">v1.5</span></h1>
       <div class="story-toolbar">
         <label for="story-select">Story</label>
         <select id="story-select" aria-label="Current story"></select>
@@ -770,15 +851,58 @@
         <button type="button" class="btn" id="btn-move-down">Move down</button>
       </div>
       <div>
-        <span class="coords" style="display:block;margin-bottom:0.35rem">Locations</span>
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.35rem">
+          <span class="coords" style="flex:1">Locations</span>
+          <button type="button" class="btn" id="btn-prev-step" style="padding:0.3rem 0.6rem;font-size:0.75rem">&larr; Prev</button>
+          <button type="button" class="btn" id="btn-next-step" style="padding:0.3rem 0.6rem;font-size:0.75rem">Next &rarr;</button>
+        </div>
         <div class="step-list" id="step-list" role="group" aria-label="Locations"></div>
         <p class="coords" id="step-coords" style="margin: 0.35rem 0 0"></p>
       </div>
-      <div class="field">
-        <label for="step-basemap-select">Base map for this location</label>
-        <select id="step-basemap-select" aria-label="Base map override for this location">
-          <option value="">— Default (use story default) —</option>
-        </select>
+      <div class="row" style="align-items:flex-end">
+        <div class="field" style="flex:1;margin:0;min-width:0">
+          <label for="step-basemap-select" style="font-size:0.78rem">Base map</label>
+          <select id="step-basemap-select" aria-label="Base map override for this location">
+            <option value="">— Default —</option>
+          </select>
+        </div>
+        <button
+          type="button"
+          class="btn annotate-toggle-btn"
+          id="btn-annotate-toggle"
+          aria-expanded="false"
+          aria-controls="annotate-panel"
+          style="flex:0 0 auto"
+        >
+          Annotate
+        </button>
+      </div>
+      <div class="annotate-panel" id="annotate-panel" role="region" aria-label="Map annotation" hidden>
+        <div class="field">
+          <div class="row" style="align-items:center;margin-bottom:0.35rem">
+            <span class="coords" style="flex:0 0 auto;margin:0">Add annotation:</span>
+            <button type="button" class="btn" id="btn-draw-marker" title="Click map to place a marker (optional text)">Marker</button>
+            <button type="button" class="btn" id="btn-add-label" title="Click map to place a text label (optional marker)">Label</button>
+          </div>
+          <p class="coords draw-tools-hint" id="draw-tools-hint" aria-live="polite"></p>
+          <span class="coords" style="display: block; margin-top: 0.35rem; margin-bottom: 0.25rem">Existing annotations</span>
+          <ul class="overlay-feature-list" id="overlay-feature-list" aria-label="Overlay features"></ul>
+          <details class="annotate-advanced">
+            <summary>GeoJSON</summary>
+            <div class="annotate-advanced-body">
+              <label for="overlay-geojson" class="coords" style="display: block; margin-bottom: 0.25rem">FeatureCollection JSON</label>
+              <textarea id="overlay-geojson" rows="5" placeholder='{"type":"FeatureCollection","features":[]}'></textarea>
+              <p class="coords" id="overlay-json-error" hidden></p>
+              <div class="row" style="margin-top: 0.35rem">
+                <button type="button" class="btn" id="btn-apply-overlay-json">Apply</button>
+                <label class="btn" style="display: inline-block; margin: 0">
+                  Import file
+                  <input id="overlay-import-file" type="file" accept=".json,.geojson,application/geo+json" class="hidden" />
+                </label>
+              </div>
+            </div>
+          </details>
+        </div>
       </div>
       <div class="field card-content-field">
         <span class="coords" style="display: block; margin-bottom: 0.35rem">Card content</span>
@@ -799,44 +923,6 @@
         <label for="card-text" class="hidden">Card HTML</label>
         <textarea id="card-text" class="hidden" rows="14" spellcheck="false"></textarea>
       </div>
-      <button
-        type="button"
-        class="btn annotate-toggle-btn"
-        id="btn-annotate-toggle"
-        aria-expanded="false"
-        aria-controls="annotate-panel"
-      >
-        Annotate
-      </button>
-      <div class="annotate-panel" id="annotate-panel" role="region" aria-label="Map annotation" hidden>
-        <div class="field">
-          <span class="coords" style="display: block; margin-bottom: 0.35rem">Map overlays</span>
-          <div class="row">
-            <button type="button" class="btn" id="btn-draw-marker" title="Click map to place a marker">
-              Marker
-            </button>
-            <button type="button" class="btn" id="btn-add-label" title="Label at map center">Label</button>
-          </div>
-          <p class="coords draw-tools-hint" id="draw-tools-hint" aria-live="polite"></p>
-          <span class="coords" style="display: block; margin-top: 0.5rem">List</span>
-          <ul class="overlay-feature-list" id="overlay-feature-list" aria-label="Overlay features"></ul>
-          <details class="annotate-advanced">
-            <summary>GeoJSON</summary>
-            <div class="annotate-advanced-body">
-              <label for="overlay-geojson" class="coords" style="display: block; margin-bottom: 0.25rem">FeatureCollection JSON</label>
-              <textarea id="overlay-geojson" rows="5" placeholder='{"type":"FeatureCollection","features":[]}'></textarea>
-              <p class="coords" id="overlay-json-error" hidden></p>
-              <div class="row" style="margin-top: 0.35rem">
-                <button type="button" class="btn" id="btn-apply-overlay-json">Apply</button>
-                <label class="btn" style="display: inline-block; margin: 0">
-                  Import file
-                  <input id="overlay-import-file" type="file" accept=".json,.geojson,application/geo+json" class="hidden" />
-                </label>
-              </div>
-            </div>
-          </details>
-        </div>
-      </div>
       </div>
       <div class="build-panel-footer">
       <div class="row">
@@ -855,6 +941,14 @@
         <div class="field">
           <label for="base-map-select">Base map</label>
           <select id="base-map-select" aria-label="Base map style"></select>
+        </div>
+        <div class="field">
+          <label for="projection-select">Map projection</label>
+          <select id="projection-select" aria-label="Map projection">
+            <option value="mercator">Flat (Mercator)</option>
+            <option value="globe">Globe</option>
+          </select>
+          <p class="coords" style="margin:0.35rem 0 0">Default for new stories is Globe. Flat uses a Mercator map.</p>
         </div>
         <div class="field terrain-field">
           <label style="display:flex;align-items:flex-start;gap:0.5rem;cursor:pointer;font-size:0.875rem">
@@ -928,7 +1022,69 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.min.js" crossorigin=""></script>
+  <div id="new-story-modal" class="text-prompt-modal new-story-modal" hidden>
+    <div class="text-prompt-backdrop" aria-hidden="true"></div>
+    <div
+      class="text-prompt-panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="new-story-title"
+    >
+      <h2 id="new-story-title" class="text-prompt-title">New story</h2>
+      <p class="text-prompt-message">
+        Story name: lowercase letters, numbers, and hyphens only. Example: my-road-trip
+      </p>
+      <div class="ns-field">
+        <label for="ns-slug">Story name</label>
+        <input type="text" id="ns-slug" placeholder="my-road-trip" autocomplete="off" spellcheck="false" />
+      </div>
+      <p class="ns-section-label">Global options</p>
+      <div class="ns-field">
+        <label for="ns-basemap">Base map</label>
+        <select id="ns-basemap" aria-label="Base map style"></select>
+      </div>
+      <div class="ns-field">
+        <label for="ns-projection">Map projection</label>
+        <select id="ns-projection" aria-label="Map projection">
+          <option value="globe">Globe</option>
+          <option value="mercator">Flat (Mercator)</option>
+        </select>
+      </div>
+      <div class="ns-field">
+        <label class="ns-check">
+          <input type="checkbox" id="ns-terrain" />
+          <span>3D terrain (MapLibre demo — free, no key)</span>
+        </label>
+      </div>
+      <div class="ns-field" id="ns-satellite-labels-field">
+        <label class="ns-check">
+          <input type="checkbox" id="ns-satellite-labels" checked />
+          <span>Show place names on satellite</span>
+        </label>
+      </div>
+      <div class="ns-field">
+        <label for="ns-sources">Sources (HTML)</label>
+        <textarea id="ns-sources" rows="3" placeholder="Optional credits / sources HTML"></textarea>
+      </div>
+      <div class="ns-field">
+        <label for="ns-card-color">Card background color</label>
+        <input type="color" id="ns-card-color" value="#ffffff" />
+      </div>
+      <div class="ns-field">
+        <label for="ns-card-opacity">Card background opacity</label>
+        <div class="ns-opacity-row">
+          <input type="range" id="ns-card-opacity" min="0" max="100" step="1" value="86" />
+          <span class="coords" id="ns-card-opacity-value">86%</span>
+        </div>
+      </div>
+      <div class="text-prompt-actions row">
+        <button type="button" class="btn" id="ns-cancel">Cancel</button>
+        <button type="button" class="btn primary" id="ns-ok">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.min.js" crossorigin=""></script>
   <script src="https://cdn.jsdelivr.net/npm/@mapbox/mapbox-gl-draw@1.4.3/dist/mapbox-gl-draw.js" crossorigin=""></script>
   <script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js" crossorigin=""></script>
   <script>
@@ -957,6 +1113,7 @@
   function buildSatelliteEsriStyle(showLabels) {
     var style = {
       version: 8,
+      glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
       sources: {
         esri_world: {
           type: "raster",
@@ -1003,6 +1160,7 @@
     version: 1,
     baseMap: "openfreemap-bright",
     terrain: false,
+    projection: "globe",
     satelliteLabels: true,
     sources: "",
     cardBackgroundColor: "#ffffff",
@@ -1047,6 +1205,7 @@
   var drawControl = null;
   var drawCreateWired = false;
   var markerPlacementMode = false;
+  var placementKind = "marker"; /* "marker" or "label" */
   var currentBuilderBaseMap = null; /** tracks which basemap the builder map currently shows */
   var cardQuill = null;
   var cardEditorMode = "visual";
@@ -1093,7 +1252,6 @@
   var STORY_OV_LAYERS = [
     "story-ov-symbol",
     "story-ov-circle",
-    "story-ov-circle-label",
     "story-ov-line",
     "story-ov-line-poly",
     "story-ov-fill"
@@ -1160,7 +1318,7 @@
         }
       } catch (e) {}
       try {
-        map.setPitch(0);
+        if (config.projection !== "globe") map.setPitch(0);
       } catch (e2) {}
       return;
     }
@@ -1177,6 +1335,24 @@
     } catch (e) {
       console.warn("Terrain:", e);
     }
+  }
+
+  function applyProjectionIfNeeded() {
+    if (!map || typeof map.setProjection !== "function") return;
+    var type = config.projection === "globe" ? "globe" : "mercator";
+    try {
+      var cur = map.getProjection && map.getProjection();
+      if (cur && cur.type === type) return;
+      map.setProjection({ type: type });
+    } catch (e) {
+      console.warn("Projection:", e);
+    }
+  }
+
+  function syncProjectionSelect() {
+    var sel = el("projection-select");
+    if (!sel || !config) return;
+    sel.value = config.projection === "globe" ? "globe" : "mercator";
   }
 
   function syncTerrainToggle() {
@@ -1247,13 +1423,14 @@
     currentBuilderBaseMap = targetBaseMap;
     getBaseMapStylePromise(targetBaseMap)
       .then(function (style) {
-        map.setStyle(style);
-        map.once("style.load", function () {
+        map.once("idle", function () {
           applyEnglishLabels(map);
+          applyProjectionIfNeeded();
           applyTerrainIfNeeded();
           map.resize();
           applyStepOverlays(stepIndex);
         });
+        map.setStyle(style);
       })
       .catch(function (err) {
         console.error("Step basemap switch failed:", err);
@@ -1302,6 +1479,9 @@
     if (typeof data.terrain !== "boolean") {
       data.terrain = false;
     }
+    if (data.projection !== "globe" && data.projection !== "mercator") {
+      data.projection = "mercator";
+    }
     if (typeof data.satelliteLabels !== "boolean") {
       data.satelliteLabels = true;
     }
@@ -1344,20 +1524,28 @@
       if (!f || !f.properties || !f.geometry || f.geometry.type !== "Point") return;
       var p = f.properties;
       if (typeof p.radius !== "number" || p.radius < 1) p.radius = 8;
-      var isLabel =
-        p.kind === "label" ||
+      var hasText =
         (typeof p.text === "string" && p.text.trim() !== "") ||
         (typeof p.title === "string" && p.title.trim() !== "");
-      if (!isLabel) {
-        if (!p.color) p.color = "#3388ff";
-        return;
+      if (!p.kind) {
+        p.kind = hasText ? "label" : "marker";
       }
-      if (p.color === "#111111" || p.color === "#1a1a1a") {
-        p.color = "#f0f0f0";
+      /* Marker = dot by default; Label = text by default (no dot unless opted in). */
+      if (typeof p.showDot !== "boolean") {
+        p.showDot = p.kind !== "label";
+      }
+      if (p.showDot) {
+        if (!p.dotColor) p.dotColor = p.color && p.kind === "marker" ? p.color : "#3388ff";
+        if (p.kind === "marker" && !p.color) p.color = p.dotColor;
+      }
+      if (hasText) {
+        if (p.color === "#111111" || p.color === "#1a1a1a" || (p.kind === "label" && p.color === "#3388ff")) {
+          p.color = "#f0f0f0";
+        }
+        if (!p.color) p.color = "#f0f0f0";
         p.haloColor = p.haloColor || "#0f1419";
-      }
-      if (!p.dotColor) {
-        p.dotColor = "#3388ff";
+      } else if (p.kind === "marker" && !p.color) {
+        p.color = "#3388ff";
       }
     });
   }
@@ -1386,11 +1574,12 @@
         var hasText =
           (typeof p.text === "string" && p.text.trim() !== "") ||
           (typeof p.title === "string" && p.title.trim() !== "");
-        if (p.kind === "label" || hasText) {
-          ptLabel.features.push(f);
-        } else {
-          ptMark.features.push(f);
-        }
+        var wantDot = typeof p.showDot === "boolean"
+          ? p.showDot
+          : (p.kind !== "label");
+        if (wantDot) ptMark.features.push(f);
+        if (hasText) ptLabel.features.push(f);
+        if (!wantDot && !hasText) ptMark.features.push(f);
       }
     });
     return { poly: poly, lines: lines, ptMark: ptMark, ptLabel: ptLabel };
@@ -1410,7 +1599,10 @@
         for (var i = 0; i < style.layers.length; i++) {
           var l = style.layers[i];
           if (l.type === "symbol" && l.layout && Array.isArray(l.layout["text-font"])) {
-            return l.layout["text-font"];
+            var tf = l.layout["text-font"];
+            if (tf.length > 0 && typeof tf[0] === "string" && tf[0].indexOf(" ") > 0) {
+              return tf;
+            }
           }
         }
       }
@@ -1458,17 +1650,6 @@
         id: "story-ov-circle", type: "circle", source: OV_SRC_PTM,
         paint: {
           "circle-radius": ["coalesce", ["get", "radius"], 8],
-          "circle-color": ["coalesce", ["get", "color"], "#3388ff"],
-          "circle-stroke-width": 2,
-          "circle-stroke-color": "#ffffff"
-        }
-      });
-    }
-    if (!map.getLayer("story-ov-circle-label")) {
-      map.addLayer({
-        id: "story-ov-circle-label", type: "circle", source: OV_SRC_PTL,
-        paint: {
-          "circle-radius": ["coalesce", ["get", "radius"], 8],
           "circle-color": ["coalesce", ["get", "dotColor"], ["get", "color"], "#3388ff"],
           "circle-stroke-width": 2,
           "circle-stroke-color": "#ffffff"
@@ -1482,8 +1663,18 @@
           "text-field": ["to-string", ["coalesce", ["get", "text"], ["get", "title"], ""]],
           "text-font": getStyleFont(),
           "text-size": 16,
-          "text-anchor": "bottom",
-          "text-offset": [0, -1.5],
+          "text-anchor": [
+            "case",
+            ["boolean", ["get", "showDot"], false],
+            "bottom",
+            "center"
+          ],
+          "text-offset": [
+            "case",
+            ["boolean", ["get", "showDot"], false],
+            ["literal", [0, -1.5]],
+            ["literal", [0, 0]]
+          ],
           "text-allow-overlap": true
         },
         paint: {
@@ -1538,8 +1729,9 @@
     } catch (err) {}
   }
 
-  function setMarkerPlacementMode(on) {
+  function setMarkerPlacementMode(on, kind) {
     markerPlacementMode = !!on;
+    if (kind) placementKind = kind;
     if (map) {
       var canvas = map.getCanvas();
       if (canvas) canvas.style.cursor = markerPlacementMode ? "crosshair" : "";
@@ -1553,11 +1745,19 @@
   function updateDrawToolUi() {
     var hint = el("draw-tools-hint");
     var markerBtn = el("btn-draw-marker");
-    if (markerBtn) markerBtn.classList.toggle("primary", markerPlacementMode);
+    var labelBtn = el("btn-add-label");
+    var isMarker = markerPlacementMode && placementKind === "marker";
+    var isLabel = markerPlacementMode && placementKind === "label";
+    if (markerBtn) markerBtn.classList.toggle("primary", isMarker);
+    if (labelBtn) labelBtn.classList.toggle("primary", isLabel);
     if (hint) {
-      hint.textContent = markerPlacementMode
-        ? "Marker: click the map. You’ll be asked for a name or label (optional). Esc exits placement mode."
-        : "";
+      if (isMarker) {
+        hint.textContent = "Click the map to place a marker. You can optionally add text. Press Esc to cancel.";
+      } else if (isLabel) {
+        hint.textContent = "Click the map to place a text label. You can optionally add a marker. Press Esc to cancel.";
+      } else {
+        hint.textContent = "";
+      }
     }
   }
 
@@ -1636,6 +1836,141 @@
   }
 
   /**
+   * New story dialog: folder name + global options.
+   * Resolves with { slug, defaults } or null if cancelled.
+   */
+  function promptNewStoryModal() {
+    return new Promise(function (resolve) {
+      var modal = el("new-story-modal");
+      var slugInput = el("ns-slug");
+      var basemapSel = el("ns-basemap");
+      var projectionSel = el("ns-projection");
+      var terrainCb = el("ns-terrain");
+      var satField = el("ns-satellite-labels-field");
+      var satCb = el("ns-satellite-labels");
+      var sourcesTa = el("ns-sources");
+      var colorInput = el("ns-card-color");
+      var opacityRange = el("ns-card-opacity");
+      var opacityVal = el("ns-card-opacity-value");
+      var okBtn = el("ns-ok");
+      var cancelBtn = el("ns-cancel");
+      var backdrop = modal ? modal.querySelector(".text-prompt-backdrop") : null;
+      if (!modal || !slugInput || !okBtn || !cancelBtn) {
+        resolve(null);
+        return;
+      }
+
+      if (basemapSel && !basemapSel.dataset.populated) {
+        basemapSel.innerHTML = "";
+        BASE_MAPS.forEach(function (b) {
+          var o = document.createElement("option");
+          o.value = b.id;
+          o.textContent = b.label;
+          basemapSel.appendChild(o);
+        });
+        basemapSel.dataset.populated = "1";
+      }
+
+      slugInput.value = "";
+      if (basemapSel) basemapSel.value = DEFAULT_CONFIG.baseMap || "openfreemap-bright";
+      if (projectionSel) projectionSel.value = DEFAULT_CONFIG.projection === "mercator" ? "mercator" : "globe";
+      if (terrainCb) terrainCb.checked = DEFAULT_CONFIG.terrain === true;
+      if (satCb) satCb.checked = DEFAULT_CONFIG.satelliteLabels !== false;
+      if (sourcesTa) sourcesTa.value = typeof DEFAULT_CONFIG.sources === "string" ? DEFAULT_CONFIG.sources : "";
+      if (colorInput) colorInput.value = normalizeCardBackgroundColor(DEFAULT_CONFIG.cardBackgroundColor || "#ffffff");
+      if (opacityRange) {
+        var a = Math.round(normalizeCardBackgroundOpacity(DEFAULT_CONFIG.cardBackgroundOpacity) * 100);
+        opacityRange.value = String(a);
+        if (opacityVal) opacityVal.textContent = a + "%";
+      }
+
+      function syncSatVisibility() {
+        if (!satField || !basemapSel) return;
+        var onSat = basemapSel.value === "esri-satellite";
+        satField.style.display = onSat ? "" : "none";
+        if (satCb) satCb.disabled = !onSat;
+      }
+      syncSatVisibility();
+
+      function onBasemapChange() {
+        syncSatVisibility();
+      }
+      function onOpacityInput() {
+        if (opacityVal) opacityVal.textContent = opacityRange.value + "%";
+      }
+
+      modal.removeAttribute("hidden");
+
+      function cleanup() {
+        okBtn.removeEventListener("click", onOk);
+        cancelBtn.removeEventListener("click", onCancel);
+        if (backdrop) backdrop.removeEventListener("click", onCancel);
+        slugInput.removeEventListener("keydown", onSlugKey);
+        if (basemapSel) basemapSel.removeEventListener("change", onBasemapChange);
+        if (opacityRange) opacityRange.removeEventListener("input", onOpacityInput);
+        document.removeEventListener("keydown", onDocKey, true);
+        modal.setAttribute("hidden", "");
+      }
+
+      function onOk() {
+        var raw = String(slugInput.value).trim();
+        var slug = normalizeSlug(raw);
+        if (!slug || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+          alert("Use only lowercase letters, numbers, and hyphens (e.g. my-story).");
+          slugInput.focus();
+          return;
+        }
+        var opacityPct = opacityRange ? parseInt(opacityRange.value, 10) : 86;
+        if (isNaN(opacityPct)) opacityPct = 86;
+        opacityPct = Math.max(0, Math.min(100, opacityPct));
+        var defaults = {
+          baseMap: basemapSel ? basemapSel.value : DEFAULT_CONFIG.baseMap,
+          projection: projectionSel && projectionSel.value === "mercator" ? "mercator" : "globe",
+          terrain: terrainCb ? !!terrainCb.checked : false,
+          satelliteLabels: satCb ? !!satCb.checked : true,
+          sources: sourcesTa ? sourcesTa.value : "",
+          cardBackgroundColor: colorInput
+            ? normalizeCardBackgroundColor(colorInput.value)
+            : "#ffffff",
+          cardBackgroundOpacity: opacityPct / 100
+        };
+        cleanup();
+        resolve({ slug: slug, defaults: defaults });
+      }
+
+      function onCancel() {
+        cleanup();
+        resolve(null);
+      }
+
+      function onSlugKey(ev) {
+        if (ev.key === "Enter") {
+          ev.preventDefault();
+          onOk();
+        }
+      }
+
+      function onDocKey(ev) {
+        if (ev.key === "Escape") {
+          ev.preventDefault();
+          onCancel();
+        }
+      }
+
+      okBtn.addEventListener("click", onOk);
+      cancelBtn.addEventListener("click", onCancel);
+      if (backdrop) backdrop.addEventListener("click", onCancel);
+      slugInput.addEventListener("keydown", onSlugKey);
+      if (basemapSel) basemapSel.addEventListener("change", onBasemapChange);
+      if (opacityRange) opacityRange.addEventListener("input", onOpacityInput);
+      document.addEventListener("keydown", onDocKey, true);
+      window.setTimeout(function () {
+        slugInput.focus();
+      }, 0);
+    });
+  }
+
+  /**
    * Mapbox Draw listens on the map canvas in bubble phase; our map.on("click") ran too late and
    * never saw the click. A capture-phase listener on the canvas runs first, stops propagation
    * while in marker mode; shows an inline map popup (geojson.io style) so it works everywhere.
@@ -1647,21 +1982,38 @@
     }
   }
 
-  function showMarkerEditPopup(ll, s, featureIndex) {
+  function showMarkerEditPopup(ll, s, featureIndex, isLabelMode) {
     closeMarkerEditPopup();
     var feat = s.overlays.geojson.features[featureIndex];
     var curRadius = (feat && feat.properties && typeof feat.properties.radius === "number")
       ? feat.properties.radius : 8;
     var popupEl = document.createElement("div");
-    popupEl.innerHTML =
-      '<p class="marker-popup-label-hint">Label (optional — leave blank for a dot only)</p>' +
-      '<input type="text" class="marker-popup-input" placeholder="e.g. Times Square" autocomplete="off" />' +
-      '<p class="marker-popup-label-hint" style="margin-top:0.45rem">Marker size: <span class="marker-size-val">' + curRadius + '</span>px</p>' +
-      '<input type="range" class="marker-popup-size" min="4" max="50" value="' + curRadius + '" style="width:100%;margin:0.2rem 0 0.1rem" />' +
-      '<div class="marker-popup-actions">' +
-      '  <button type="button" class="btn" data-action="discard">Discard</button>' +
-      '  <button type="button" class="btn primary" data-action="save">Save</button>' +
-      "</div>";
+    if (isLabelMode) {
+      popupEl.innerHTML =
+        '<p class="marker-popup-label-hint">Label text</p>' +
+        '<input type="text" class="marker-popup-input" placeholder="e.g. Times Square" autocomplete="off" />' +
+        '<label class="marker-popup-label-hint" style="display:flex;align-items:center;gap:0.35rem;margin-top:0.5rem;cursor:pointer">' +
+        '  <input type="checkbox" class="marker-popup-show-dot" /> Add a marker (dot)' +
+        '</label>' +
+        '<div class="marker-popup-dot-opts" style="display:none;margin-top:0.35rem">' +
+        '  <p class="marker-popup-label-hint">Marker size: <span class="marker-size-val">' + curRadius + '</span>px</p>' +
+        '  <input type="range" class="marker-popup-size" min="4" max="50" value="' + curRadius + '" style="width:100%;margin:0.2rem 0 0.1rem" />' +
+        '</div>' +
+        '<div class="marker-popup-actions">' +
+        '  <button type="button" class="btn" data-action="discard">Discard</button>' +
+        '  <button type="button" class="btn primary" data-action="save">Save</button>' +
+        "</div>";
+    } else {
+      popupEl.innerHTML =
+        '<p class="marker-popup-label-hint">Text label (optional)</p>' +
+        '<input type="text" class="marker-popup-input" placeholder="Leave blank for marker only" autocomplete="off" />' +
+        '<p class="marker-popup-label-hint" style="margin-top:0.45rem">Marker size: <span class="marker-size-val">' + curRadius + '</span>px</p>' +
+        '<input type="range" class="marker-popup-size" min="4" max="50" value="' + curRadius + '" style="width:100%;margin:0.2rem 0 0.1rem" />' +
+        '<div class="marker-popup-actions">' +
+        '  <button type="button" class="btn" data-action="discard">Discard</button>' +
+        '  <button type="button" class="btn primary" data-action="save">Save</button>' +
+        "</div>";
+    }
 
     var popup = new maplibregl.Popup({
       closeButton: false,
@@ -1679,8 +2031,15 @@
     var input = popupEl.querySelector(".marker-popup-input");
     var sizeSlider = popupEl.querySelector(".marker-popup-size");
     var sizeLabel = popupEl.querySelector(".marker-size-val");
+    var showDotCb = popupEl.querySelector(".marker-popup-show-dot");
+    var dotOpts = popupEl.querySelector(".marker-popup-dot-opts");
     if (input) window.setTimeout(function () { input.focus(); }, 50);
 
+    if (showDotCb && dotOpts) {
+      showDotCb.addEventListener("change", function () {
+        dotOpts.style.display = showDotCb.checked ? "" : "none";
+      });
+    }
     if (sizeSlider) {
       sizeSlider.addEventListener("input", function () {
         if (sizeLabel) sizeLabel.textContent = sizeSlider.value;
@@ -1697,16 +2056,37 @@
         var t = input ? String(input.value).trim() : "";
         var sz = sizeSlider ? parseInt(sizeSlider.value, 10) : 8;
         if (isNaN(sz) || sz < 1) sz = 8;
-        feat.properties.radius = sz;
-        if (t) {
-          feat.properties.kind = "label";
-          feat.properties.text = t;
+        if (isLabelMode) {
+          if (!t) {
+            s.overlays.geojson.features.splice(featureIndex, 1);
+          } else {
+            feat.properties.kind = "label";
+            feat.properties.text = t;
+            feat.properties.color = "#f0f0f0";
+            feat.properties.haloColor = "#0f1419";
+            var addDot = showDotCb && showDotCb.checked;
+            feat.properties.showDot = !!addDot;
+            if (addDot) {
+              feat.properties.radius = sz;
+              feat.properties.dotColor = feat.properties.dotColor || "#3388ff";
+            }
+          }
+        } else {
+          feat.properties.kind = "marker";
+          feat.properties.showDot = true;
+          feat.properties.radius = sz;
           feat.properties.dotColor = feat.properties.dotColor || "#3388ff";
-          feat.properties.color = "#f0f0f0";
-          feat.properties.haloColor = "#0f1419";
+          if (t) {
+            feat.properties.text = t;
+            feat.properties.color = "#f0f0f0";
+            feat.properties.haloColor = "#0f1419";
+          } else {
+            delete feat.properties.text;
+            feat.properties.color = feat.properties.dotColor;
+          }
         }
       }
-      saveConfig();
+      saveNow();
       syncOverlayFieldsFromStep();
       renderOverlayFeatureList();
       applyStepOverlays(selectedIndex);
@@ -1738,6 +2118,28 @@
     canvas.addEventListener(
       "click",
       function (domEv) {
+        /* Reposition annotation: capture before MapLibre handlers. */
+        if (_moveFeatureIndex >= 0 && config && config.steps[selectedIndex]) {
+          domEv.stopPropagation();
+          domEv.stopImmediatePropagation();
+          var containerM = map.getContainer();
+          var rectM = containerM.getBoundingClientRect();
+          var xm = domEv.clientX - rectM.left;
+          var ym = domEv.clientY - rectM.top;
+          var llm = map.unproject([xm, ym]);
+          var stepM = config.steps[selectedIndex];
+          ensureStepOverlays(stepM);
+          var featM = stepM.overlays.geojson.features[_moveFeatureIndex];
+          if (featM && featM.geometry && featM.geometry.type === "Point") {
+            featM.geometry.coordinates = [llm.lng, llm.lat];
+            saveNow();
+            syncOverlayFieldsFromStep();
+            renderOverlayFeatureList();
+            applyStepOverlays(selectedIndex);
+          }
+          if (_moveAnnotationCleanup) _moveAnnotationCleanup();
+          return;
+        }
         if (!markerPlacementMode || !config || !config.steps[selectedIndex]) return;
         domEv.stopPropagation();
         domEv.stopImmediatePropagation();
@@ -1749,13 +2151,22 @@
         var s = config.steps[selectedIndex];
         ensureStepOverlays(s);
         var featureIndex = s.overlays.geojson.features.length;
-        s.overlays.geojson.features.push({
-          type: "Feature",
-          properties: { kind: "marker", color: "#3388ff" },
-          geometry: { type: "Point", coordinates: [ll.lng, ll.lat] }
-        });
+        var isLabelMode = placementKind === "label";
+        if (isLabelMode) {
+          s.overlays.geojson.features.push({
+            type: "Feature",
+            properties: { kind: "label", showDot: false, color: "#f0f0f0", haloColor: "#0f1419" },
+            geometry: { type: "Point", coordinates: [ll.lng, ll.lat] }
+          });
+        } else {
+          s.overlays.geojson.features.push({
+            type: "Feature",
+            properties: { kind: "marker", showDot: true, dotColor: "#3388ff" },
+            geometry: { type: "Point", coordinates: [ll.lng, ll.lat] }
+          });
+        }
         applyStepOverlays(selectedIndex);
-        showMarkerEditPopup(ll, s, featureIndex);
+        showMarkerEditPopup(ll, s, featureIndex, isLabelMode);
       },
       true
     );
@@ -1781,7 +2192,7 @@
       function afterSave(addedAny) {
         deleteAllDrawFeats();
         if (!addedAny) return;
-        saveConfig();
+        saveNow();
         syncOverlayFieldsFromStep();
         renderOverlayFeatureList();
         applyStepOverlays(selectedIndex);
@@ -1819,12 +2230,17 @@
               }
               t = String(t).trim();
               if (t) {
-                f.properties.kind = "label";
+                f.properties.kind = "marker";
+                f.properties.showDot = true;
                 f.properties.text = t;
-                if (!f.properties.color) f.properties.color = "#f0f0f0";
-                if (!f.properties.haloColor) f.properties.haloColor = "#0f1419";
+                f.properties.dotColor = f.properties.dotColor || "#3388ff";
+                f.properties.color = "#f0f0f0";
+                f.properties.haloColor = "#0f1419";
               } else {
                 f.properties.kind = "marker";
+                f.properties.showDot = true;
+                f.properties.dotColor = f.properties.dotColor || "#3388ff";
+                f.properties.color = f.properties.dotColor;
               }
               s.overlays.geojson.features.push(f);
               return true;
@@ -1892,33 +2308,334 @@
     feats.forEach(function (f, idx) {
       var g = f.geometry && f.geometry.type;
       var k = (f.properties && f.properties.kind) || g || "feature";
-      var summary = g || "";
-      if (f.properties && f.properties.text) summary += ": " + String(f.properties.text).slice(0, 40);
+      var summary = "";
+      var hasText = f.properties && f.properties.text;
+      var hasDot = f.properties && (typeof f.properties.showDot === "boolean"
+        ? f.properties.showDot
+        : k !== "label");
+      if (hasText) {
+        summary = String(f.properties.text).slice(0, 40);
+        if (k === "label" && hasDot) summary += " (+marker)";
+      } else if (k === "marker" || hasDot) {
+        summary = "marker only";
+      } else {
+        summary = g || "";
+      }
       var li = document.createElement("li");
       var meta = document.createElement("span");
       meta.className = "of-meta";
       meta.textContent = idx + 1 + ". " + k + " — " + summary;
+      var btnWrap = document.createElement("span");
+      btnWrap.style.cssText = "display:flex;gap:0.3rem;flex-shrink:0";
+      if (g === "Point") {
+        var editBtn = document.createElement("button");
+        editBtn.type = "button";
+        editBtn.className = "btn";
+        editBtn.textContent = "Edit";
+        editBtn.addEventListener("click", function () {
+          toggleAnnotationEditor(li, f, idx);
+        });
+        btnWrap.appendChild(editBtn);
+        var moveBtn = document.createElement("button");
+        moveBtn.type = "button";
+        moveBtn.className = "btn";
+        moveBtn.textContent = "Move";
+        moveBtn.addEventListener("click", function () {
+          startMoveAnnotation(idx);
+        });
+        btnWrap.appendChild(moveBtn);
+      }
       var btn = document.createElement("button");
       btn.type = "button";
       btn.className = "btn";
       btn.textContent = "Remove";
       btn.addEventListener("click", function () {
         feats.splice(idx, 1);
-        saveConfig();
+        saveNow();
         syncOverlayFieldsFromStep();
         renderOverlayFeatureList();
         applyStepOverlays(selectedIndex);
       });
+      btnWrap.appendChild(btn);
       li.appendChild(meta);
-      li.appendChild(btn);
+      li.appendChild(btnWrap);
       ul.appendChild(li);
     });
+  }
+
+  function toggleAnnotationEditor(li, feat, idx) {
+    var existing = li.querySelector(".annotation-editor");
+    if (existing) { existing.remove(); return; }
+    var p = feat.properties || {};
+    var isLabel = p.kind === "label";
+    var hasDot = typeof p.showDot === "boolean" ? p.showDot : !isLabel;
+    if (!isLabel) hasDot = true; /* markers always show a mark */
+    var curRadius = typeof p.radius === "number" ? p.radius : 8;
+    var curDotColor = p.dotColor || (isLabel ? "#3388ff" : (p.color || "#3388ff"));
+    var curText = p.text || "";
+
+    var editor = document.createElement("div");
+    editor.className = "annotation-editor";
+    var html =
+      '<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.4rem">' +
+      '  <label style="font-size:0.75rem;color:var(--muted);flex-shrink:0">Text</label>' +
+      '  <input type="text" class="ae-text" value="" placeholder="' + (isLabel ? "Label text" : "Optional text") + '" style="flex:1;padding:0.3rem 0.5rem;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:0.8rem" />' +
+      '</div>';
+    if (isLabel) {
+      html +=
+        '<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.4rem">' +
+        '  <label style="font-size:0.75rem;color:var(--muted);flex-shrink:0">' +
+        '    <input type="checkbox" class="ae-show-dot" ' + (hasDot ? 'checked' : '') + ' style="margin-right:0.3rem" />Show marker</label>' +
+        '</div>';
+    }
+    html +=
+      '<div class="ae-dot-options" style="' + (hasDot || !isLabel ? '' : 'display:none;') + 'margin-bottom:0.4rem">' +
+      '  <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.4rem">' +
+      '    <label style="font-size:0.75rem;color:var(--muted);flex-shrink:0">Size</label>' +
+      '    <input type="range" class="ae-size" min="4" max="50" value="' + curRadius + '" style="flex:1" />' +
+      '    <span class="ae-size-val" style="font-size:0.75rem;color:var(--muted);min-width:2em">' + curRadius + 'px</span>' +
+      '  </div>' +
+      '  <div style="display:flex;align-items:center;gap:0.5rem">' +
+      '    <label style="font-size:0.75rem;color:var(--muted);flex-shrink:0">Color</label>' +
+      '    <input type="color" class="ae-color" value="' + curDotColor + '" style="width:2rem;height:1.6rem;padding:0;border:1px solid var(--border);border-radius:4px;cursor:pointer;background:transparent" />' +
+      '  </div>' +
+      '</div>' +
+      '<div style="display:flex;align-items:center;gap:0.5rem">' +
+      '  <button type="button" class="btn primary ae-done" style="margin-left:auto;font-size:0.75rem;padding:0.3rem 0.6rem">Done</button>' +
+      '</div>';
+    editor.innerHTML = html;
+
+    var textInput = editor.querySelector(".ae-text");
+    var showDotCb = editor.querySelector(".ae-show-dot");
+    var dotOptions = editor.querySelector(".ae-dot-options");
+    var sizeSlider = editor.querySelector(".ae-size");
+    var sizeVal = editor.querySelector(".ae-size-val");
+    var colorInput = editor.querySelector(".ae-color");
+
+    textInput.value = curText;
+
+    if (showDotCb) {
+      showDotCb.addEventListener("change", function () {
+        dotOptions.style.display = showDotCb.checked ? "" : "none";
+        liveUpdate();
+      });
+    }
+
+    sizeSlider.addEventListener("input", function () {
+      sizeVal.textContent = sizeSlider.value + "px";
+    });
+
+    function liveUpdate() {
+      var t = textInput.value.trim();
+      var dot = isLabel ? (showDotCb && showDotCb.checked) : true;
+      feat.properties.showDot = !!dot;
+      if (!feat.properties.kind) {
+        feat.properties.kind = isLabel ? "label" : "marker";
+      }
+      if (dot) {
+        var sz = parseInt(sizeSlider.value, 10);
+        if (isNaN(sz) || sz < 1) sz = 8;
+        feat.properties.radius = sz;
+        feat.properties.dotColor = colorInput.value;
+      }
+      if (t) {
+        feat.properties.text = t;
+        if (!feat.properties.color || feat.properties.color === "#3388ff") {
+          feat.properties.color = "#f0f0f0";
+        }
+        feat.properties.haloColor = feat.properties.haloColor || "#0f1419";
+      } else {
+        delete feat.properties.text;
+        if (!isLabel) {
+          feat.properties.color = feat.properties.dotColor || colorInput.value;
+        }
+      }
+      saveSoon();
+      syncOverlayFieldsFromStep();
+      applyStepOverlays(selectedIndex);
+    }
+
+    sizeSlider.addEventListener("input", liveUpdate);
+    colorInput.addEventListener("input", liveUpdate);
+    textInput.addEventListener("input", liveUpdate);
+
+    editor.querySelector(".ae-done").addEventListener("click", function () {
+      liveUpdate();
+      persistStory({ immediate: true });
+      renderOverlayFeatureList();
+    });
+
+    li.appendChild(editor);
+  }
+
+  var _moveAnnotationCleanup = null;
+  var _moveFeatureIndex = -1;
+
+  function startMoveAnnotation(featureIndex) {
+    if (_moveAnnotationCleanup) _moveAnnotationCleanup();
+    setMarkerPlacementMode(false);
+
+    var s = config.steps[selectedIndex];
+    if (!s) return;
+    ensureStepOverlays(s);
+    var feat = s.overlays.geojson.features[featureIndex];
+    if (!feat || !feat.geometry || feat.geometry.type !== "Point") return;
+
+    _moveFeatureIndex = featureIndex;
+
+    var hint = el("draw-tools-hint");
+    if (hint) {
+      hint.textContent = "Click the map to reposition this annotation. Press Escape to cancel.";
+      hint.style.color = "#f5a623";
+    }
+    if (map) map.getCanvas().style.cursor = "crosshair";
+
+    function applyMove(lng, lat) {
+      var step = config.steps[selectedIndex];
+      if (!step) return;
+      ensureStepOverlays(step);
+      var f = step.overlays.geojson.features[_moveFeatureIndex];
+      if (!f || !f.geometry || f.geometry.type !== "Point") return;
+      f.geometry.coordinates = [lng, lat];
+      saveNow();
+      syncOverlayFieldsFromStep();
+      renderOverlayFeatureList();
+      applyStepOverlays(selectedIndex);
+      cleanup();
+    }
+
+    function onMapClick(e) {
+      applyMove(e.lngLat.lng, e.lngLat.lat);
+    }
+
+    function onKey(e) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        cleanup();
+      }
+    }
+
+    function cleanup() {
+      _moveFeatureIndex = -1;
+      if (map) {
+        map.off("click", onMapClick);
+        map.getCanvas().style.cursor = "";
+      }
+      document.removeEventListener("keydown", onKey, true);
+      if (hint) {
+        hint.textContent = "";
+        hint.style.color = "";
+      }
+      _moveAnnotationCleanup = null;
+    }
+
+    _moveAnnotationCleanup = cleanup;
+    map.on("click", onMapClick);
+    document.addEventListener("keydown", onKey, true);
   }
 
   function saveConfig() {
     try {
       localStorage.setItem(storageKeyForDraft(), JSON.stringify(config));
     } catch (e) {}
+  }
+
+  var _persistTimer = null;
+  var _persistInFlight = false;
+  var _persistQueued = false;
+  var _persistQuiet = true;
+  var _saveBtnResetTimer = null;
+
+  function setSaveButtonLabel(label, temporarily) {
+    var btn = el("btn-save");
+    if (!btn) return;
+    btn.textContent = label;
+    if (_saveBtnResetTimer) {
+      window.clearTimeout(_saveBtnResetTimer);
+      _saveBtnResetTimer = null;
+    }
+    if (temporarily) {
+      _saveBtnResetTimer = window.setTimeout(function () {
+        btn.textContent = "Save";
+        _saveBtnResetTimer = null;
+      }, 1600);
+    }
+  }
+
+  /**
+   * Persist story JSON to disk/API. Debounced by default for continuous edits.
+   * @param {{ immediate?: boolean, delay?: number, quiet?: boolean }} opts
+   */
+  function persistStory(opts) {
+    opts = opts || {};
+    var quiet = opts.quiet !== false;
+    _persistQuiet = quiet;
+    if (!currentSlug || !storyApiOk) return;
+
+    var delay = opts.immediate ? 0 : (typeof opts.delay === "number" ? opts.delay : 700);
+    if (_persistTimer) {
+      window.clearTimeout(_persistTimer);
+      _persistTimer = null;
+    }
+
+    function run() {
+      _persistTimer = null;
+      if (_persistInFlight) {
+        _persistQueued = true;
+        return;
+      }
+      _persistInFlight = true;
+      if (quiet) setSaveButtonLabel("Saving…", false);
+      config = normalizeConfig(config);
+      fetch("/__story-api/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug: currentSlug, json: config })
+      })
+        .then(function (r) {
+          return r.json().then(function (j) {
+            return { ok: r.ok, j: j };
+          });
+        })
+        .then(function (o) {
+          if (!o.ok) throw new Error(o.j.error || "Save failed");
+          saveConfig();
+          showPreviewLinkForStory(currentSlug);
+          setSaveButtonLabel("Saved", true);
+        })
+        .catch(function (e) {
+          if (quiet) {
+            setSaveButtonLabel("Save failed", true);
+            console.warn("Auto-save failed:", e.message || e);
+          } else {
+            setSaveButtonLabel("Save", false);
+            alert("Save failed: " + (e.message || e));
+          }
+        })
+        .then(function () {
+          _persistInFlight = false;
+          if (_persistQueued) {
+            _persistQueued = false;
+            persistStory({ immediate: true, quiet: _persistQuiet });
+          }
+        });
+    }
+
+    if (delay <= 0) run();
+    else _persistTimer = window.setTimeout(run, delay);
+  }
+
+  /** localStorage + disk/API (immediate). */
+  function saveNow() {
+    saveConfig();
+    persistStory({ immediate: true });
+  }
+
+  /** localStorage + debounced disk/API (for typing / sliders). */
+  function saveSoon() {
+    saveConfig();
+    persistStory({ delay: 700 });
   }
 
   function syncSourcesField() {
@@ -2082,6 +2799,7 @@
       .then(function () {
         syncBaseMapSelect();
         syncTerrainToggle();
+        syncProjectionSelect();
         syncSatelliteLabelsUi();
         syncStorySelectValue();
         showStoryApiHint();
@@ -2343,7 +3061,9 @@
       if (typeof onReady === "function") onReady();
       return;
     }
-    getBaseMapStylePromise(config.baseMap)
+    var firstStep = config.steps && config.steps[0];
+    var initBaseMap = (firstStep && firstStep.baseMap) ? firstStep.baseMap : (config.baseMap || "openfreemap-bright");
+    getBaseMapStylePromise(initBaseMap)
       .then(function (style) {
         map = new maplibregl.Map({
           container: "map",
@@ -2374,6 +3094,7 @@
         });
         map.on("load", function () {
           applyEnglishLabels(map);
+          applyProjectionIfNeeded();
           applyTerrainIfNeeded();
           initDrawControl();
           installMarkerPlacementClickCapture();
@@ -2404,39 +3125,42 @@
       });
   }
 
+  var _flyGen = 0;
   function flyToStep(i, animate) {
     var s = config.steps[i];
     if (!s || !map) return;
+    var z = typeof s.zoom === "number" ? s.zoom : 6;
     var targetBase = (s.baseMap) ? s.baseMap : (config.baseMap || "openfreemap-bright");
     var needSwitch = targetBase !== currentBuilderBaseMap;
-    function go() {
-      var z = typeof s.zoom === "number" ? s.zoom : 6;
-      applyStepOverlays(i);
-      if (animate === false) {
-        map.jumpTo({ center: [s.lng, s.lat], zoom: z });
-      } else {
-        map.flyTo({ center: [s.lng, s.lat], zoom: z, duration: 1200 });
-      }
+
+    if (animate === false) {
+      map.jumpTo({ center: [s.lng, s.lat], zoom: z });
+    } else {
+      map.flyTo({ center: [s.lng, s.lat], zoom: z, duration: 1200 });
     }
+
     if (needSwitch) {
+      var gen = ++_flyGen;
       currentBuilderBaseMap = targetBase;
       getBaseMapStylePromise(targetBase)
         .then(function (style) {
-          map.setStyle(style);
-          map.once("style.load", function () {
+          if (gen !== _flyGen) return;
+          map.once("idle", function () {
+            if (gen !== _flyGen) return;
             applyEnglishLabels(map);
+            applyProjectionIfNeeded();
             applyTerrainIfNeeded();
+            ensureOverlaySources();
+            applyStepOverlays(selectedIndex);
             map.resize();
-            go();
           });
+          map.setStyle(style);
         })
         .catch(function (err) {
           console.error("Step basemap switch failed:", err);
-          go();
         });
-    } else {
-      go();
     }
+    applyStepOverlays(i);
   }
 
   function mapViewMatchesStoredLocation() {
@@ -2476,7 +3200,7 @@
     s.lat = c.lat;
     s.lng = c.lng;
     s.zoom = z;
-    saveConfig();
+    saveNow();
     syncEditorFromStep();
   }
 
@@ -2617,6 +3341,14 @@
     renderOverlayFeatureList();
     updateMapLocationButtonState();
     syncStepBasemapSelect();
+    var panel = el("annotate-panel");
+    var btn = el("btn-annotate-toggle");
+    var hasAnnotations = s.overlays && s.overlays.geojson &&
+      s.overlays.geojson.features && s.overlays.geojson.features.length > 0;
+    if (panel && btn) {
+      panel.hidden = !hasAnnotations;
+      btn.setAttribute("aria-expanded", hasAnnotations ? "true" : "false");
+    }
   }
 
   function applyEditorToStep() {
@@ -2628,7 +3360,7 @@
     } else {
       s.html = el("card-text").value;
     }
-    saveConfig();
+    saveSoon();
   }
 
   el("card-text").addEventListener("input", applyEditorToStep);
@@ -2648,7 +3380,6 @@
 
   el("card-bg-color").addEventListener("input", function () {
     config.cardBackgroundColor = normalizeCardBackgroundColor(el("card-bg-color").value);
-    saveConfig();
     applyCardBackgroundOpacity();
   });
 
@@ -2658,17 +3389,57 @@
     v = Math.max(0, Math.min(100, v));
     config.cardBackgroundOpacity = v / 100;
     el("card-bg-opacity-value").textContent = v + "%";
-    saveConfig();
     applyCardBackgroundOpacity();
   });
 
   el("sources-text").addEventListener("input", function () {
     config.sources = el("sources-text").value;
-    saveConfig();
     if (creditsPanelControl && typeof creditsPanelControl.refreshPanel === "function") {
       creditsPanelControl.refreshPanel();
     }
   });
+
+  /* Any Global Options control change persists to disk. */
+  (function wireGlobalOptionsAutosave() {
+    var panel = el("preferences-panel");
+    if (!panel) return;
+    var continuous = { "card-bg-opacity": true, "sources-text": true, "card-bg-color": true };
+
+    function syncFromControl(t) {
+      if (!t || !t.id || !config) return;
+      if (t.id === "base-map-select") config.baseMap = t.value;
+      else if (t.id === "projection-select") config.projection = t.value === "globe" ? "globe" : "mercator";
+      else if (t.id === "terrain-toggle") config.terrain = !!t.checked;
+      else if (t.id === "satellite-labels-toggle") config.satelliteLabels = !!t.checked;
+      else if (t.id === "sources-text") config.sources = t.value;
+      else if (t.id === "card-bg-color") {
+        config.cardBackgroundColor = normalizeCardBackgroundColor(t.value);
+        applyCardBackgroundOpacity();
+      } else if (t.id === "card-bg-opacity") {
+        var v = parseInt(t.value, 10);
+        if (isNaN(v)) v = 86;
+        v = Math.max(0, Math.min(100, v));
+        config.cardBackgroundOpacity = v / 100;
+        var lab = el("card-bg-opacity-value");
+        if (lab) lab.textContent = v + "%";
+        applyCardBackgroundOpacity();
+      }
+    }
+
+    panel.addEventListener("input", function (ev) {
+      var t = ev.target;
+      if (!t || !continuous[t.id]) return;
+      syncFromControl(t);
+      saveSoon();
+    });
+
+    panel.addEventListener("change", function (ev) {
+      var t = ev.target;
+      if (!t || !t.id) return;
+      syncFromControl(t);
+      saveNow();
+    });
+  })();
 
   el("btn-add-step").addEventListener("click", function () {
     setMarkerPlacementMode(false);
@@ -2685,7 +3456,7 @@
       overlays: { geojson: { type: "FeatureCollection", features: [] } }
     });
     selectedIndex = config.steps.length - 1;
-    saveConfig();
+    saveNow();
     renderStepList();
     syncEditorFromStep();
   });
@@ -2696,7 +3467,7 @@
     if (config.steps.length <= 1) return;
     config.steps.splice(selectedIndex, 1);
     selectedIndex = Math.min(selectedIndex, config.steps.length - 1);
-    saveConfig();
+    saveNow();
     renderStepList();
     syncEditorFromStep();
   });
@@ -2709,7 +3480,7 @@
     config.steps[selectedIndex - 1] = config.steps[selectedIndex];
     config.steps[selectedIndex] = t;
     selectedIndex--;
-    saveConfig();
+    saveNow();
     renderStepList();
     syncEditorFromStep();
   });
@@ -2722,9 +3493,25 @@
     config.steps[selectedIndex + 1] = config.steps[selectedIndex];
     config.steps[selectedIndex] = t;
     selectedIndex++;
-    saveConfig();
+    saveNow();
     renderStepList();
     syncEditorFromStep();
+  });
+
+  function goToStep(i) {
+    if (i < 0 || i >= config.steps.length) return;
+    var btns = el("step-list").querySelectorAll(".step-location-btn");
+    if (btns[i]) {
+      btns[i].click();
+    }
+  }
+
+  el("btn-prev-step").addEventListener("click", function () {
+    goToStep(selectedIndex - 1);
+  });
+
+  el("btn-next-step").addEventListener("click", function () {
+    goToStep(selectedIndex + 1);
   });
 
   function saveStoryToFolder() {
@@ -2738,25 +3525,8 @@
       );
       return;
     }
-    config = normalizeConfig(config);
-    fetch("/__story-api/save", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug: currentSlug, json: config })
-    })
-      .then(function (r) {
-        return r.json().then(function (j) {
-          return { ok: r.ok, j: j };
-        });
-      })
-      .then(function (o) {
-        if (!o.ok) throw new Error(o.j.error || "Save failed");
-        saveConfig();
-        showPreviewLinkForStory(currentSlug);
-      })
-      .catch(function (e) {
-        alert("Save failed: " + (e.message || e));
-      });
+    saveConfig();
+    persistStory({ immediate: true, quiet: false });
   }
 
   el("btn-save").addEventListener("click", saveStoryToFolder);
@@ -2831,6 +3601,8 @@
       var open = panel.hidden;
       panel.hidden = !open;
       btn.setAttribute("aria-expanded", open ? "true" : "false");
+      /* Closing the panel: flush any pending Global Options edits. */
+      if (!open) saveNow();
     });
   })();
 
@@ -2863,24 +3635,17 @@
   });
 
   el("btn-new-story").addEventListener("click", function () {
-    promptTextModal({
-      title: "New story folder",
-      message:
-        "Folder name: lowercase letters, numbers, and hyphens only. Example: my-road-trip",
-      defaultValue: "",
-      placeholder: "my-road-trip",
-      requireNonEmpty: true
-    }).then(function (raw) {
-      if (raw === null) return;
-      var slug = normalizeSlug(raw);
-      if (!slug || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
-        alert("Use only lowercase letters, numbers, and hyphens (e.g. my-story).");
-        return;
-      }
+    promptNewStoryModal().then(function (result) {
+      if (!result) return;
+      var slug = result.slug;
+      var defaults = clone(DEFAULT_CONFIG);
+      Object.keys(result.defaults).forEach(function (k) {
+        defaults[k] = result.defaults[k];
+      });
       fetch("/__story-api/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug: slug, defaultJson: clone(DEFAULT_CONFIG) })
+        body: JSON.stringify({ slug: slug, defaultJson: defaults })
       })
         .then(function (r) {
           return r.json().then(function (j) {
@@ -2941,20 +3706,21 @@
     } else {
       delete s.baseMap;
     }
-    saveConfig();
+    saveNow();
     /* switch the builder map to reflect this step's effective basemap */
     var targetBase = val || config.baseMap || "openfreemap-bright";
     if (targetBase === currentBuilderBaseMap) return;
     currentBuilderBaseMap = targetBase;
     getBaseMapStylePromise(targetBase)
       .then(function (style) {
-        map.setStyle(style);
-        map.once("style.load", function () {
+        map.once("idle", function () {
           applyEnglishLabels(map);
+          applyProjectionIfNeeded();
           applyTerrainIfNeeded();
           map.resize();
           applyStepOverlays(selectedIndex);
         });
+        map.setStyle(style);
       })
       .catch(function (err) {
         console.error("Step basemap switch failed:", err);
@@ -2963,18 +3729,18 @@
 
   el("base-map-select").addEventListener("change", function () {
     config.baseMap = el("base-map-select").value;
-    saveConfig();
     syncSatelliteLabelsUi();
     if (!map) return;
     getBaseMapStylePromise(config.baseMap)
       .then(function (style) {
-        map.setStyle(style);
-        map.once("style.load", function () {
+        map.once("idle", function () {
           applyEnglishLabels(map);
+          applyProjectionIfNeeded();
           applyTerrainIfNeeded();
           map.resize();
           applyStepOverlays(selectedIndex);
         });
+        map.setStyle(style);
       })
       .catch(function (err) {
         console.error(err);
@@ -2984,23 +3750,27 @@
 
   el("terrain-toggle").addEventListener("change", function () {
     config.terrain = el("terrain-toggle").checked;
-    saveConfig();
     applyTerrainIfNeeded();
+  });
+
+  el("projection-select").addEventListener("change", function () {
+    config.projection = el("projection-select").value === "globe" ? "globe" : "mercator";
+    applyProjectionIfNeeded();
   });
 
   el("satellite-labels-toggle").addEventListener("change", function () {
     config.satelliteLabels = el("satellite-labels-toggle").checked;
-    saveConfig();
     if (!map || config.baseMap !== "esri-satellite") return;
     getBaseMapStylePromise(config.baseMap)
       .then(function (style) {
-        map.setStyle(style);
-        map.once("style.load", function () {
+        map.once("idle", function () {
           applyEnglishLabels(map);
+          applyProjectionIfNeeded();
           applyTerrainIfNeeded();
           map.resize();
           applyStepOverlays(selectedIndex);
         });
+        map.setStyle(style);
       })
       .catch(function (err) {
         console.error(err);
@@ -3020,7 +3790,7 @@
       ensureStepOverlays(s);
       s.overlays.geojson = parsed;
       normalizeStepOverlays(s);
-      saveConfig();
+      saveNow();
       showOverlayJsonError("");
       syncOverlayFieldsFromStep();
       renderOverlayFeatureList();
@@ -3045,10 +3815,10 @@
   el("btn-draw-marker").addEventListener("click", function () {
     if (!map) return;
     closeMarkerEditPopup();
-    if (markerPlacementMode) {
+    if (markerPlacementMode && placementKind === "marker") {
       setMarkerPlacementMode(false);
     } else {
-      setMarkerPlacementMode(true);
+      setMarkerPlacementMode(true, "marker");
     }
   });
 
@@ -3058,34 +3828,13 @@
   });
 
   el("btn-add-label").addEventListener("click", function () {
-    setMarkerPlacementMode(false);
-    ensureDrawSimpleSelect();
-    var s = config.steps[selectedIndex];
-    if (!s || !map) return;
-    promptTextModal({
-      title: "Label",
-      message: "Text shown on the map at the center of the current view.",
-      defaultValue: "Label",
-      requireNonEmpty: true
-    }).then(function (t) {
-      if (t === null) return;
-      var c = map.getCenter();
-      ensureStepOverlays(s);
-      s.overlays.geojson.features.push({
-        type: "Feature",
-        properties: {
-          kind: "label",
-          text: String(t).trim(),
-          color: "#f0f0f0",
-          haloColor: "#0f1419"
-        },
-        geometry: { type: "Point", coordinates: [c.lng, c.lat] }
-      });
-      saveConfig();
-      syncOverlayFieldsFromStep();
-      renderOverlayFeatureList();
-      applyStepOverlays(selectedIndex);
-    });
+    if (!map) return;
+    closeMarkerEditPopup();
+    if (markerPlacementMode && placementKind === "label") {
+      setMarkerPlacementMode(false);
+    } else {
+      setMarkerPlacementMode(true, "label");
+    }
   });
 
   /* ── Geocoder search ─────────────────────────────────────── */
@@ -3234,6 +3983,7 @@
       renderStepList();
       syncBaseMapSelect();
       syncTerrainToggle();
+      syncProjectionSelect();
       syncSatelliteLabelsUi();
       syncSourcesField();
       syncCardBackgroundFields();

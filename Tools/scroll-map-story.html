@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Scroll map story</title>
   <!-- MapLibre + basemap style fallbacks; English labels via name:en / name_en where layers allow. -->
-  <link href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" crossorigin="" />
+  <link href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.css" rel="stylesheet" crossorigin="" />
   <style>
     :root {
       --bg: #0f1419;
@@ -419,7 +419,7 @@
   -->
   <script type="application/json" id="scroll-map-story-embedded"></script>
 
-  <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.min.js" crossorigin=""></script>
+  <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.min.js" crossorigin=""></script>
   <script>
 (function () {
   function syncMapViewportHeight() {
@@ -478,6 +478,7 @@
   function buildSatelliteEsriStyle(showLabels) {
     var style = {
       version: 8,
+      glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
       sources: {
         esri_world: {
           type: "raster",
@@ -539,7 +540,6 @@
   var STORY_OV_LAYERS = [
     "story-ov-symbol",
     "story-ov-circle",
-    "story-ov-circle-label",
     "story-ov-line",
     "story-ov-line-poly",
     "story-ov-fill"
@@ -648,7 +648,7 @@
         }
       } catch (e) {}
       try {
-        map.setPitch(0);
+        if (config.projection !== "globe") map.setPitch(0);
       } catch (e2) {}
       return;
     }
@@ -667,6 +667,18 @@
     }
   }
 
+  function applyProjectionIfNeeded() {
+    if (!map || typeof map.setProjection !== "function") return;
+    var type = config.projection === "globe" ? "globe" : "mercator";
+    try {
+      var cur = map.getProjection && map.getProjection();
+      if (cur && cur.type === type) return;
+      map.setProjection({ type: type });
+    } catch (e) {
+      console.warn("Projection:", e);
+    }
+  }
+
   function normalizeConfig(data) {
     if (!data.steps || !Array.isArray(data.steps)) {
       throw new Error("Invalid JSON: need steps array");
@@ -681,6 +693,9 @@
     }
     if (typeof data.terrain !== "boolean") {
       data.terrain = false;
+    }
+    if (data.projection !== "globe" && data.projection !== "mercator") {
+      data.projection = "mercator";
     }
     if (typeof data.satelliteLabels !== "boolean") {
       data.satelliteLabels = true;
@@ -724,20 +739,27 @@
       if (!f || !f.properties || !f.geometry || f.geometry.type !== "Point") return;
       var p = f.properties;
       if (typeof p.radius !== "number" || p.radius < 1) p.radius = 8;
-      var isLabel =
-        p.kind === "label" ||
+      var hasText =
         (typeof p.text === "string" && p.text.trim() !== "") ||
         (typeof p.title === "string" && p.title.trim() !== "");
-      if (!isLabel) {
-        if (!p.color) p.color = "#3388ff";
-        return;
+      if (!p.kind) {
+        p.kind = hasText ? "label" : "marker";
       }
-      if (p.color === "#111111" || p.color === "#1a1a1a") {
-        p.color = "#f0f0f0";
+      if (typeof p.showDot !== "boolean") {
+        p.showDot = p.kind !== "label";
+      }
+      if (p.showDot) {
+        if (!p.dotColor) p.dotColor = p.color && p.kind === "marker" ? p.color : "#3388ff";
+        if (p.kind === "marker" && !p.color) p.color = p.dotColor;
+      }
+      if (hasText) {
+        if (p.color === "#111111" || p.color === "#1a1a1a" || (p.kind === "label" && p.color === "#3388ff")) {
+          p.color = "#f0f0f0";
+        }
+        if (!p.color) p.color = "#f0f0f0";
         p.haloColor = p.haloColor || "#0f1419";
-      }
-      if (!p.dotColor) {
-        p.dotColor = "#3388ff";
+      } else if (p.kind === "marker" && !p.color) {
+        p.color = "#3388ff";
       }
     });
   }
@@ -762,11 +784,12 @@
         var hasText =
           (typeof p.text === "string" && p.text.trim() !== "") ||
           (typeof p.title === "string" && p.title.trim() !== "");
-        if (p.kind === "label" || hasText) {
-          ptLabel.features.push(f);
-        } else {
-          ptMark.features.push(f);
-        }
+        var wantDot = typeof p.showDot === "boolean"
+          ? p.showDot
+          : (p.kind !== "label");
+        if (wantDot) ptMark.features.push(f);
+        if (hasText) ptLabel.features.push(f);
+        if (!wantDot && !hasText) ptMark.features.push(f);
       }
     });
     return { poly: poly, lines: lines, ptMark: ptMark, ptLabel: ptLabel };
@@ -834,17 +857,6 @@
         id: "story-ov-circle", type: "circle", source: OV_SRC_PTM,
         paint: {
           "circle-radius": ["coalesce", ["get", "radius"], 8],
-          "circle-color": ["coalesce", ["get", "color"], "#3388ff"],
-          "circle-stroke-width": 2,
-          "circle-stroke-color": "#ffffff"
-        }
-      });
-    }
-    if (!map.getLayer("story-ov-circle-label")) {
-      map.addLayer({
-        id: "story-ov-circle-label", type: "circle", source: OV_SRC_PTL,
-        paint: {
-          "circle-radius": ["coalesce", ["get", "radius"], 8],
           "circle-color": ["coalesce", ["get", "dotColor"], ["get", "color"], "#3388ff"],
           "circle-stroke-width": 2,
           "circle-stroke-color": "#ffffff"
@@ -858,8 +870,18 @@
           "text-field": ["to-string", ["coalesce", ["get", "text"], ["get", "title"], ""]],
           "text-font": getStyleFont(),
           "text-size": 16,
-          "text-anchor": "bottom",
-          "text-offset": [0, -1.5],
+          "text-anchor": [
+            "case",
+            ["boolean", ["get", "showDot"], false],
+            "bottom",
+            "center"
+          ],
+          "text-offset": [
+            "case",
+            ["boolean", ["get", "showDot"], false],
+            ["literal", [0, -1.5]],
+            ["literal", [0, 0]]
+          ],
           "text-allow-overlap": true
         },
         paint: {
@@ -1146,7 +1168,7 @@
       if (typeof onReady === "function") onReady();
       return;
     }
-    getBaseMapStylePromise(viewerBaseMap)
+    getBaseMapStylePromise(currentLoadedBaseMap)
       .then(function (style) {
         map = window._m = new maplibregl.Map({
           container: "map",
@@ -1178,6 +1200,7 @@
         });
         map.on("load", function () {
           applyEnglishLabels(map);
+          applyProjectionIfNeeded();
           applyTerrainIfNeeded();
           setTimeout(function () {
             syncMapViewportHeight();
@@ -1211,49 +1234,46 @@
       });
   }
 
+  var _flyGen = 0;
   function flyToStep(i, animate) {
     var s = config.steps[i];
     if (!s || !map) return;
-    /* Determine the effective basemap for this step.
-       Per-step override wins; in explore mode the user's live selection wins. */
+    var z = typeof s.zoom === "number" ? s.zoom : 6;
+    var pitch = config.terrain ? 42 : 0;
+    lastFlownIndex = i;
+
     var stepBase = s.baseMap || null;
     var effectiveBase = stepBase || viewerBaseMap;
     var needSwitch = effectiveBase !== currentLoadedBaseMap;
-    function go() {
-      var z = typeof s.zoom === "number" ? s.zoom : 6;
-      var pitch = config.terrain ? 42 : 0;
-      lastFlownIndex = i;
-      applyStepOverlays(i);
-      if (animate === false) {
-        map.jumpTo({ center: [s.lng, s.lat], zoom: z, pitch: pitch });
-      } else {
-        map.flyTo({
-          center: [s.lng, s.lat],
-          zoom: z,
-          duration: 1200,
-          pitch: pitch
-        });
-      }
+
+    if (animate === false) {
+      map.jumpTo({ center: [s.lng, s.lat], zoom: z, pitch: pitch });
+    } else {
+      map.flyTo({ center: [s.lng, s.lat], zoom: z, duration: 1200, pitch: pitch });
     }
+
     if (needSwitch) {
+      var gen = ++_flyGen;
       currentLoadedBaseMap = effectiveBase;
       getBaseMapStylePromise(effectiveBase)
         .then(function (style) {
-          map.setStyle(style);
-          map.once("style.load", function () {
+          if (gen !== _flyGen) return;
+          map.once("idle", function () {
+            if (gen !== _flyGen) return;
             applyEnglishLabels(map);
+            applyProjectionIfNeeded();
             applyTerrainIfNeeded();
+            ensureOverlaySources();
+            applyStepOverlays(lastFlownIndex);
             map.resize();
-            go();
           });
+          map.setStyle(style);
         })
         .catch(function (err) {
-          console.warn("Step basemap switch failed, falling back:", err);
-          go();
+          console.warn("Step basemap switch failed:", err);
         });
-    } else {
-      go();
     }
+    applyStepOverlays(i);
   }
 
   function getCurrentVisibleStepIndex() {
@@ -1355,6 +1375,11 @@
   function updateExploreBasemapVisibility() {
     var sel = el("explore-basemap-select");
     if (sel) sel.value = viewerBaseMap;
+    var optBtn = el("story-options-toggle");
+    var optPanel = el("story-options-panel");
+    var inExplore = storyInteractionMode === "explore";
+    if (optBtn) optBtn.style.display = inExplore ? "" : "none";
+    if (optPanel && !inExplore) optPanel.hidden = true;
   }
 
   function setStoryOptionsOpen(open) {
@@ -1390,9 +1415,9 @@
     if (sel) sel.value = viewerBaseMap;
     getBaseMapStylePromise(viewerBaseMap)
       .then(function (style) {
-        map.setStyle(style);
-        map.once("style.load", function () {
+        map.once("idle", function () {
           applyEnglishLabels(map);
+          applyProjectionIfNeeded();
           applyTerrainIfNeeded();
           map.resize();
           if (storyInteractionMode === "scroll") {
@@ -1405,6 +1430,7 @@
             }
           }
         });
+        map.setStyle(style);
       })
       .catch(function (err) {
         viewerBaseMap = previous;
@@ -1535,6 +1561,7 @@
         version: 1,
         baseMap: "openfreemap-bright",
         terrain: false,
+        projection: "globe",
         satelliteLabels: true,
         sources: "",
         cardBackgroundOpacity: 0.86,

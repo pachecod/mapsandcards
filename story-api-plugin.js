@@ -131,7 +131,7 @@ function buildZip(entries) {
 
 /* ── CDN asset cache for export ── */
 
-const MAPLIBRE_VERSION = "4.7.1";
+const MAPLIBRE_VERSION = "5.24.0";
 const CDN_ASSETS = [
   {
     url: `https://cdn.jsdelivr.net/npm/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.min.js`,
@@ -218,6 +218,7 @@ function storyApiMiddleware(rootDir) {
               version: 1,
               baseMap: "openfreemap-bright",
               terrain: false,
+              projection: "globe",
               satelliteLabels: true,
               initialMap: { lat: 20, lng: 0, zoom: 2 },
               steps: [

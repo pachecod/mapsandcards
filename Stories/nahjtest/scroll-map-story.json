@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "baseMap": "openfreemap-bright",
-  "terrain": false,
+  "baseMap": "esri-satellite",
+  "terrain": true,
   "satelliteLabels": true,
   "sources": "",
   "cardBackgroundColor": "#ffffff",
@@ -24,13 +24,13 @@
           "features": []
         }
       },
-      "baseMap": "esri-satellite"
+      "baseMap": "openfreemap-bright"
     },
     {
       "id": "location-2",
-      "lat": 43.765532283962415,
-      "lng": -87.22677808111871,
-      "zoom": 5.946600076924974,
+      "lat": 41.89477201260135,
+      "lng": -87.17897870670333,
+      "zoom": 7.485086606350715,
       "html": "<h3>Lake Michigan</h3><h3>Some interesting info here about lake michigan ...</h3>",
       "overlays": {
         "geojson": {
@@ -39,18 +39,17 @@
             {
               "type": "Feature",
               "properties": {
-                "kind": "label",
-                "color": "#f0f0f0",
-                "radius": 8,
-                "text": "French Quarter",
+                "kind": "marker",
+                "showDot": true,
                 "dotColor": "#3388ff",
-                "haloColor": "#0f1419"
+                "radius": 8,
+                "color": "#3388ff"
               },
               "geometry": {
                 "type": "Point",
                 "coordinates": [
-                  -90.06468199311553,
-                  29.961046634924728
+                  -87.27709405724606,
+                  42.69325783466297
                 ]
               }
             },
@@ -58,17 +57,17 @@
               "type": "Feature",
               "properties": {
                 "kind": "label",
+                "showDot": false,
                 "color": "#f0f0f0",
-                "radius": 16,
-                "text": "Lake Michigan hotspot",
-                "dotColor": "#3388ff",
-                "haloColor": "#0f1419"
+                "haloColor": "#0f1419",
+                "radius": 8,
+                "text": "A Label Here"
               },
               "geometry": {
                 "type": "Point",
                 "coordinates": [
-                  -87.06146944351325,
-                  43.58244929234547
+                  -87.44585246017503,
+                  42.189315636101696
                 ]
               }
             }
@@ -86,29 +85,10 @@
       "overlays": {
         "geojson": {
           "type": "FeatureCollection",
-          "features": [
-            {
-              "type": "Feature",
-              "properties": {
-                "kind": "label",
-                "color": "#f0f0f0",
-                "text": "Quebec, Canada",
-                "dotColor": "#3388ff",
-                "haloColor": "#0f1419",
-                "radius": 8
-              },
-              "geometry": {
-                "type": "Point",
-                "coordinates": [
-                  -73.48536452410242,
-                  46.50938798935141
-                ]
-              }
-            }
-          ]
+          "features": []
         }
       },
-      "baseMap": "esri-satellite"
+      "baseMap": "openfreemap-bright"
     },
     {
       "id": "location-4",
@@ -119,29 +99,10 @@
       "overlays": {
         "geojson": {
           "type": "FeatureCollection",
-          "features": [
-            {
-              "type": "Feature",
-              "properties": {
-                "kind": "label",
-                "color": "#f0f0f0",
-                "radius": 13,
-                "text": "Paris",
-                "dotColor": "#3388ff",
-                "haloColor": "#0f1419"
-              },
-              "geometry": {
-                "type": "Point",
-                "coordinates": [
-                  2.3225544382304975,
-                  48.85701513860286
-                ]
-              }
-            }
-          ]
+          "features": []
         }
       },
-      "baseMap": "esri-satellite"
+      "baseMap": "carto-voyager"
     },
     {
       "id": "location-5",
@@ -157,5 +118,6 @@
       },
       "baseMap": "esri-satellite"
     }
-  ]
+  ],
+  "projection": "globe"
 }

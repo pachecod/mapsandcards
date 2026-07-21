@@ -88,11 +88,12 @@
       font-family: ui-monospace, monospace;
       color: var(--muted);
     }
-    .btn-view {
+    .btn-view,
+    .btn-edit {
       display: inline-flex;
       align-items: center;
       padding: 0.4rem 0.75rem;
-      margin-right: 0.75rem;
+      margin-right: 0.5rem;
       font-size: 0.8rem;
       border-radius: 6px;
       border: 1px solid var(--border);
@@ -102,7 +103,8 @@
       white-space: nowrap;
       transition: background 0.12s ease, border-color 0.12s ease;
     }
-    .btn-view:hover {
+    .btn-view:hover,
+    .btn-edit:hover {
       background: rgba(61, 139, 253, 0.15);
       border-color: var(--accent);
     }
@@ -189,13 +191,14 @@
     var li = document.createElement("li");
     var row = document.createElement("div");
     row.className = "story-row";
-    var a = document.createElement("a");
-    a.href = "/Tools/scroll-map-builder.html?story=" + encodeURIComponent(slug);
-    a.textContent = slug;
-    var path = document.createElement("span");
-    path.className = "path";
-    path.textContent = "Edit in builder";
-    a.appendChild(path);
+    var name = document.createElement("span");
+    name.className = "story-name";
+    name.style.cssText = "flex:1;padding:0.75rem 1rem;min-width:0";
+    name.textContent = slug;
+    var editLink = document.createElement("a");
+    editLink.href = "/Tools/scroll-map-builder.html?story=" + encodeURIComponent(slug);
+    editLink.className = "btn-edit";
+    editLink.textContent = "Edit";
     var viewLink = document.createElement("a");
     viewLink.href = "/Stories/" + encodeURIComponent(slug) + "/scroll-map-story.html";
     viewLink.className = "btn-view";
@@ -207,7 +210,8 @@
     delBtn.className = "btn-delete";
     delBtn.textContent = "Delete";
     delBtn.addEventListener("click", function () { deleteStory(slug, li); });
-    row.appendChild(a);
+    row.appendChild(name);
+    row.appendChild(editLink);
     row.appendChild(viewLink);
     row.appendChild(delBtn);
     li.appendChild(row);

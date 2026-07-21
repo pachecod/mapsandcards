@@ -4,6 +4,7 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { isDbEnabled, closePool, query } from "./services/db-service.js";
 import { authMiddleware } from "./middleware/auth.js";
+import { analyticsMiddleware } from "./middleware/analytics.js";
 import { seedDefaultTemplatesDb } from "./services/seed-defaults.js";
 import storyRoutes from "./routes/stories.js";
 
@@ -12,6 +13,7 @@ const PORT = parseInt(process.env.PORT, 10) || 3000;
 
 const app = express();
 
+app.use(analyticsMiddleware());
 app.use(authMiddleware());
 app.use(express.json({ limit: "5mb" }));
 

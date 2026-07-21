@@ -2,15 +2,18 @@ import "dotenv/config";
 import { defineConfig } from "vite";
 import { storyApiPlugin } from "./story-api-plugin.js";
 import { authMiddleware } from "./middleware/auth.js";
+import { analyticsMiddleware } from "./middleware/analytics.js";
 
-/** Apply APP_PASSWORD gate in Vite (same rules as Express production). */
-function authPlugin() {
+/** Optional GA + APP_PASSWORD gate in Vite (same as Express production). */
+function appMiddlewarePlugin() {
   return {
-    name: "app-auth",
+    name: "app-middleware",
     configureServer(server) {
+      server.middlewares.use(analyticsMiddleware());
       server.middlewares.use(authMiddleware());
     },
     configurePreviewServer(server) {
+      server.middlewares.use(analyticsMiddleware());
       server.middlewares.use(authMiddleware());
     }
   };
@@ -18,7 +21,7 @@ function authPlugin() {
 
 export default defineConfig({
   root: ".",
-  plugins: [authPlugin(), storyApiPlugin()],
+  plugins: [appMiddlewarePlugin(), storyApiPlugin()],
   server: {
     port: 5173,
     strictPort: false,

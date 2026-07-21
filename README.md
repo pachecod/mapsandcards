@@ -76,6 +76,7 @@ The included [`render.yaml`](render.yaml) targets [Render](https://render.com/) 
 1. Set environment variables from [`.env.example`](.env.example):
    - `DATABASE_URL` / `DATABASE_SSL` — required for the production story API
    - `APP_PASSWORD` — optional; gates the non-guest builder and story write API (Guest Mode + story viewing stay public)
+   - `GOOGLE_ANALYTICS_ID` — optional GA4 measurement ID (e.g. `G-XXXXXXXXXX`); leave blank to disable analytics
    - `B2_*` — optional Backblaze B2 keys (reserved for future media uploads)
    - `PORT` — set automatically on most hosts
 2. Start with `npm run db:migrate && npm start` (as in `render.yaml`).
@@ -96,6 +97,7 @@ story-api-plugin.js        Vite plugin: local story CRUD
 server.js                  Express app for production
 routes/  services/  db/    Production API + database
 middleware/auth.js         Optional password protection
+middleware/analytics.js    Optional Google Analytics (GOOGLE_ANALYTICS_ID)
 Stories/                   Your stories (gitignored)
 ```
 

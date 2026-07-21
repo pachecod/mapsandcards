@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { injectAnalyticsScript } from "./analytics.js";
 
 const LOGIN_PAGE = `<!DOCTYPE html>
 <html lang="en">
@@ -91,9 +92,11 @@ function requiresAuth(pathname, searchParams) {
 }
 
 function renderLogin(res, { error = false, next = "/Tools/scroll-map-builder.html" } = {}) {
-  const html = LOGIN_PAGE
-    .replace("%%ERROR%%", error ? '<p class="err">Wrong password.</p>' : "")
-    .replace("%%NEXT%%", safeNextPath(next).replace(/"/g, "&quot;"));
+  const html = injectAnalyticsScript(
+    LOGIN_PAGE
+      .replace("%%ERROR%%", error ? '<p class="err">Wrong password.</p>' : "")
+      .replace("%%NEXT%%", safeNextPath(next).replace(/"/g, "&quot;"))
+  );
   res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
   res.end(html);
 }

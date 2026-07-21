@@ -5,6 +5,7 @@ dist/
 Exports/
 inspiring/
 Stories/
+default_templates/**/assets/
 .env
 .env.*
 !.env.example

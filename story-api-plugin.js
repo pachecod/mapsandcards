@@ -3,6 +3,10 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { existsSync } from "fs";
 import { deflateRawSync } from "zlib";
+import {
+  seedDefaultTemplatesFs,
+  DEFAULT_TEMPLATE_TITLES,
+} from "./services/seed-defaults.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -183,13 +187,18 @@ function storyApiMiddleware(rootDir) {
 
     try {
       if (req.method === "GET" && url === "/__story-api/list") {
+        await seedDefaultTemplatesFs(rootDir);
         await fs.mkdir(storiesRoot, { recursive: true });
         const names = await fs.readdir(storiesRoot, { withFileTypes: true });
         const stories = names
           .filter((d) => d.isDirectory() && !d.name.startsWith("."))
           .map((d) => d.name)
           .sort();
-        return sendJson(200, { stories });
+        const titles = {};
+        stories.forEach((slug) => {
+          if (DEFAULT_TEMPLATE_TITLES[slug]) titles[slug] = DEFAULT_TEMPLATE_TITLES[slug];
+        });
+        return sendJson(200, { stories, titles });
       }
 
       if (req.method === "POST" && url === "/__story-api/create") {
@@ -220,14 +229,28 @@ function storyApiMiddleware(rootDir) {
               terrain: false,
               projection: "globe",
               satelliteLabels: true,
-              initialMap: { lat: 20, lng: 0, zoom: 2 },
+              initialMap: { lat: 43.0481, lng: -76.1474, zoom: 11 },
               steps: [
                 {
-                  id: "step-1",
-                  lat: 20,
-                  lng: 0,
-                  zoom: 2,
-                  html: "<p>First card — edit in the builder.</p>"
+                  id: "location-1",
+                  lat: 43.0481,
+                  lng: -76.1474,
+                  zoom: 11,
+                  html: "<p>Syracuse, NY</p>"
+                },
+                {
+                  id: "location-2",
+                  lat: 40.7128,
+                  lng: -74.006,
+                  zoom: 10,
+                  html: "<p>New York City, NY</p>"
+                },
+                {
+                  id: "location-3",
+                  lat: 38.9072,
+                  lng: -77.0369,
+                  zoom: 11,
+                  html: "<p>Washington, DC</p>"
                 }
               ]
             },
@@ -334,10 +357,20 @@ export function storyApiPlugin() {
   const mw = storyApiMiddleware(rootDir);
   return {
     name: "story-api",
-    configureServer(server) {
+    async configureServer(server) {
+      try {
+        await seedDefaultTemplatesFs(rootDir);
+      } catch (e) {
+        console.warn("[seed] Filesystem seed failed:", e.message || e);
+      }
       server.middlewares.use(mw);
     },
-    configurePreviewServer(server) {
+    async configurePreviewServer(server) {
+      try {
+        await seedDefaultTemplatesFs(rootDir);
+      } catch (e) {
+        console.warn("[seed] Filesystem seed failed:", e.message || e);
+      }
       server.middlewares.use(mw);
     }
   };

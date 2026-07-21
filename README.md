@@ -91,6 +91,7 @@ Tools/
   scroll-map-story.html    Viewer template
   guest-playground.js      Guest Mode / WebxRide playground helpers
   STORY-OVERLAYS.md        Overlay schema notes
+default_templates/         Bundled stories seeded on install (e.g. demo → Demo)
 story-api-plugin.js        Vite plugin: local story CRUD
 server.js                  Express app for production
 routes/  services/  db/    Production API + database

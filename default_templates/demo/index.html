@@ -1,0 +1,1692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Scroll map story</title>
+  <!-- MapLibre + basemap style fallbacks; English labels via name:en / name_en where layers allow. -->
+  <link href="assets/maplibre-gl.css" rel="stylesheet" crossorigin="" />
+  <style>
+    :root {
+      --bg: #0f1419;
+      --text: #e8eaed;
+      --card-text: #1a1a1a;
+      --card-bg: rgba(255, 255, 255, 0.86);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    /* Percentage height chain so the map fills the iframe (100vh is unreliable inside iframes). */
+    html {
+      height: 100%;
+    }
+    body {
+      margin: 0;
+      min-height: 100%;
+      overflow-x: hidden;
+      background: var(--bg);
+      color: var(--text);
+    }
+    /* Full-screen map behind content */
+    .shell {
+      position: relative;
+      min-height: 100%;
+    }
+    /*
+      Inside an iframe (story-viewer), 100vh often matches the outer window, not the iframe —
+      the map ends up too short with black below. --map-vh is set to window.innerHeight in JS.
+    */
+    /* Map is display-only for gestures: wheel/touch scroll the page, not the map. */
+    .map-wrap {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      width: 100%;
+      height: var(--map-vh, 100dvh);
+      min-height: var(--map-vh, 100dvh);
+      z-index: 0;
+      pointer-events: none;
+    }
+    /* Let attribution + controls receive clicks (zoom buttons only in Explore mode). */
+    .map-wrap .maplibregl-control-container,
+    .map-wrap .maplibregl-ctrl-attrib,
+    .map-wrap .credits-attrib {
+      pointer-events: auto;
+    }
+    #map {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      min-height: 100%;
+      background: #111;
+    }
+    .map-wrap .credits-attrib {
+      background: hsla(0, 0%, 100%, 0.92);
+      border-radius: 10px;
+      margin: 0 0 10px 10px;
+      max-width: min(440px, 94vw);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+      font-size: 11px;
+      line-height: 1.35;
+      color: rgba(0, 0, 0, 0.78);
+    }
+    .map-wrap .credits-attrib-bar {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      min-width: 0;
+      width: 100%;
+    }
+    .map-wrap .credits-attrib-toggle {
+      flex: 1 1 auto;
+      min-width: 0;
+      display: block;
+      text-align: left;
+      padding: 6px 12px;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 500;
+      text-decoration: underline;
+      color: inherit;
+    }
+    .map-wrap .credits-attrib-toggle:hover {
+      color: #000;
+    }
+    .map-wrap .credits-attrib-close {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      margin: 0 10px 0 0;
+      padding: 0;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+      opacity: 0.72;
+    }
+    .map-wrap .credits-attrib-close:hover {
+      opacity: 1;
+      background: rgba(0, 0, 0, 0.06);
+      color: #000;
+    }
+    .map-wrap .credits-attrib-close[hidden] {
+      display: none !important;
+    }
+    .map-wrap .credits-attrib-panel {
+      padding: 0;
+      min-width: 0;
+    }
+    .map-wrap .credits-attrib-panel-body {
+      padding: 0 10px 8px;
+      word-break: break-word;
+      max-height: 38vh;
+      overflow-y: auto;
+    }
+    .map-wrap .credits-block-title {
+      font-weight: 600;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: rgba(0, 0, 0, 0.55);
+      margin-bottom: 0.3rem;
+    }
+    .map-wrap .credits-block-text {
+      font-weight: 400;
+      color: rgba(0, 0, 0, 0.78);
+    }
+    .map-wrap .credits-block-sources {
+      margin-top: 0.65rem;
+      padding-top: 0.55rem;
+      border-top: 1px solid rgba(0, 0, 0, 0.1);
+    }
+    .map-wrap .credits-sources-html {
+      font-size: 11px;
+      line-height: 1.45;
+    }
+    .map-wrap .credits-sources-html p {
+      margin: 0 0 0.45em;
+    }
+    .map-wrap .credits-sources-html p:last-child {
+      margin-bottom: 0;
+    }
+    .map-wrap .credits-sources-html a {
+      color: #0b5cab;
+      text-decoration: underline;
+    }
+    .map-wrap .credits-sources-html a:hover {
+      color: #084a8f;
+    }
+    .map-wrap .credits-sources-html ul,
+    .map-wrap .credits-sources-html ol {
+      margin: 0.35em 0;
+      padding-left: 1.15rem;
+    }
+    .map-wrap .credits-attrib-panel[hidden] {
+      display: none !important;
+    }
+    /*
+      Story column (cards on the right) sits above the map (z-index) and would block controls
+      under it. Disable hit-testing on the column and step wrappers; only cards capture pointer
+      events so clicks reach the map and the bottom-left Credits control in empty areas.
+    */
+    .story-scroll,
+    .story-scroll .step-block {
+      pointer-events: none;
+    }
+    .story-scroll {
+      position: relative;
+      z-index: 1;
+      max-width: min(28rem, 92vw);
+      margin-left: auto;
+      margin-right: 0;
+      padding: 1.25rem 1.25rem 50vh;
+    }
+    .story-scroll.is-explore-hidden {
+      display: none !important;
+    }
+    .story-scroll .card {
+      pointer-events: auto;
+    }
+    @media (max-width: 640px) {
+      .story-scroll {
+        max-width: 100%;
+        margin-left: 0;
+        padding: 1rem 1rem 40vh;
+      }
+    }
+    .step-block {
+      /* ~2× prior 72vh: more scroll before the next card enters view */
+      min-height: 144vh;
+      padding: 2rem 0;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+    }
+    .card {
+      width: 100%;
+      /* No backdrop-filter: it composites the map and makes translucent fills look solid white. */
+      background-color: var(--card-bg);
+      color: var(--card-text);
+      padding: 1.1rem 1.25rem;
+      border-radius: 10px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      max-width: 100%;
+      line-height: 1.55;
+      font-size: 1.05rem;
+    }
+    .card p { margin: 0 0 0.75rem; }
+    .card p:last-child { margin-bottom: 0; }
+    .card code { font-size: 0.9em; }
+    .map-error-banner {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 2;
+      padding: 0.65rem 1rem;
+      background: #4a2525;
+      color: #f5d4d4;
+      font-size: 0.88rem;
+      text-align: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .map-error-banner[hidden] {
+      display: none !important;
+    }
+    /* Story vs Explore + Options panel (basemap, etc.; see JS). */
+    .story-controls {
+      position: fixed;
+      top: 0.65rem;
+      left: 0.65rem;
+      z-index: 4;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      align-items: flex-start;
+      pointer-events: none;
+    }
+    .story-controls > * {
+      pointer-events: auto;
+    }
+    .story-controls-bar {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 0.4rem;
+      flex-wrap: nowrap;
+    }
+    .story-options-link {
+      margin: 0;
+      padding: 0.15rem 0.35rem;
+      border: 0;
+      border-radius: 6px;
+      background: hsla(0, 0%, 100%, 0.88);
+      box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
+      font: inherit;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: rgba(0, 0, 0, 0.55);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .story-options-link:hover {
+      color: #111;
+    }
+    .story-options-panel {
+      background: hsla(0, 0%, 100%, 0.94);
+      border-radius: 10px;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+      padding: 0.5rem 0.55rem 0.55rem;
+      min-width: 11rem;
+      max-width: min(94vw, 16rem);
+    }
+    .story-options-panel[hidden] {
+      display: none !important;
+    }
+    .story-options-panel .story-option-group + .story-option-group {
+      margin-top: 0.65rem;
+      padding-top: 0.55rem;
+      border-top: 1px solid rgba(0, 0, 0, 0.08);
+    }
+    .story-mode-toggle {
+      display: flex;
+      gap: 0;
+      background: hsla(0, 0%, 100%, 0.94);
+      border-radius: 999px;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+      padding: 3px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    .explore-basemap-label {
+      display: block;
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: rgba(0, 0, 0, 0.48);
+      margin-bottom: 0.3rem;
+    }
+    #explore-basemap-select {
+      width: 100%;
+      padding: 0.4rem 0.45rem;
+      border-radius: 6px;
+      border: 1px solid rgba(0, 0, 0, 0.18);
+      background: #fff;
+      font: inherit;
+      font-size: 0.8rem;
+      color: #111;
+      cursor: pointer;
+    }
+    .story-mode-btn {
+      margin: 0;
+      padding: 0.4rem 0.75rem;
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: rgba(0, 0, 0, 0.55);
+      font: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .story-mode-btn:hover {
+      color: rgba(0, 0, 0, 0.85);
+    }
+    .story-mode-btn.active {
+      background: rgba(0, 0, 0, 0.08);
+      color: #111;
+      font-weight: 600;
+    }
+    .map-wrap.map-wrap--explore {
+      pointer-events: auto;
+    }
+    @media (max-width: 640px) {
+      .story-mode-toggle {
+        font-size: 0.78rem;
+      }
+      .story-mode-btn {
+        padding: 0.35rem 0.65rem;
+      }
+      .story-options-panel {
+        min-width: min(92vw, 18rem);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="story-controls" id="story-controls">
+    <div class="story-controls-bar">
+      <div
+        class="story-mode-toggle"
+        role="group"
+        aria-label="Map interaction mode"
+      >
+      <button type="button" class="story-mode-btn active" id="story-mode-scroll" aria-pressed="true">
+        Story
+      </button>
+        <button type="button" class="story-mode-btn" id="story-mode-explore" aria-pressed="false">
+          Explore
+        </button>
+      </div>
+      <button
+        type="button"
+        class="story-options-link"
+        id="story-options-toggle"
+        aria-expanded="false"
+        aria-controls="story-options-panel"
+      >
+        Options
+      </button>
+    </div>
+    <div
+      class="story-options-panel"
+      id="story-options-panel"
+      role="region"
+      aria-label="Story options"
+      hidden
+    >
+      <div class="story-option-group explore-basemap-wrap" id="explore-basemap-wrap">
+        <label class="explore-basemap-label" for="explore-basemap-select">Basemap</label>
+        <select id="explore-basemap-select" aria-label="Basemap"></select>
+      </div>
+    </div>
+  </div>
+  <div class="shell" id="shell">
+    <div id="map-error" class="map-error-banner" hidden role="alert">
+      Map could not load. Serve this page over http(s), not file://, or check network and ad blockers.
+    </div>
+    <div class="map-wrap" id="map-wrap">
+      <div id="map" role="application" aria-label="Map"></div>
+    </div>
+    <div class="story-scroll" id="story-panel"></div>
+  </div>
+
+  <!--
+    Standalone (file://): browsers block fetch() to local files. The builder "Save" injects
+    story data here so the story works without a server. Leave empty to load scroll-map-story.json via fetch (http(s) only).
+  -->
+  <script type="application/json" id="scroll-map-story-embedded">
+{
+  "version": 1,
+  "baseMap": "openfreemap-bright",
+  "terrain": true,
+  "projection": "globe",
+  "satelliteLabels": true,
+  "sources": "",
+  "cardBackgroundColor": "#ffffff",
+  "cardBackgroundOpacity": 0.86,
+  "initialMap": {
+    "lat": 48.228351656055246,
+    "lng": -94.06347416589728,
+    "zoom": 1.4989893780075443
+  },
+  "steps": [
+    {
+      "id": "location-1",
+      "lat": 48.228351656055246,
+      "lng": -94.06347416589728,
+      "zoom": 1.4989893780075443,
+      "html": "<p>Welcome to Earth. It's a big planet, unless you view it from above.</p>",
+      "overlays": {
+        "geojson": {
+          "type": "FeatureCollection",
+          "features": []
+        }
+      }
+    },
+    {
+      "id": "location-2",
+      "lat": 59.70293496457978,
+      "lng": 5.4757329175720315,
+      "zoom": 1.5184232531985407,
+      "html": "<p>This is Europe. Notice how when viewed on a globe, all of Europe is smaller in size than the entire United States.</p>",
+      "overlays": {
+        "geojson": {
+          "type": "FeatureCollection",
+          "features": []
+        }
+      }
+    },
+    {
+      "id": "location-3",
+      "lat": 47.20276712677739,
+      "lng": 13.292873806841499,
+      "zoom": 0.6416078097309036,
+      "html": "<p>But Africa as a continent is not only bigger than the United States. All of the United States and Europe could fit inside it!</p>",
+      "overlays": {
+        "geojson": {
+          "type": "FeatureCollection",
+          "features": []
+        }
+      }
+    },
+    {
+      "id": "location-4",
+      "lat": 75.60605478660398,
+      "lng": -73.70631444089202,
+      "zoom": 0.24568026975877233,
+      "html": "<p>See Greenland near the top? See how much smaller it looks when viewed on a globe.</p>",
+      "overlays": {
+        "geojson": {
+          "type": "FeatureCollection",
+          "features": []
+        }
+      }
+    },
+    {
+      "id": "location-5",
+      "lat": 43.03892786727387,
+      "lng": -76.14526897621738,
+      "zoom": 11.61855406580371,
+      "html": "<p>Let's go back to a city-level spot on the map. This is Syracuse, NY.</p>",
+      "overlays": {
+        "geojson": {
+          "type": "FeatureCollection",
+          "features": []
+        }
+      }
+    }
+  ]
+}
+</script>
+
+  <script src="assets/maplibre-gl.min.js" crossorigin=""></script>
+  <script>
+(function () {
+  function syncMapViewportHeight() {
+    document.documentElement.style.setProperty(
+      "--map-vh",
+      window.innerHeight + "px"
+    );
+  }
+  syncMapViewportHeight();
+  window.addEventListener("orientationchange", syncMapViewportHeight);
+
+  /**
+   * When embedded JSON (above) is empty, load from this URL (http(s) only; file:// cannot fetch local JSON).
+   * Example: "scroll-map-story.json" or "https://example.com/data/my-story.json"
+   */
+  var STORY_JSON_URL = "scroll-map-story.json";
+
+  function loadStoryData() {
+    var embed = document.getElementById("scroll-map-story-embedded");
+    if (embed) {
+      var raw = embed.textContent;
+      if (raw && String(raw).trim()) {
+        try {
+          return Promise.resolve(JSON.parse(raw));
+        } catch (e) {
+          return Promise.reject(
+            new Error("Embedded story JSON is invalid: " + (e.message || String(e)))
+          );
+        }
+      }
+    }
+    return fetch(STORY_JSON_URL, { cache: "no-store" }).then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    });
+  }
+
+  var BASE_MAPS = [
+    {
+      id: "openfreemap-bright",
+      label: "OpenFreeMap — bright",
+      url: "https://tiles.openfreemap.org/styles/bright"
+    },
+    {
+      id: "carto-voyager",
+      label: "Carto — Voyager",
+      url: "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json"
+    },
+    {
+      id: "esri-satellite",
+      label: "Satellite (Esri — free, attribution)",
+      url: null
+    }
+  ];
+
+  function buildSatelliteEsriStyle(showLabels) {
+    var style = {
+      version: 8,
+      glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
+      sources: {
+        esri_world: {
+          type: "raster",
+          tiles: [
+            "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+          ],
+          tileSize: 256,
+          attribution:
+            "Esri, Maxar, Earthstar Geographics, and the GIS User Community"
+        }
+      },
+      layers: [
+        {
+          id: "esri_world",
+          type: "raster",
+          source: "esri_world",
+          minzoom: 0,
+          maxzoom: 22
+        }
+      ]
+    };
+    if (showLabels) {
+      style.sources.esri_ref = {
+        type: "raster",
+        tiles: [
+          "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+        ],
+        tileSize: 256,
+        attribution:
+          "Labels and places: Esri, HERE, Garmin, FAO, NOAA, USGS, EPA, NPS, NRCAN, GeoBase, IGN, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), (c) OpenStreetMap contributors, and the GIS User Community"
+      };
+      style.layers.push({
+        id: "esri_ref",
+        type: "raster",
+        source: "esri_ref",
+        minzoom: 0,
+        maxzoom: 22
+      });
+    }
+    return style;
+  }
+
+  var config;
+  var map;
+  var storyObserver;
+  var lastFlownIndex = -1;
+  var storyInteractionMode = "scroll";
+  var storyModeToggleWired = false;
+  var exploreBasemapWired = false;
+  var storyOptionsWired = false;
+  var navigationControl = null;
+  var navControlOnMap = false;
+  /** Runtime basemap while exploring (author default is config.baseMap). */
+  var viewerBaseMap = "openfreemap-bright";
+  /** Tracks the basemap that is currently loaded in the map, so we only call setStyle when it actually changes. */
+  var currentLoadedBaseMap = "openfreemap-bright";
+
+  var MAX_OVERLAY_FEATURES = 500;
+  var STORY_OV_LAYERS = [
+    "story-ov-symbol",
+    "story-ov-circle",
+    "story-ov-line",
+    "story-ov-line-poly",
+    "story-ov-fill"
+  ];
+  var STORY_OV_SOURCES = [
+    "story-ov-src-pt-l",
+    "story-ov-src-pt-m",
+    "story-ov-src-line",
+    "story-ov-src-poly"
+  ];
+
+  function el(id) {
+    return document.getElementById(id);
+  }
+
+  function baseMapUrlById(id) {
+    for (var i = 0; i < BASE_MAPS.length; i++) {
+      if (BASE_MAPS[i].id === id) {
+        return BASE_MAPS[i].url != null ? BASE_MAPS[i].url : null;
+      }
+    }
+    return BASE_MAPS[0].url;
+  }
+
+  function styleUrlsForConfig(baseMapId) {
+    var preferred = baseMapUrlById(baseMapId);
+    var urls = [];
+    if (preferred) urls.push(preferred);
+    BASE_MAPS.forEach(function (b) {
+      if (b.url && b.url !== preferred) urls.push(b.url);
+    });
+    return urls;
+  }
+
+  function getBaseMapStylePromise(baseMapId) {
+    if (baseMapId === "esri-satellite") {
+      return Promise.resolve(
+        buildSatelliteEsriStyle(config.satelliteLabels !== false)
+      );
+    }
+    return pickMapStyleUrl(styleUrlsForConfig(baseMapId));
+  }
+
+  function normalizeCardBackgroundOpacity(v) {
+    if (typeof v === "number" && !isNaN(v)) {
+      return Math.max(0, Math.min(1, v));
+    }
+    if (typeof v === "string" && v.trim() !== "") {
+      var p = parseFloat(v.trim());
+      if (!isNaN(p)) return Math.max(0, Math.min(1, p));
+    }
+    return 0.86;
+  }
+
+  function normalizeCardBackgroundColor(v) {
+    if (typeof v !== "string") return "#ffffff";
+    var s = v.trim();
+    if (/^#[0-9a-fA-F]{6}$/.test(s)) return s.toLowerCase();
+    if (/^#[0-9a-fA-F]{3}$/.test(s)) {
+      return (
+        "#" +
+        s[1].toLowerCase() +
+        s[1].toLowerCase() +
+        s[2].toLowerCase() +
+        s[2].toLowerCase() +
+        s[3].toLowerCase() +
+        s[3].toLowerCase()
+      );
+    }
+    return "#ffffff";
+  }
+
+  function hexToRgb(hex) {
+    var h = normalizeCardBackgroundColor(hex).slice(1);
+    return {
+      r: parseInt(h.slice(0, 2), 16),
+      g: parseInt(h.slice(2, 4), 16),
+      b: parseInt(h.slice(4, 6), 16)
+    };
+  }
+
+  function getCardBackgroundRgbaString() {
+    var a = config ? normalizeCardBackgroundOpacity(config.cardBackgroundOpacity) : 0.86;
+    if (config) config.cardBackgroundOpacity = a;
+    var hex = config ? normalizeCardBackgroundColor(config.cardBackgroundColor) : "#ffffff";
+    if (config) config.cardBackgroundColor = hex;
+    var rgb = hexToRgb(hex);
+    return "rgba(" + rgb.r + ", " + rgb.g + ", " + rgb.b + ", " + a + ")";
+  }
+
+  function applyCardBackgroundOpacity() {
+    var val = getCardBackgroundRgbaString();
+    document.documentElement.style.setProperty("--card-bg", val);
+    var panel = document.getElementById("story-panel");
+    if (panel) panel.style.setProperty("--card-bg", val);
+  }
+
+  function applyTerrainIfNeeded() {
+    if (!map) return;
+    var enable = config.terrain === true;
+    if (!enable) {
+      try {
+        map.setTerrain(null);
+        if (map.getSource("terrain")) {
+          map.removeSource("terrain");
+        }
+      } catch (e) {}
+      try {
+        if (config.projection !== "globe") map.setPitch(0);
+      } catch (e2) {}
+      return;
+    }
+    try {
+      if (!map.getSource("terrain")) {
+        map.addSource("terrain", {
+          type: "raster-dem",
+          url: "https://demotiles.maplibre.org/terrain-tiles/tiles.json",
+          tileSize: 256
+        });
+      }
+      map.setTerrain({ source: "terrain", exaggeration: 1.4 });
+      map.setPitch(42);
+    } catch (e) {
+      console.warn("Terrain:", e);
+    }
+  }
+
+  function applyProjectionIfNeeded() {
+    if (!map || typeof map.setProjection !== "function") return;
+    var type = config.projection === "globe" ? "globe" : "mercator";
+    try {
+      var cur = map.getProjection && map.getProjection();
+      if (cur && cur.type === type) return;
+      map.setProjection({ type: type });
+    } catch (e) {
+      console.warn("Projection:", e);
+    }
+  }
+
+  function normalizeConfig(data) {
+    if (!data.steps || !Array.isArray(data.steps)) {
+      throw new Error("Invalid JSON: need steps array");
+    }
+    if (!data.version) data.version = 1;
+    var validBase = {};
+    BASE_MAPS.forEach(function (b) {
+      validBase[b.id] = true;
+    });
+    if (!data.baseMap || !validBase[data.baseMap]) {
+      data.baseMap = "openfreemap-bright";
+    }
+    if (typeof data.terrain !== "boolean") {
+      data.terrain = false;
+    }
+    if (data.projection !== "globe" && data.projection !== "mercator") {
+      data.projection = "mercator";
+    }
+    if (typeof data.satelliteLabels !== "boolean") {
+      data.satelliteLabels = true;
+    }
+    if (typeof data.sources !== "string") {
+      data.sources = "";
+    }
+    data.cardBackgroundOpacity = normalizeCardBackgroundOpacity(data.cardBackgroundOpacity);
+    data.cardBackgroundColor = normalizeCardBackgroundColor(data.cardBackgroundColor);
+    if (data.steps[0]) {
+      var s0 = data.steps[0];
+      data.initialMap = {
+        lat: s0.lat,
+        lng: s0.lng,
+        zoom: typeof s0.zoom === "number" ? s0.zoom : 6
+      };
+    } else if (!data.initialMap) {
+      data.initialMap = { lat: 20, lng: 0, zoom: 2 };
+    }
+    data.steps.forEach(function (step) {
+      normalizeStepOverlays(step);
+    });
+    return data;
+  }
+
+  function normalizeStepOverlays(step) {
+    if (!step || typeof step !== "object") return;
+    if (!step.overlays || typeof step.overlays !== "object") {
+      step.overlays = { geojson: { type: "FeatureCollection", features: [] } };
+      return;
+    }
+    var g = step.overlays.geojson;
+    if (!g || g.type !== "FeatureCollection" || !Array.isArray(g.features)) {
+      step.overlays.geojson = { type: "FeatureCollection", features: [] };
+      return;
+    }
+    if (g.features.length > MAX_OVERLAY_FEATURES) {
+      g.features = g.features.slice(0, MAX_OVERLAY_FEATURES);
+    }
+    g.features.forEach(function (f) {
+      if (!f || !f.properties || !f.geometry || f.geometry.type !== "Point") return;
+      var p = f.properties;
+      if (typeof p.radius !== "number" || p.radius < 1) p.radius = 8;
+      var hasText =
+        (typeof p.text === "string" && p.text.trim() !== "") ||
+        (typeof p.title === "string" && p.title.trim() !== "");
+      if (!p.kind) {
+        p.kind = hasText ? "label" : "marker";
+      }
+      if (typeof p.showDot !== "boolean") {
+        p.showDot = p.kind !== "label";
+      }
+      if (p.showDot) {
+        if (!p.dotColor) p.dotColor = p.color && p.kind === "marker" ? p.color : "#3388ff";
+        if (p.kind === "marker" && !p.color) p.color = p.dotColor;
+      }
+      if (hasText) {
+        if (p.color === "#111111" || p.color === "#1a1a1a" || (p.kind === "label" && p.color === "#3388ff")) {
+          p.color = "#f0f0f0";
+        }
+        if (!p.color) p.color = "#f0f0f0";
+        p.haloColor = p.haloColor || "#0f1419";
+      } else if (p.kind === "marker" && !p.color) {
+        p.color = "#3388ff";
+      }
+    });
+  }
+
+  function splitOverlayFeatures(fc) {
+    var poly = { type: "FeatureCollection", features: [] };
+    var lines = { type: "FeatureCollection", features: [] };
+    var ptMark = { type: "FeatureCollection", features: [] };
+    var ptLabel = { type: "FeatureCollection", features: [] };
+    if (!fc || !Array.isArray(fc.features)) {
+      return { poly: poly, lines: lines, ptMark: ptMark, ptLabel: ptLabel };
+    }
+    fc.features.forEach(function (f) {
+      if (!f || !f.geometry) return;
+      var g = f.geometry.type;
+      var p = f.properties || {};
+      if (g === "Polygon" || g === "MultiPolygon") {
+        poly.features.push(f);
+      } else if (g === "LineString" || g === "MultiLineString") {
+        lines.features.push(f);
+      } else if (g === "Point") {
+        var hasText =
+          (typeof p.text === "string" && p.text.trim() !== "") ||
+          (typeof p.title === "string" && p.title.trim() !== "");
+        var wantDot = typeof p.showDot === "boolean"
+          ? p.showDot
+          : (p.kind !== "label");
+        if (wantDot) ptMark.features.push(f);
+        if (hasText) ptLabel.features.push(f);
+        if (!wantDot && !hasText) ptMark.features.push(f);
+      }
+    });
+    return { poly: poly, lines: lines, ptMark: ptMark, ptLabel: ptLabel };
+  }
+
+  var OV_SRC_POLY = "sov-poly";
+  var OV_SRC_LINE = "sov-line";
+  var OV_SRC_PTM  = "sov-ptm";
+  var OV_SRC_PTL  = "sov-ptl";
+  var EMPTY_FC = { type: "FeatureCollection", features: [] };
+
+  function getStyleFont() {
+    if (!map) return ["Noto Sans Regular"];
+    try {
+      var style = map.getStyle();
+      if (style && style.layers) {
+        for (var i = 0; i < style.layers.length; i++) {
+          var l = style.layers[i];
+          if (l.type === "symbol" && l.layout && Array.isArray(l.layout["text-font"])) {
+            return l.layout["text-font"];
+          }
+        }
+      }
+    } catch (e) {}
+    return ["Noto Sans Regular"];
+  }
+
+  function ensureOverlaySources() {
+    if (!map) return;
+    var srcIds = [OV_SRC_POLY, OV_SRC_LINE, OV_SRC_PTM, OV_SRC_PTL];
+    srcIds.forEach(function (id) {
+      if (!map.getSource(id)) {
+        map.addSource(id, { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      }
+    });
+    if (!map.getLayer("story-ov-fill")) {
+      map.addLayer({
+        id: "story-ov-fill", type: "fill", source: OV_SRC_POLY,
+        paint: {
+          "fill-color": ["coalesce", ["get", "fillColor"], "#3388ff"],
+          "fill-opacity": 0.35
+        }
+      });
+    }
+    if (!map.getLayer("story-ov-line-poly")) {
+      map.addLayer({
+        id: "story-ov-line-poly", type: "line", source: OV_SRC_POLY,
+        paint: {
+          "line-color": ["coalesce", ["get", "strokeColor"], ["get", "color"], "#1a5fb4"],
+          "line-width": 2
+        }
+      });
+    }
+    if (!map.getLayer("story-ov-line")) {
+      map.addLayer({
+        id: "story-ov-line", type: "line", source: OV_SRC_LINE,
+        paint: {
+          "line-color": ["coalesce", ["get", "color"], "#3388ff"],
+          "line-width": 3
+        }
+      });
+    }
+    if (!map.getLayer("story-ov-circle")) {
+      map.addLayer({
+        id: "story-ov-circle", type: "circle", source: OV_SRC_PTM,
+        paint: {
+          "circle-radius": ["coalesce", ["get", "radius"], 8],
+          "circle-color": ["coalesce", ["get", "dotColor"], ["get", "color"], "#3388ff"],
+          "circle-stroke-width": 2,
+          "circle-stroke-color": "#ffffff"
+        }
+      });
+    }
+    if (!map.getLayer("story-ov-symbol")) {
+      map.addLayer({
+        id: "story-ov-symbol", type: "symbol", source: OV_SRC_PTL,
+        layout: {
+          "text-field": ["to-string", ["coalesce", ["get", "text"], ["get", "title"], ""]],
+          "text-font": getStyleFont(),
+          "text-size": 16,
+          "text-anchor": [
+            "case",
+            ["boolean", ["get", "showDot"], false],
+            "bottom",
+            "center"
+          ],
+          "text-offset": [
+            "case",
+            ["boolean", ["get", "showDot"], false],
+            ["literal", [0, -1.5]],
+            ["literal", [0, 0]]
+          ],
+          "text-allow-overlap": true
+        },
+        paint: {
+          "text-color": ["coalesce", ["get", "color"], "#f0f0f0"],
+          "text-halo-color": ["coalesce", ["get", "haloColor"], "#0f1419"],
+          "text-halo-width": 2
+        }
+      });
+    }
+    STORY_OV_LAYERS.forEach(function (id) {
+      if (map.getLayer(id)) map.moveLayer(id);
+    });
+  }
+
+  function mergeAllStepOverlays() {
+    var merged = { type: "FeatureCollection", features: [] };
+    if (!config || !Array.isArray(config.steps)) return merged;
+    config.steps.forEach(function (step, i) {
+      normalizeStepOverlays(step);
+      var feats = step.overlays && step.overlays.geojson && step.overlays.geojson.features;
+      if (!Array.isArray(feats)) return;
+      feats.forEach(function (f) {
+        if (!f || !f.geometry) return;
+        var copy = JSON.parse(JSON.stringify(f));
+        if (!copy.properties) copy.properties = {};
+        copy.properties._stepIndex = i;
+        merged.features.push(copy);
+      });
+    });
+    return merged;
+  }
+
+  function applyStepOverlays(stepIndex) {
+    if (!map || !config || !config.steps) return;
+    ensureOverlaySources();
+    var split;
+    if (storyInteractionMode === "explore") {
+      split = splitOverlayFeatures(mergeAllStepOverlays());
+    } else {
+      var step = config.steps[stepIndex];
+      if (step) {
+        normalizeStepOverlays(step);
+        split = splitOverlayFeatures(step.overlays.geojson);
+      } else {
+        split = { poly: EMPTY_FC, lines: EMPTY_FC, ptMark: EMPTY_FC, ptLabel: EMPTY_FC };
+      }
+    }
+    try {
+      map.getSource(OV_SRC_POLY).setData(split.poly);
+      map.getSource(OV_SRC_LINE).setData(split.lines);
+      map.getSource(OV_SRC_PTM).setData(split.ptMark);
+      map.getSource(OV_SRC_PTL).setData(split.ptLabel);
+    } catch (err) {
+      console.warn("Step overlays:", err);
+    }
+  }
+
+  function pickMapStyleUrl(urls) {
+    return new Promise(function (resolve, reject) {
+      var i = 0;
+      function tryNext() {
+        if (i >= urls.length) {
+          reject(new Error("No map style reachable"));
+          return;
+        }
+        var url = urls[i++];
+        fetch(url, { mode: "cors" })
+          .then(function (r) {
+            if (!r.ok) throw new Error();
+            return r.json();
+          })
+          .then(function () {
+            resolve(url);
+          })
+          .catch(tryNext);
+      }
+      tryNext();
+    });
+  }
+
+  function showMapLoadError() {
+    var n = el("map-error");
+    if (n) n.hidden = false;
+  }
+
+  /** MapLibre v3+ removed maplibregl.supported(); use a canvas probe instead. */
+  function webglAvailable() {
+    try {
+      var c = document.createElement("canvas");
+      return !!(c.getContext("webgl2") || c.getContext("webgl"));
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function CreditsAttributionControl(options) {
+    this._options = options || {};
+  }
+  CreditsAttributionControl.prototype.getDefaultPosition = function () {
+    return "bottom-left";
+  };
+  CreditsAttributionControl.prototype.onAdd = function (map) {
+    var self = this;
+    self._map = map;
+    function getStorySourcesText() {
+      var fn = self._options && self._options.getSourcesText;
+      if (typeof fn === "function") {
+        try {
+          return String(fn() || "");
+        } catch (e) {
+          return "";
+        }
+      }
+      return "";
+    }
+    var wrap = document.createElement("div");
+    wrap.className = "maplibregl-ctrl credits-attrib";
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "credits-attrib-toggle";
+    btn.textContent = "Credits and Sources";
+    var bar = document.createElement("div");
+    bar.className = "credits-attrib-bar";
+    var closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "credits-attrib-close";
+    closeBtn.setAttribute("aria-label", "Close credits");
+    closeBtn.textContent = "\u00d7";
+    closeBtn.setAttribute("hidden", "");
+    var panel = document.createElement("div");
+    panel.className = "credits-attrib-panel";
+    panel.id = "credits-panel-" + String(Math.random()).slice(2);
+    panel.setAttribute("hidden", "");
+    var panelBody = document.createElement("div");
+    panelBody.className = "credits-attrib-panel-body";
+    panel.appendChild(panelBody);
+    btn.setAttribute("aria-expanded", "false");
+    btn.setAttribute("aria-controls", panel.id);
+    bar.appendChild(btn);
+    bar.appendChild(closeBtn);
+    wrap.appendChild(bar);
+    wrap.appendChild(panel);
+
+    function dedupeAttributions(list) {
+      var a = list.filter(function (s) {
+        return String(s).trim();
+      });
+      a.sort(function (x, y) {
+        return x.length - y.length;
+      });
+      return a.filter(function (attrib, i) {
+        for (var j = i + 1; j < a.length; j++) {
+          if (a[j].indexOf(attrib) >= 0) return false;
+        }
+        return true;
+      });
+    }
+
+    function gatherAttributions() {
+      var attributions = ["MapLibre"];
+      try {
+        var style = map.style;
+        if (style && style.sourceCaches) {
+          for (var id in style.sourceCaches) {
+            if (!Object.prototype.hasOwnProperty.call(style.sourceCaches, id)) continue;
+            var sc = style.sourceCaches[id];
+            if (!sc || (!sc.used && !sc.usedForTerrain)) continue;
+            var source = sc.getSource && sc.getSource();
+            if (source && source.attribution && attributions.indexOf(source.attribution) < 0) {
+              attributions.push(source.attribution);
+            }
+          }
+        }
+        if (attributions.length <= 1 && map.getStyle && map.getStyle().sources) {
+          var sources = map.getStyle().sources;
+          for (var sid in sources) {
+            if (!Object.prototype.hasOwnProperty.call(sources, sid)) continue;
+            var src = sources[sid];
+            if (src && src.attribution && attributions.indexOf(src.attribution) < 0) {
+              attributions.push(src.attribution);
+            }
+          }
+        }
+      } catch (e) {}
+      return dedupeAttributions(attributions);
+    }
+
+    function updatePanelText() {
+      while (panelBody.firstChild) {
+        panelBody.removeChild(panelBody.firstChild);
+      }
+      var parts = gatherAttributions();
+      var mapBlock = document.createElement("div");
+      mapBlock.className = "credits-block";
+      var mapTitle = document.createElement("div");
+      mapTitle.className = "credits-block-title";
+      mapTitle.textContent = "Map Credits";
+      var mapText = document.createElement("div");
+      mapText.className = "credits-block-text";
+      mapText.textContent = parts.join(" | ");
+      mapBlock.appendChild(mapTitle);
+      mapBlock.appendChild(mapText);
+      panelBody.appendChild(mapBlock);
+
+      var extra = getStorySourcesText().trim();
+      if (extra) {
+        var srcBlock = document.createElement("div");
+        srcBlock.className = "credits-block credits-block-sources";
+        var srcTitle = document.createElement("div");
+        srcTitle.className = "credits-block-title";
+        srcTitle.textContent = "Sources";
+        var srcText = document.createElement("div");
+        srcText.className = "credits-block-text credits-sources-html";
+        srcText.innerHTML = getStorySourcesText();
+        srcBlock.appendChild(srcTitle);
+        srcBlock.appendChild(srcText);
+        panelBody.appendChild(srcBlock);
+      }
+    }
+
+    function closeCreditsPanel() {
+      panel.setAttribute("hidden", "");
+      closeBtn.setAttribute("hidden", "");
+      btn.setAttribute("aria-expanded", "false");
+    }
+
+    function toggleCreditsPanel() {
+      if (panel.hasAttribute("hidden")) {
+        panel.removeAttribute("hidden");
+        closeBtn.removeAttribute("hidden");
+        btn.setAttribute("aria-expanded", "true");
+      } else {
+        closeCreditsPanel();
+      }
+    }
+
+    function onData() {
+      updatePanelText();
+    }
+
+    map.on("styledata", onData);
+    map.on("sourcedata", onData);
+    map.on("terrain", onData);
+
+    btn.addEventListener("click", function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      toggleCreditsPanel();
+    });
+
+    closeBtn.addEventListener("click", function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      closeCreditsPanel();
+    });
+
+    updatePanelText();
+    self._onData = onData;
+    self.refreshPanel = updatePanelText;
+    self._container = wrap;
+    return wrap;
+  };
+  CreditsAttributionControl.prototype.onRemove = function () {
+    if (this._map && this._onData) {
+      this._map.off("styledata", this._onData);
+      this._map.off("sourcedata", this._onData);
+      this._map.off("terrain", this._onData);
+    }
+    this._map = undefined;
+  };
+
+  function applyEnglishLabels(m) {
+    var enField = [
+      "coalesce",
+      ["get", "name:en"],
+      ["get", "name_en"],
+      ["get", "name:latin"],
+      ["get", "name"]
+    ];
+    var style = m.getStyle();
+    if (!style || !style.layers) return;
+    style.layers.forEach(function (layer) {
+      if (layer.type !== "symbol") return;
+      if (/shield|oneway/i.test(layer.id)) return;
+      var tf = layer.layout && layer.layout["text-field"];
+      if (!tf) return;
+      var tfs = JSON.stringify(tf);
+      if (
+        tfs.indexOf('"name"') === -1 &&
+        tfs.indexOf("name_en") === -1 &&
+        tfs.indexOf("name:") === -1
+      ) {
+        return;
+      }
+      try {
+        m.setLayoutProperty(layer.id, "text-field", enField);
+      } catch (err) {}
+    });
+  }
+
+  function initMap(onReady) {
+    var im = config.initialMap || { lat: 20, lng: 0, zoom: 2 };
+    if (!webglAvailable()) {
+      console.error("WebGL not available");
+      showMapLoadError();
+      if (typeof onReady === "function") onReady();
+      return;
+    }
+    getBaseMapStylePromise(currentLoadedBaseMap)
+      .then(function (style) {
+        map = window._m = new maplibregl.Map({
+          container: "map",
+          style: style,
+          center: [im.lng, im.lat],
+          zoom: im.zoom,
+          pitch: config.terrain ? 42 : 0,
+          attributionControl: false,
+          /* Page scroll drives the story; map only updates via flyTo from steps. */
+          scrollZoom: false,
+          boxZoom: false,
+          doubleClickZoom: false,
+          touchZoomRotate: false,
+          dragRotate: false,
+          keyboard: false,
+          dragPan: false
+        });
+        map.addControl(
+          new CreditsAttributionControl({
+            getSourcesText: function () {
+              return config && typeof config.sources === "string" ? config.sources : "";
+            }
+          }),
+          "bottom-left"
+        );
+        navigationControl = new maplibregl.NavigationControl({ showCompass: false });
+        map.on("error", function (e) {
+          if (e && e.error) console.warn("Map error:", e.error);
+        });
+        map.on("load", function () {
+          applyEnglishLabels(map);
+          applyProjectionIfNeeded();
+          applyTerrainIfNeeded();
+          setTimeout(function () {
+            syncMapViewportHeight();
+            map.resize();
+            if (window.parent !== window.self) {
+              requestAnimationFrame(function () {
+                syncMapViewportHeight();
+                map.resize();
+              });
+              setTimeout(function () {
+                syncMapViewportHeight();
+                map.resize();
+              }, 150);
+            }
+            if (typeof ResizeObserver !== "undefined") {
+              var ro = new ResizeObserver(function () {
+                syncMapViewportHeight();
+                if (map) map.resize();
+              });
+              ro.observe(document.documentElement);
+            }
+            wireStoryModeToggle();
+            if (typeof onReady === "function") onReady();
+          }, 0);
+        });
+      })
+      .catch(function (err) {
+        console.error(err);
+        showMapLoadError();
+        if (typeof onReady === "function") onReady();
+      });
+  }
+
+  var _flyGen = 0;
+  function flyToStep(i, animate) {
+    var s = config.steps[i];
+    if (!s || !map) return;
+    var z = typeof s.zoom === "number" ? s.zoom : 6;
+    var pitch = config.terrain ? 42 : 0;
+    lastFlownIndex = i;
+
+    var stepBase = s.baseMap || null;
+    var effectiveBase = stepBase || viewerBaseMap;
+    var needSwitch = effectiveBase !== currentLoadedBaseMap;
+
+    if (animate === false) {
+      map.jumpTo({ center: [s.lng, s.lat], zoom: z, pitch: pitch });
+    } else {
+      map.flyTo({ center: [s.lng, s.lat], zoom: z, duration: 1200, pitch: pitch });
+    }
+
+    if (needSwitch) {
+      var gen = ++_flyGen;
+      currentLoadedBaseMap = effectiveBase;
+      getBaseMapStylePromise(effectiveBase)
+        .then(function (style) {
+          if (gen !== _flyGen) return;
+          map.once("idle", function () {
+            if (gen !== _flyGen) return;
+            applyEnglishLabels(map);
+            applyProjectionIfNeeded();
+            applyTerrainIfNeeded();
+            ensureOverlaySources();
+            applyStepOverlays(lastFlownIndex);
+            map.resize();
+          });
+          map.setStyle(style);
+        })
+        .catch(function (err) {
+          console.warn("Step basemap switch failed:", err);
+        });
+    }
+    applyStepOverlays(i);
+  }
+
+  function getCurrentVisibleStepIndex() {
+    var panels = document.querySelectorAll("#story-panel .step-block");
+    if (!panels.length) return 0;
+    var best = 0;
+    var bestScore = -Infinity;
+    var vpH = window.innerHeight;
+    var targetY = vpH * 0.42;
+    for (var i = 0; i < panels.length; i++) {
+      var r = panels[i].getBoundingClientRect();
+      if (r.bottom < 0 || r.top > vpH) continue;
+      var center = (r.top + r.bottom) / 2;
+      var score = -Math.abs(center - targetY);
+      if (score > bestScore) {
+        bestScore = score;
+        best = i;
+      }
+    }
+    return best;
+  }
+
+  function mapHandler(name, method) {
+    if (!map || !map[name] || typeof map[name][method] !== "function") return;
+    try {
+      map[name][method]();
+    } catch (e) {}
+  }
+
+  function updateStoryModeUI() {
+    var btnScroll = el("story-mode-scroll");
+    var btnExplore = el("story-mode-explore");
+    if (!btnScroll || !btnExplore) return;
+    var scroll = storyInteractionMode === "scroll";
+    btnScroll.classList.toggle("active", scroll);
+    btnExplore.classList.toggle("active", !scroll);
+    btnScroll.setAttribute("aria-pressed", scroll ? "true" : "false");
+    btnExplore.setAttribute("aria-pressed", scroll ? "false" : "true");
+  }
+
+  function syncNavigationControlVisibility() {
+    if (!map || !navigationControl) return;
+    if (storyInteractionMode === "explore") {
+      if (!navControlOnMap) {
+        map.addControl(navigationControl, "top-right");
+        navControlOnMap = true;
+      }
+    } else {
+      if (navControlOnMap) {
+        map.removeControl(navigationControl);
+        navControlOnMap = false;
+      }
+    }
+  }
+
+  function setStoryInteractionMode(mode) {
+    if (!map) return;
+    if (mode !== "scroll" && mode !== "explore") return;
+    storyInteractionMode = mode;
+    var wrap = el("map-wrap");
+    var storyPanel = el("story-panel");
+    if (wrap) {
+      if (mode === "explore") {
+        wrap.classList.add("map-wrap--explore");
+      } else {
+        wrap.classList.remove("map-wrap--explore");
+      }
+    }
+    if (storyPanel) {
+      storyPanel.classList.toggle("is-explore-hidden", mode === "explore");
+    }
+    if (mode === "explore") {
+      if (storyObserver) storyObserver.disconnect();
+      mapHandler("scrollZoom", "enable");
+      mapHandler("dragPan", "enable");
+      mapHandler("touchZoomRotate", "enable");
+      mapHandler("doubleClickZoom", "enable");
+      mapHandler("boxZoom", "enable");
+      mapHandler("keyboard", "enable");
+      if (config && config.terrain === true) {
+        mapHandler("dragRotate", "enable");
+      } else {
+        mapHandler("dragRotate", "disable");
+      }
+      applyStepOverlays(lastFlownIndex >= 0 ? lastFlownIndex : 0);
+    } else {
+      mapHandler("scrollZoom", "disable");
+      mapHandler("dragPan", "disable");
+      mapHandler("touchZoomRotate", "disable");
+      mapHandler("doubleClickZoom", "disable");
+      mapHandler("boxZoom", "disable");
+      mapHandler("keyboard", "disable");
+      mapHandler("dragRotate", "disable");
+      var idx = getCurrentVisibleStepIndex();
+      flyToStep(idx, false);
+      connectStoryObserver();
+    }
+    updateStoryModeUI();
+    updateExploreBasemapVisibility();
+    syncNavigationControlVisibility();
+    if (map) map.resize();
+  }
+
+  function updateExploreBasemapVisibility() {
+    var sel = el("explore-basemap-select");
+    if (sel) sel.value = viewerBaseMap;
+    var optBtn = el("story-options-toggle");
+    var optPanel = el("story-options-panel");
+    var inExplore = storyInteractionMode === "explore";
+    if (optBtn) optBtn.style.display = inExplore ? "" : "none";
+    if (optPanel && !inExplore) optPanel.hidden = true;
+  }
+
+  function setStoryOptionsOpen(open) {
+    var panel = el("story-options-panel");
+    var btn = el("story-options-toggle");
+    if (panel) panel.hidden = !open;
+    if (btn) btn.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+
+  function wireStoryOptions() {
+    if (storyOptionsWired) return;
+    var btn = el("story-options-toggle");
+    var panel = el("story-options-panel");
+    if (!btn || !panel) return;
+    storyOptionsWired = true;
+    btn.addEventListener("click", function () {
+      setStoryOptionsOpen(panel.hidden);
+    });
+  }
+
+  function switchViewerBaseMap(baseMapId) {
+    if (!map || !baseMapId) return;
+    var valid = {};
+    BASE_MAPS.forEach(function (b) {
+      valid[b.id] = true;
+    });
+    if (!valid[baseMapId]) return;
+    if (baseMapId === viewerBaseMap) return;
+    var previous = viewerBaseMap;
+    viewerBaseMap = baseMapId;
+    currentLoadedBaseMap = baseMapId;
+    var sel = el("explore-basemap-select");
+    if (sel) sel.value = viewerBaseMap;
+    getBaseMapStylePromise(viewerBaseMap)
+      .then(function (style) {
+        map.once("idle", function () {
+          applyEnglishLabels(map);
+          applyProjectionIfNeeded();
+          applyTerrainIfNeeded();
+          map.resize();
+          if (storyInteractionMode === "scroll") {
+            var stepIdx = getCurrentVisibleStepIndex();
+            flyToStep(stepIdx, false);
+          } else {
+            var si = lastFlownIndex >= 0 ? lastFlownIndex : 0;
+            if (config.steps && config.steps.length) {
+              applyStepOverlays(Math.min(si, config.steps.length - 1));
+            }
+          }
+        });
+        map.setStyle(style);
+      })
+      .catch(function (err) {
+        viewerBaseMap = previous;
+        currentLoadedBaseMap = previous;
+        if (sel) sel.value = viewerBaseMap;
+        console.warn("Basemap switch failed:", err);
+      });
+  }
+
+  function wireExploreBasemap() {
+    if (exploreBasemapWired) return;
+    var sel = el("explore-basemap-select");
+    if (!sel) return;
+    exploreBasemapWired = true;
+    BASE_MAPS.forEach(function (b) {
+      var opt = document.createElement("option");
+      opt.value = b.id;
+      opt.textContent = b.label;
+      sel.appendChild(opt);
+    });
+    sel.value = viewerBaseMap;
+    sel.addEventListener("change", function () {
+      switchViewerBaseMap(sel.value);
+    });
+  }
+
+  function connectStoryObserver() {
+    if (storyInteractionMode !== "scroll") return;
+    var panel = el("story-panel");
+    if (!panel) return;
+    if (storyObserver) storyObserver.disconnect();
+    storyObserver = new IntersectionObserver(
+      function (entries) {
+        var crossing = entries
+          .filter(function (e) {
+            return e.isIntersecting;
+          })
+          .sort(function (a, b) {
+            return b.intersectionRatio - a.intersectionRatio;
+          });
+        if (!crossing.length) return;
+        var idx = Number(crossing[0].target.dataset.stepIndex);
+        if (idx !== lastFlownIndex) flyToStep(idx, true);
+      },
+      {
+        root: null,
+        rootMargin: "-42% 0px -42% 0px",
+        threshold: [0, 0.1, 0.25, 0.5, 0.75, 1]
+      }
+    );
+    Array.prototype.forEach.call(panel.querySelectorAll(".step-block"), function (node) {
+      storyObserver.observe(node);
+    });
+  }
+
+  function wireStoryModeToggle() {
+    if (storyModeToggleWired) return;
+    var btnScroll = el("story-mode-scroll");
+    var btnExplore = el("story-mode-explore");
+    if (!btnScroll || !btnExplore) return;
+    storyModeToggleWired = true;
+    btnScroll.addEventListener("click", function () {
+      setStoryInteractionMode("scroll");
+    });
+    btnExplore.addEventListener("click", function () {
+      setStoryInteractionMode("explore");
+    });
+    wireExploreBasemap();
+    wireStoryOptions();
+    updateStoryModeUI();
+    updateExploreBasemapVisibility();
+  }
+
+  function renderStory() {
+    var panel = el("story-panel");
+    panel.innerHTML = "";
+    var cardBgRgba = getCardBackgroundRgbaString();
+    config.steps.forEach(function (step, i) {
+      var wrap = document.createElement("div");
+      wrap.className = "step-block";
+      wrap.dataset.stepIndex = String(i);
+      var card = document.createElement("div");
+      card.className = "card";
+      card.style.backgroundColor = cardBgRgba;
+      card.innerHTML = step.html || "<p></p>";
+      wrap.appendChild(card);
+      panel.appendChild(wrap);
+    });
+    connectStoryObserver();
+    applyCardBackgroundOpacity();
+  }
+
+  function showLoadError(message) {
+    var fileHint =
+      window.location.protocol === "file:"
+        ? "</p><p>Open this page over <code>http://localhost</code> (e.g. <code>npm run dev</code>), or use <strong>Save</strong> in the builder to embed the story in this HTML file for offline use."
+        : "</p><p>Check <code>STORY_JSON_URL</code> in this file (currently <code>" +
+          STORY_JSON_URL +
+          "</code>), or add embedded JSON in <code>&lt;script id=\"scroll-map-story-embedded\"&gt;</code>.";
+    el("story-panel").innerHTML =
+      '<div class="step-block"><div class="card"><p><strong>Could not load the story.</strong></p><p>' +
+      message +
+      fileHint +
+      "</p></div></div>";
+  }
+
+  window.addEventListener("resize", function () {
+    syncMapViewportHeight();
+    if (map) map.resize();
+  });
+
+  loadStoryData()
+    .then(function (data) {
+      config = normalizeConfig(data);
+      viewerBaseMap = config.baseMap;
+      /* Initialise currentLoadedBaseMap to the actual basemap the initMap call will load. */
+      var firstStep = config.steps && config.steps[0];
+      currentLoadedBaseMap = (firstStep && firstStep.baseMap) ? firstStep.baseMap : viewerBaseMap;
+      applyCardBackgroundOpacity();
+      initMap(function () {
+        renderStory();
+        lastFlownIndex = -1;
+        if (config.steps[0]) flyToStep(0, false);
+      });
+    })
+    .catch(function (err) {
+      config = {
+        version: 1,
+        baseMap: "openfreemap-bright",
+        terrain: false,
+        projection: "globe",
+        satelliteLabels: true,
+        sources: "",
+        cardBackgroundOpacity: 0.86,
+        cardBackgroundColor: "#ffffff",
+        initialMap: { lat: 20, lng: 0, zoom: 2 },
+        steps: []
+      };
+      applyCardBackgroundOpacity();
+      showLoadError(err.message || String(err));
+      initMap(function () {});
+    });
+})();
+  </script>
+</body>
+</html>

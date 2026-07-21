@@ -1,10 +1,14 @@
 import { Router } from "express";
-import { readFileSync, existsSync } from "fs";
+import { existsSync } from "fs";
 import { readFile } from "fs/promises";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { deflateRawSync } from "zlib";
 import { query } from "../services/db-service.js";
+import {
+  seedDefaultTemplatesDb,
+  DEFAULT_TEMPLATE_TITLES,
+} from "../services/seed-defaults.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
@@ -46,14 +50,28 @@ const DEFAULT_CONFIG = {
   terrain: false,
   projection: "globe",
   satelliteLabels: true,
-  initialMap: { lat: 20, lng: 0, zoom: 2 },
+  initialMap: { lat: 43.0481, lng: -76.1474, zoom: 11 },
   steps: [
     {
-      id: "step-1",
-      lat: 20,
-      lng: 0,
-      zoom: 2,
-      html: "<p>First card — edit in the builder.</p>",
+      id: "location-1",
+      lat: 43.0481,
+      lng: -76.1474,
+      zoom: 11,
+      html: "<p>Syracuse, NY</p>",
+    },
+    {
+      id: "location-2",
+      lat: 40.7128,
+      lng: -74.006,
+      zoom: 10,
+      html: "<p>New York City, NY</p>",
+    },
+    {
+      id: "location-3",
+      lat: 38.9072,
+      lng: -77.0369,
+      zoom: 11,
+      html: "<p>Washington, DC</p>",
     },
   ],
 };
@@ -172,8 +190,21 @@ const router = Router();
 
 // List all stories
 router.get("/list", async (_req, res) => {
-  const { rows } = await query("SELECT slug FROM stories ORDER BY slug");
-  res.json({ stories: rows.map((r) => r.slug) });
+  try {
+    await seedDefaultTemplatesDb(query);
+  } catch (e) {
+    console.warn("[seed] DB seed on list failed:", e.message || e);
+  }
+  const { rows } = await query("SELECT slug, title FROM stories ORDER BY slug");
+  const stories = rows.map((r) => r.slug);
+  const titles = {};
+  rows.forEach((r) => {
+    const label = r.title || DEFAULT_TEMPLATE_TITLES[r.slug] || r.slug;
+    if (label && label !== r.slug) titles[r.slug] = label;
+  });
+  // Ensure demo always displays as Demo even if title was stored as slug
+  if (stories.includes("demo")) titles.demo = "Demo";
+  res.json({ stories, titles });
 });
 
 // Create a new story

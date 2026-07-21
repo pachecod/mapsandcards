@@ -745,6 +745,12 @@
       box-sizing: border-box;
     }
     .text-prompt-actions { margin-top: 0.25rem; }
+    .export-info-modal .text-prompt-panel {
+      width: min(32rem, 100%);
+    }
+    .export-info-modal .text-prompt-message {
+      margin-bottom: 1rem;
+    }
     .new-story-modal .text-prompt-panel {
       width: min(32rem, 100%);
       max-height: min(90vh, 40rem);
@@ -1099,6 +1105,25 @@
     </div>
   </div>
 
+  <div id="export-info-modal" class="text-prompt-modal export-info-modal" hidden>
+    <div class="text-prompt-backdrop" aria-hidden="true"></div>
+    <div
+      class="text-prompt-panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="export-info-title"
+    >
+      <h2 id="export-info-title" class="text-prompt-title">Export Local Site</h2>
+      <p id="export-info-message" class="text-prompt-message">
+        This will give you a folder with all the HTML, Javascript, CSS and data that you need to host this anywhere. Note that the maps will not show up if you view locally on your computer by simply double-clicking the HTML file. It must be served from a secure server. An easy way to do this is to open it in Visual Studio Code, then use the Live Server plug-in to &ldquo;Open With Live Server.&rdquo;
+      </p>
+      <div class="text-prompt-actions row">
+        <button type="button" class="btn" id="export-info-cancel">Cancel</button>
+        <button type="button" class="btn primary" id="export-info-ok">OK</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.min.js" crossorigin=""></script>
   <script src="https://cdn.jsdelivr.net/npm/@mapbox/mapbox-gl-draw@1.4.3/dist/mapbox-gl-draw.js" crossorigin=""></script>
   <script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js" crossorigin=""></script>
@@ -1183,30 +1208,30 @@
     sources: "",
     cardBackgroundColor: "#ffffff",
     cardBackgroundOpacity: 0.86,
-    initialMap: { lat: 40.7128, lng: -74.006, zoom: 9 },
+    initialMap: { lat: 43.0481, lng: -76.1474, zoom: 11 },
     steps: [
       {
         id: "location-1",
-        lat: 40.7128,
-        lng: -74.006,
-        zoom: 9,
-        html: "<p>First card — edit in the builder.</p>",
+        lat: 43.0481,
+        lng: -76.1474,
+        zoom: 11,
+        html: "<p>Syracuse, NY</p>",
         overlays: { geojson: { type: "FeatureCollection", features: [] } }
       },
       {
         id: "location-2",
-        lat: 34.0522,
-        lng: -118.2437,
-        zoom: 8,
-        html: "<p>Second card.</p>",
+        lat: 40.7128,
+        lng: -74.006,
+        zoom: 10,
+        html: "<p>New York City, NY</p>",
         overlays: { geojson: { type: "FeatureCollection", features: [] } }
       },
       {
         id: "location-3",
-        lat: 41.8781,
-        lng: -87.6298,
-        zoom: 7,
-        html: "<p>Third card.</p>",
+        lat: 38.9072,
+        lng: -77.0369,
+        zoom: 11,
+        html: "<p>Washington, DC</p>",
         overlays: { geojson: { type: "FeatureCollection", features: [] } }
       }
     ]
@@ -2895,14 +2920,15 @@
     return q ? normalizeSlug(q) : null;
   }
 
-  function populateStorySelect(stories) {
+  function populateStorySelect(stories, titles) {
+    titles = titles || {};
     var sel = el("story-select");
     if (!sel) return;
     sel.innerHTML = "";
     stories.forEach(function (slug) {
       var o = document.createElement("option");
       o.value = slug;
-      o.textContent = slug;
+      o.textContent = titles[slug] || (slug === "demo" ? "Demo" : slug);
       sel.appendChild(o);
     });
     if (!stories.length) {
@@ -2995,7 +3021,8 @@
       .then(function (data) {
         storyApiOk = true;
         var stories = data.stories || [];
-        populateStorySelect(stories);
+        var titles = data.titles || {};
+        populateStorySelect(stories, titles);
         var fromUrl = getStorySlugFromUrl();
         var fromLs = null;
         try {
@@ -3803,11 +3830,55 @@
 
   el("btn-save").addEventListener("click", saveStoryToFolder);
 
-  el("btn-export").addEventListener("click", function () {
-    if (!currentSlug) {
-      alert("Select or create a story first.");
-      return;
-    }
+  function promptExportInfoModal() {
+    return new Promise(function (resolve) {
+      var modal = el("export-info-modal");
+      var okBtn = el("export-info-ok");
+      var cancelBtn = el("export-info-cancel");
+      var backdrop = modal ? modal.querySelector(".text-prompt-backdrop") : null;
+      if (!modal || !okBtn || !cancelBtn) {
+        resolve(true);
+        return;
+      }
+
+      modal.removeAttribute("hidden");
+
+      function cleanup() {
+        okBtn.removeEventListener("click", onOk);
+        cancelBtn.removeEventListener("click", onCancel);
+        if (backdrop) backdrop.removeEventListener("click", onCancel);
+        document.removeEventListener("keydown", onDocKey, true);
+        modal.setAttribute("hidden", "");
+      }
+      function onOk() {
+        cleanup();
+        resolve(true);
+      }
+      function onCancel() {
+        cleanup();
+        resolve(false);
+      }
+      function onDocKey(ev) {
+        if (ev.key === "Escape") {
+          ev.preventDefault();
+          onCancel();
+        } else if (ev.key === "Enter") {
+          ev.preventDefault();
+          onOk();
+        }
+      }
+
+      okBtn.addEventListener("click", onOk);
+      cancelBtn.addEventListener("click", onCancel);
+      if (backdrop) backdrop.addEventListener("click", onCancel);
+      document.addEventListener("keydown", onDocKey, true);
+      window.setTimeout(function () {
+        okBtn.focus();
+      }, 0);
+    });
+  }
+
+  function runExportDownload() {
     var btn = el("btn-export");
     btn.disabled = true;
 
@@ -3882,8 +3953,22 @@
       })
       .finally(function () {
         btn.disabled = false;
-        btn.textContent = "Export";
+        btn.textContent = guestMode ? "Export Local Site" : "Export";
       });
+  }
+
+  el("btn-export").addEventListener("click", function () {
+    if (!currentSlug) {
+      alert("Select or create a story first.");
+      return;
+    }
+    if (!guestMode && !storyApiOk) {
+      alert("Export requires the dev server. Run \"npm run dev\" first.");
+      return;
+    }
+    promptExportInfoModal().then(function (ok) {
+      if (ok) runExportDownload();
+    });
   });
 
   var guestPreviewBtn = el("btn-guest-preview");

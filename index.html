@@ -155,6 +155,9 @@
 
   <section aria-labelledby="guest-heading">
     <h2 id="guest-heading">Guest drafts</h2>
+    <p class="lede" id="guest-privacy-note" style="display: none; margin: 0 0 0.75rem; font-size: 0.8rem;">
+      These are stored in your browser and are only visible to you.
+    </p>
     <ul id="guest-links">
       <li class="empty-hint" id="guest-links-loading">Loading guest drafts…</li>
     </ul>
@@ -183,14 +186,14 @@
   var guestUl = document.getElementById("guest-links");
   var guestLoading = document.getElementById("guest-links-loading");
 
-  function addStory(slug) {
+  function addStory(slug, title) {
     var li = document.createElement("li");
     var row = document.createElement("div");
     row.className = "story-row";
     var name = document.createElement("span");
     name.className = "story-name";
     name.style.cssText = "flex:1;padding:0.75rem 1rem;min-width:0";
-    name.textContent = slug;
+    name.textContent = title || slug;
     var viewLink = document.createElement("a");
     viewLink.href = "/Stories/" + encodeURIComponent(slug) + "/scroll-map-story.html";
     viewLink.className = "btn-view";
@@ -218,13 +221,16 @@
 
   (function loadGuestDrafts() {
     if (guestLoading) guestLoading.remove();
+    var note = document.getElementById("guest-privacy-note");
     var ids = window.MapsAndCardsGuest ? window.MapsAndCardsGuest.listIds() : [];
     if (!ids.length) {
+      if (note) note.style.display = "none";
       var empty = document.createElement("li");
       empty.className = "empty-hint";
       empty.textContent = "No guest drafts yet — open Guest Mode to create one.";
       guestUl.appendChild(empty);
     } else {
+      if (note) note.style.display = "block";
       ids.forEach(addGuestDraft);
     }
   })();
@@ -237,28 +243,26 @@
     .then(function (data) {
       if (loading) loading.remove();
       var stories = (data && data.stories) || [];
+      var titles = (data && data.titles) || {};
       if (!stories.length) {
         var li = document.createElement("li");
         li.className = "empty-hint";
         li.textContent = "No stories yet — use the builder and “New story”, or add a folder under Stories/.";
         ul.appendChild(li);
       } else {
-        stories.forEach(addStory);
+        stories.forEach(function (slug) {
+          addStory(slug, titles[slug] || (slug === "demo" ? "Demo" : slug));
+        });
       }
       if (fallback) fallback.style.display = "block";
     })
     .catch(function () {
       if (loading) loading.remove();
       ul.innerHTML = "";
-      [
-        { slug: "demo", label: "demo (example)" },
-        { slug: "micron", label: "micron" }
-      ].forEach(function (s) {
-        addStory(s.slug);
-      });
+      addStory("demo", "Demo");
       var note = document.createElement("li");
       note.className = "empty-hint";
-      note.textContent = "Story API unavailable (run npm run dev). Showing common paths only. Guest Mode still works without the API.";
+      note.textContent = "Story API unavailable (run npm run dev). Showing Demo path only. Guest Mode still works without the API.";
       ul.appendChild(note);
     });
 })();

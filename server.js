@@ -2,8 +2,9 @@ import "dotenv/config";
 import express from "express";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
-import { isDbEnabled, closePool } from "./services/db-service.js";
+import { isDbEnabled, closePool, query } from "./services/db-service.js";
 import { authMiddleware } from "./middleware/auth.js";
+import { seedDefaultTemplatesDb } from "./services/seed-defaults.js";
 import storyRoutes from "./routes/stories.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -35,20 +36,30 @@ app.use(express.static(staticRoot));
 app.get("/", (_req, res) => res.sendFile(join(staticRoot, "index.html")));
 
 // Start
-if (!isDbEnabled()) {
-  console.warn("DATABASE_URL not set — the server will start but API calls will fail.");
-}
+async function start() {
+  if (!isDbEnabled()) {
+    console.warn("DATABASE_URL not set — the server will start but API calls will fail.");
+  } else {
+    try {
+      await seedDefaultTemplatesDb(query);
+    } catch (e) {
+      console.warn("[seed] DB seed on startup failed:", e.message || e);
+    }
+  }
 
-const server = app.listen(PORT, () => {
-  console.log(`mapsandcards server listening on http://localhost:${PORT}`);
-});
-
-// Graceful shutdown
-for (const sig of ["SIGINT", "SIGTERM"]) {
-  process.on(sig, async () => {
-    console.log(`\n${sig} received, shutting down...`);
-    server.close();
-    await closePool();
-    process.exit(0);
+  const server = app.listen(PORT, () => {
+    console.log(`mapsandcards server listening on http://localhost:${PORT}`);
   });
+
+  // Graceful shutdown
+  for (const sig of ["SIGINT", "SIGTERM"]) {
+    process.on(sig, async () => {
+      console.log(`\n${sig} received, shutting down...`);
+      server.close();
+      await closePool();
+      process.exit(0);
+    });
+  }
 }
+
+start();

@@ -265,6 +265,73 @@
     .map-wrap .credits-attrib-panel[hidden] {
       display: none !important;
     }
+    /* Geocoder search box */
+    .geo-search {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 5;
+      width: min(320px, calc(100% - 60px));
+    }
+    .geo-search-input {
+      width: 100%;
+      padding: 8px 32px 8px 10px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      background: hsla(0, 0%, 100%, 0.94);
+      box-shadow: 0 1px 5px rgba(0,0,0,0.25);
+      color: #1a1a1a;
+      outline: none;
+    }
+    .geo-search-input:focus {
+      box-shadow: 0 0 0 2px var(--accent), 0 1px 5px rgba(0,0,0,0.25);
+    }
+    .geo-search-input::placeholder { color: #888; }
+    .geo-search-clear {
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      color: #666;
+      padding: 2px 4px;
+      line-height: 1;
+      display: none;
+    }
+    .geo-search-clear.visible { display: block; }
+    .geo-search-results {
+      margin-top: 4px;
+      background: hsla(0, 0%, 100%, 0.96);
+      border-radius: 6px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+      max-height: 260px;
+      overflow-y: auto;
+      display: none;
+    }
+    .geo-search-results.open { display: block; }
+    .geo-search-item {
+      padding: 8px 10px;
+      cursor: pointer;
+      font-size: 13px;
+      color: #1a1a1a;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      line-height: 1.35;
+    }
+    .geo-search-item:last-child { border-bottom: none; }
+    .geo-search-item:hover, .geo-search-item.active {
+      background: rgba(61,139,253,0.12);
+    }
+    .geo-search-item-name {
+      font-weight: 600;
+    }
+    .geo-search-item-detail {
+      color: #666;
+      font-size: 12px;
+    }
     .build-panel {
       flex: 0 0 44%;
       min-width: 280px;
@@ -682,6 +749,12 @@
 
   <div class="shell" id="shell">
     <div class="map-wrap" id="map-wrap">
+      <div class="geo-search" id="geo-search">
+        <input type="text" class="geo-search-input" id="geo-search-input"
+               placeholder="Search for a place…" autocomplete="off" spellcheck="false" />
+        <button type="button" class="geo-search-clear" id="geo-search-clear" aria-label="Clear search">&times;</button>
+        <div class="geo-search-results" id="geo-search-results"></div>
+      </div>
       <div id="map" role="application" aria-label="Map"></div>
     </div>
     <aside class="build-panel" id="build-panel" aria-label="Story builder">
@@ -1258,16 +1331,19 @@
     g.features.forEach(function (f) {
       if (!f || !f.properties || !f.geometry || f.geometry.type !== "Point") return;
       var p = f.properties;
+      if (typeof p.radius !== "number" || p.radius < 1) p.radius = 8;
       var isLabel =
         p.kind === "label" ||
         (typeof p.text === "string" && p.text.trim() !== "") ||
         (typeof p.title === "string" && p.title.trim() !== "");
-      if (!isLabel) return;
+      if (!isLabel) {
+        if (!p.color) p.color = "#3388ff";
+        return;
+      }
       if (p.color === "#111111" || p.color === "#1a1a1a") {
         p.color = "#f0f0f0";
         p.haloColor = p.haloColor || "#0f1419";
       }
-      /* ensure legacy label markers without dotColor get a visible dot */
       if (!p.dotColor) {
         p.dotColor = "#3388ff";
       }
@@ -1378,9 +1454,9 @@
           type: "circle",
           source: "story-ov-src-pt-m",
           paint: {
-            "circle-radius": 70,
+            "circle-radius": ["get", "radius"],
             "circle-color": ["coalesce", ["get", "color"], "#3388ff"],
-            "circle-stroke-width": 3,
+            "circle-stroke-width": 2,
             "circle-stroke-color": "#ffffff"
           }
         });
@@ -1392,9 +1468,9 @@
           type: "circle",
           source: "story-ov-src-pt-l",
           paint: {
-            "circle-radius": 70,
+            "circle-radius": ["get", "radius"],
             "circle-color": ["coalesce", ["get", "dotColor"], ["get", "color"], "#3388ff"],
-            "circle-stroke-width": 3,
+            "circle-stroke-width": 2,
             "circle-stroke-color": "#ffffff"
           }
         });
@@ -1409,7 +1485,7 @@
             ],
             "text-size": 16,
             "text-anchor": "bottom",
-            "text-offset": [0, -5.5],
+            "text-offset": [0, -1.5],
             "text-allow-overlap": true
           },
           paint: {
@@ -1554,10 +1630,15 @@
 
   function showMarkerEditPopup(ll, s, featureIndex) {
     closeMarkerEditPopup();
+    var feat = s.overlays.geojson.features[featureIndex];
+    var curRadius = (feat && feat.properties && typeof feat.properties.radius === "number")
+      ? feat.properties.radius : 8;
     var popupEl = document.createElement("div");
     popupEl.innerHTML =
       '<p class="marker-popup-label-hint">Label (optional — leave blank for a dot only)</p>' +
       '<input type="text" class="marker-popup-input" placeholder="e.g. Times Square" autocomplete="off" />' +
+      '<p class="marker-popup-label-hint" style="margin-top:0.45rem">Marker size: <span class="marker-size-val">' + curRadius + '</span>px</p>' +
+      '<input type="range" class="marker-popup-size" min="4" max="50" value="' + curRadius + '" style="width:100%;margin:0.2rem 0 0.1rem" />' +
       '<div class="marker-popup-actions">' +
       '  <button type="button" class="btn" data-action="discard">Discard</button>' +
       '  <button type="button" class="btn primary" data-action="save">Save</button>' +
@@ -1568,7 +1649,7 @@
       closeOnClick: false,
       anchor: "bottom",
       offset: [0, -6],
-      maxWidth: "240px",
+      maxWidth: "260px",
       className: "marker-edit-popup"
     })
       .setLngLat([ll.lng, ll.lat])
@@ -1577,7 +1658,15 @@
 
     map.__markerEditPopup = popup;
     var input = popupEl.querySelector(".marker-popup-input");
+    var sizeSlider = popupEl.querySelector(".marker-popup-size");
+    var sizeLabel = popupEl.querySelector(".marker-size-val");
     if (input) window.setTimeout(function () { input.focus(); }, 50);
+
+    if (sizeSlider) {
+      sizeSlider.addEventListener("input", function () {
+        if (sizeLabel) sizeLabel.textContent = sizeSlider.value;
+      });
+    }
 
     function finish(save) {
       closeMarkerEditPopup();
@@ -1587,11 +1676,14 @@
         s.overlays.geojson.features.splice(featureIndex, 1);
       } else if (feat) {
         var t = input ? String(input.value).trim() : "";
+        var sz = sizeSlider ? parseInt(sizeSlider.value, 10) : 8;
+        if (isNaN(sz) || sz < 1) sz = 8;
+        feat.properties.radius = sz;
         if (t) {
           feat.properties.kind = "label";
           feat.properties.text = t;
-          feat.properties.dotColor = feat.properties.dotColor || "#3388ff"; /* dot visible on any basemap */
-          feat.properties.color = "#f0f0f0";     /* text color (light, with dark halo) */
+          feat.properties.dotColor = feat.properties.dotColor || "#3388ff";
+          feat.properties.color = "#f0f0f0";
           feat.properties.haloColor = "#0f1419";
         }
       }
@@ -2888,6 +2980,141 @@
       applyStepOverlays(selectedIndex);
     });
   });
+
+  /* ── Geocoder search ─────────────────────────────────────── */
+  (function initGeoSearch() {
+    var input = el("geo-search-input");
+    var results = el("geo-search-results");
+    var clearBtn = el("geo-search-clear");
+    if (!input || !results) return;
+
+    var debounceTimer = null;
+    var activeIdx = -1;
+    var items = [];
+    var PHOTON_URL = "https://photon.komoot.io/api/";
+
+    function showClear(show) {
+      if (clearBtn) clearBtn.classList.toggle("visible", show);
+    }
+
+    function closeResults() {
+      results.classList.remove("open");
+      results.innerHTML = "";
+      items = [];
+      activeIdx = -1;
+    }
+
+    function renderResults(features) {
+      items = features;
+      activeIdx = -1;
+      if (!features.length) { closeResults(); return; }
+      results.innerHTML = "";
+      features.forEach(function (f, i) {
+        var p = f.properties || {};
+        var name = p.name || "";
+        var parts = [];
+        if (p.city && p.city !== name) parts.push(p.city);
+        if (p.state) parts.push(p.state);
+        if (p.country) parts.push(p.country);
+        var detail = parts.join(", ");
+        if (p.type) detail = p.type + (detail ? " · " + detail : "");
+
+        var div = document.createElement("div");
+        div.className = "geo-search-item";
+        div.dataset.index = i;
+        div.innerHTML =
+          '<span class="geo-search-item-name">' + escHtml(name) + "</span>" +
+          (detail ? '<br><span class="geo-search-item-detail">' + escHtml(detail) + "</span>" : "");
+        div.addEventListener("click", function () { selectResult(i); });
+        results.appendChild(div);
+      });
+      results.classList.add("open");
+    }
+
+    function escHtml(s) {
+      var d = document.createElement("span");
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    function selectResult(i) {
+      var f = items[i];
+      if (!f || !f.geometry) return;
+      var coords = f.geometry.coordinates;
+      var name = (f.properties || {}).name || "";
+      input.value = name;
+      showClear(!!name);
+      closeResults();
+      if (map) {
+        var bbox = (f.properties || {}).extent;
+        if (bbox && bbox.length === 4) {
+          map.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], {
+            padding: 40, duration: 1200, maxZoom: 16
+          });
+        } else {
+          map.flyTo({ center: [coords[0], coords[1]], zoom: 14, duration: 1200 });
+        }
+      }
+    }
+
+    function setActive(idx) {
+      var divs = results.querySelectorAll(".geo-search-item");
+      divs.forEach(function (d) { d.classList.remove("active"); });
+      if (idx >= 0 && idx < divs.length) {
+        divs[idx].classList.add("active");
+        divs[idx].scrollIntoView({ block: "nearest" });
+      }
+      activeIdx = idx;
+    }
+
+    function doSearch(q) {
+      q = String(q).trim();
+      if (q.length < 2) { closeResults(); return; }
+      var center = map ? map.getCenter() : null;
+      var url = PHOTON_URL + "?q=" + encodeURIComponent(q) + "&limit=6";
+      if (center) url += "&lat=" + center.lat.toFixed(4) + "&lon=" + center.lng.toFixed(4);
+      fetch(url)
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (input.value.trim().length < 2) return;
+          renderResults((data && data.features) || []);
+        })
+        .catch(function () {});
+    }
+
+    input.addEventListener("input", function () {
+      showClear(!!input.value);
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(function () { doSearch(input.value); }, 300);
+    });
+
+    input.addEventListener("keydown", function (ev) {
+      if (!results.classList.contains("open")) return;
+      if (ev.key === "ArrowDown") {
+        ev.preventDefault();
+        setActive(Math.min(activeIdx + 1, items.length - 1));
+      } else if (ev.key === "ArrowUp") {
+        ev.preventDefault();
+        setActive(Math.max(activeIdx - 1, 0));
+      } else if (ev.key === "Enter") {
+        ev.preventDefault();
+        if (activeIdx >= 0) selectResult(activeIdx);
+      } else if (ev.key === "Escape") {
+        closeResults();
+      }
+    });
+
+    clearBtn.addEventListener("click", function () {
+      input.value = "";
+      showClear(false);
+      closeResults();
+      input.focus();
+    });
+
+    document.addEventListener("click", function (ev) {
+      if (!el("geo-search").contains(ev.target)) closeResults();
+    });
+  })();
 
   loadConfigThen(function () {
     initCardQuill();

@@ -25,8 +25,13 @@ function injectEmbeddedStoryJson(html, jsonStr) {
   return html.replace(/<\/body>/i, block + "\n</body>");
 }
 
-async function writeStoryHtmlWithEmbeddedJson(storyHtmlPath, jsonStr) {
-  let html = await fs.readFile(storyHtmlPath, "utf8");
+async function writeStoryHtmlWithEmbeddedJson(storyHtmlPath, jsonStr, templatePath) {
+  let html;
+  if (templatePath && existsSync(templatePath)) {
+    html = await fs.readFile(templatePath, "utf8");
+  } else {
+    html = await fs.readFile(storyHtmlPath, "utf8");
+  }
   html = injectEmbeddedStoryJson(html, jsonStr);
   await fs.writeFile(storyHtmlPath, html, "utf8");
 }
@@ -142,7 +147,11 @@ function storyApiMiddleware(rootDir) {
         }
         const jsonStr = JSON.stringify(data, null, 2);
         await fs.writeFile(path.join(dir, "scroll-map-story.json"), jsonStr + "\n", "utf8");
-        await writeStoryHtmlWithEmbeddedJson(path.join(dir, "scroll-map-story.html"), jsonStr);
+        await writeStoryHtmlWithEmbeddedJson(
+          path.join(dir, "scroll-map-story.html"),
+          jsonStr,
+          viewerTemplate
+        );
         return sendJson(200, { ok: true });
       }
 

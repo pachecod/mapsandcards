@@ -1,0 +1,122 @@
+{
+  "version": 1,
+  "baseMap": "openfreemap-bright",
+  "terrain": false,
+  "satelliteLabels": true,
+  "sources": "",
+  "cardBackgroundColor": "#ffffff",
+  "cardBackgroundOpacity": 0.86,
+  "initialMap": {
+    "lat": 29.983664059913664,
+    "lng": -90.08607983664939,
+    "zoom": 11.087895010506976
+  },
+  "steps": [
+    {
+      "id": "location-1",
+      "lat": 29.983664059913664,
+      "lng": -90.08607983664939,
+      "zoom": 11.087895010506976,
+      "html": "<h3>The Strategic Gateway (1718)</h3><p>Founded in 1718 by Jean-Baptiste Le Moyne, Sieur de Bienville, New Orleans was established on a natural high-ground crescent along the Mississippi River. Long before European settlement, Indigenous peoples (including the Chitimacha and Choctaw) used this exact portage between the river and Lake Pontchartrain for trade. The site gave the French strategic control over the entire interior river network of North America.</p>",
+      "overlays": {
+        "geojson": {
+          "type": "FeatureCollection",
+          "features": []
+        }
+      },
+      "baseMap": "esri-satellite"
+    },
+    {
+      "id": "location-2",
+      "lat": 29.959492600000004,
+      "lng": -90.06554030000001,
+      "zoom": 14,
+      "html": "<h3>The Original Colonial Footprint</h3><p>Engineered by French military architect Adrien de Pauger in 1721, the <em>Vieux Carré</em> (\"Old Square\") was laid out as a strict 7x11 grid centered around the <em>Place d'Armes</em> (now Jackson Square). Despite its name, most of the standing historic architecture reflects Spanish colonial rebuilding following two massive fires in 1788 and 1794, blending French, Spanish, and Caribbean influences.</p>",
+      "overlays": {
+        "geojson": {
+          "type": "FeatureCollection",
+          "features": [
+            {
+              "type": "Feature",
+              "properties": {
+                "kind": "label",
+                "color": "#f0f0f0",
+                "text": "The French Quarter",
+                "dotColor": "#3388ff",
+                "haloColor": "#0f1419"
+              },
+              "geometry": {
+                "type": "Point",
+                "coordinates": [
+                  -90.06609819947613,
+                  29.961771649264207
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "baseMap": "esri-satellite"
+    },
+    {
+      "id": "location-3",
+      "lat": 40.53634422894095,
+      "lng": -84.43308581270696,
+      "zoom": 3.6650032329218365,
+      "html": "<h3>From Quebec to the Gulf: French Explorers &amp; Acadians</h3><p>New Orleans was not founded directly from Europe, but as the southern terminus of New France. French-Canadian explorers (<em>coureurs des bois</em> and voyageurs) navigated south via the Great Lakes and Mississippi waterways from Quebec and Montreal. Later, in 1755, thousands of French Acadians expelled from Maritime Canada migrated south, settling in south Louisiana and giving birth to Cajun culture.</p>",
+      "overlays": {
+        "geojson": {
+          "type": "FeatureCollection",
+          "features": [
+            {
+              "type": "Feature",
+              "properties": {
+                "kind": "label",
+                "color": "#f0f0f0",
+                "text": "Quebec, Canada",
+                "dotColor": "#3388ff",
+                "haloColor": "#0f1419"
+              },
+              "geometry": {
+                "type": "Point",
+                "coordinates": [
+                  -73.48536452410242,
+                  46.50938798935141
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "baseMap": "esri-satellite"
+    },
+    {
+      "id": "location-4",
+      "lat": 48.85853428686357,
+      "lng": 2.33069056279453,
+      "zoom": 11.859560368803997,
+      "html": "<h3>The Royal Mandate &amp; Early Settlers (1699–1720s)</h3><p>King Louis XIV claimed Louisiana in 1682, naming it after himself, and King Louis XV’s regent—the Duke of Orléans—gave the new settlement its name (<em>La Nouvelle-Orléans</em>). Early colonists leaving France included military officers, concessions traders, indentured servants, and religious orders like the Ursuline nuns. These early waves established the French language, civil law system, and cultural foundation that survived Spanish rule and the 1803 Louisiana Purchase.</p>",
+      "overlays": {
+        "geojson": {
+          "type": "FeatureCollection",
+          "features": []
+        }
+      },
+      "baseMap": "esri-satellite"
+    },
+    {
+      "id": "location-5",
+      "lat": 29.976624484912108,
+      "lng": -90.07003264254416,
+      "zoom": 9.923891017044928,
+      "html": "<h3>A Unique American Legacy</h3><p>Returning to where the story began, New Orleans stands as a singular cultural landscape shaped by every stop along this map route. The strategic river bend surveyed by Canadian-born explorers, mapped out by French engineers, and built alongside West African and Spanish influences created a city unlike any other in North America. Today, its distinct architecture, civil code, culinary traditions, and jazz music remain living testaments to this centuries-old transatlantic network.</p>",
+      "overlays": {
+        "geojson": {
+          "type": "FeatureCollection",
+          "features": []
+        }
+      },
+      "baseMap": "esri-satellite"
+    }
+  ]
+}

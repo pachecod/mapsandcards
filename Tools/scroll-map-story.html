@@ -723,16 +723,19 @@
     g.features.forEach(function (f) {
       if (!f || !f.properties || !f.geometry || f.geometry.type !== "Point") return;
       var p = f.properties;
+      if (typeof p.radius !== "number" || p.radius < 1) p.radius = 8;
       var isLabel =
         p.kind === "label" ||
         (typeof p.text === "string" && p.text.trim() !== "") ||
         (typeof p.title === "string" && p.title.trim() !== "");
-      if (!isLabel) return;
+      if (!isLabel) {
+        if (!p.color) p.color = "#3388ff";
+        return;
+      }
       if (p.color === "#111111" || p.color === "#1a1a1a") {
         p.color = "#f0f0f0";
         p.haloColor = p.haloColor || "#0f1419";
       }
-      /* ensure legacy label markers without dotColor get a visible dot */
       if (!p.dotColor) {
         p.dotColor = "#3388ff";
       }
@@ -839,9 +842,9 @@
           type: "circle",
           source: "story-ov-src-pt-m",
           paint: {
-            "circle-radius": 70,
+            "circle-radius": ["get", "radius"],
             "circle-color": ["coalesce", ["get", "color"], "#3388ff"],
-            "circle-stroke-width": 3,
+            "circle-stroke-width": 2,
             "circle-stroke-color": "#ffffff"
           }
         });
@@ -853,9 +856,9 @@
           type: "circle",
           source: "story-ov-src-pt-l",
           paint: {
-            "circle-radius": 70,
+            "circle-radius": ["get", "radius"],
             "circle-color": ["coalesce", ["get", "dotColor"], ["get", "color"], "#3388ff"],
-            "circle-stroke-width": 3,
+            "circle-stroke-width": 2,
             "circle-stroke-color": "#ffffff"
           }
         });
@@ -870,7 +873,7 @@
             ],
             "text-size": 16,
             "text-anchor": "bottom",
-            "text-offset": [0, -5.5],
+            "text-offset": [0, -1.5],
             "text-allow-overlap": true
           },
           paint: {

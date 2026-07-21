@@ -427,113 +427,47 @@
   "cardBackgroundColor": "#ffffff",
   "cardBackgroundOpacity": 0.86,
   "initialMap": {
-    "lat": 36.732730294719616,
-    "lng": -119.78599137279309,
-    "zoom": 12.313578316070128
+    "lat": 40.7128,
+    "lng": -74.006,
+    "zoom": 9
   },
   "steps": [
     {
+      "id": "location-1",
+      "lat": 40.7128,
+      "lng": -74.006,
+      "zoom": 9,
+      "html": "<p>First card — edit in the builder.</p>",
+      "overlays": {
+        "geojson": {
+          "type": "FeatureCollection",
+          "features": []
+        }
+      }
+    },
+    {
+      "id": "location-2",
+      "lat": 34.0522,
+      "lng": -118.2437,
+      "zoom": 8,
+      "html": "<p>Second card.</p>",
+      "overlays": {
+        "geojson": {
+          "type": "FeatureCollection",
+          "features": []
+        }
+      }
+    },
+    {
       "id": "location-3",
-      "lat": 36.732730294719616,
-      "lng": -119.78599137279309,
-      "zoom": 12.313578316070128,
-      "html": "<p>San Francisco. Some crazy text here. More crazy text. Some crazy text here. More crazy text. <strong><em>Some crazy text here. <u>More crazy text. </u></em></strong>Some crazy text here. <em>More crazy text. </em>Some crazy text here. More crazy text. Some crazy text here. More crazy text. </p><p><br></p>",
-      "overlays": {
-        "geojson": {
-          "type": "FeatureCollection",
-          "features": [
-            {
-              "type": "Feature",
-              "properties": {
-                "kind": "marker",
-                "color": "#3388ff",
-                "radius": 8
-              },
-              "geometry": {
-                "type": "Point",
-                "coordinates": [
-                  -122.36679081576875,
-                  37.76705554520919
-                ]
-              }
-            },
-            {
-              "type": "Feature",
-              "properties": {
-                "kind": "label",
-                "text": "This is a label",
-                "dotColor": "#3388ff",
-                "color": "#f0f0f0",
-                "haloColor": "#0f1419",
-                "radius": 8
-              },
-              "geometry": {
-                "type": "Point",
-                "coordinates": [
-                  -122.40500162582521,
-                  37.75566258795206
-                ]
-              }
-            }
-          ]
-        }
-      }
-    },
-    {
-      "id": "step-2",
-      "lat": 35.16354303706795,
-      "lng": -111.69645348481697,
-      "zoom": 9.941194838257884,
-      "html": "<p>Flagstaff here. </p>",
+      "lat": 41.8781,
+      "lng": -87.6298,
+      "zoom": 7,
+      "html": "<p>Third card.</p>",
       "overlays": {
         "geojson": {
           "type": "FeatureCollection",
           "features": []
-        }
-      }
-    },
-    {
-      "id": "step-3",
-      "lat": 44.374652837106396,
-      "lng": -100.55953994253957,
-      "zoom": 8.60183826415433,
-      "html": "<p>Rapid City</p>",
-      "overlays": {
-        "geojson": {
-          "type": "FeatureCollection",
-          "features": []
-        }
-      }
-    },
-    {
-      "id": "location-4",
-      "lat": 39.05592677694153,
-      "lng": -108.6217987128382,
-      "zoom": 10.083719131393723,
-      "html": "<p>Grand Junction. This is some text.<strong><em> Grand Junction.</em></strong> This is some text. Grand Junction. <em>This is some text.</em> Grand Junction. This is some text. Grand Junction. This is some text. <u>Grand Junction. </u>This is some text. </p>",
-      "overlays": {
-        "geojson": {
-          "type": "FeatureCollection",
-          "features": [
-            {
-              "type": "Feature",
-              "properties": {
-                "kind": "label",
-                "dotColor": "#3388ff",
-                "color": "#f0f0f0",
-                "text": "Marker",
-                "haloColor": "#0f1419",
-                "radius": 8
-              },
-              "geometry": {
-                "type": "Point",
-                "coordinates": [
-                  -108.56996401152125,
-                  39.13669752010972
-                ]
-              }
-            }
-          ]
         }
       }
     }
@@ -845,19 +779,16 @@
     g.features.forEach(function (f) {
       if (!f || !f.properties || !f.geometry || f.geometry.type !== "Point") return;
       var p = f.properties;
-      if (typeof p.radius !== "number" || p.radius < 1) p.radius = 8;
       var isLabel =
         p.kind === "label" ||
         (typeof p.text === "string" && p.text.trim() !== "") ||
         (typeof p.title === "string" && p.title.trim() !== "");
-      if (!isLabel) {
-        if (!p.color) p.color = "#3388ff";
-        return;
-      }
+      if (!isLabel) return;
       if (p.color === "#111111" || p.color === "#1a1a1a") {
         p.color = "#f0f0f0";
         p.haloColor = p.haloColor || "#0f1419";
       }
+      /* ensure legacy label markers without dotColor get a visible dot */
       if (!p.dotColor) {
         p.dotColor = "#3388ff";
       }
@@ -964,9 +895,9 @@
           type: "circle",
           source: "story-ov-src-pt-m",
           paint: {
-            "circle-radius": ["get", "radius"],
+            "circle-radius": 70,
             "circle-color": ["coalesce", ["get", "color"], "#3388ff"],
-            "circle-stroke-width": 2,
+            "circle-stroke-width": 3,
             "circle-stroke-color": "#ffffff"
           }
         });
@@ -978,9 +909,9 @@
           type: "circle",
           source: "story-ov-src-pt-l",
           paint: {
-            "circle-radius": ["get", "radius"],
+            "circle-radius": 70,
             "circle-color": ["coalesce", ["get", "dotColor"], ["get", "color"], "#3388ff"],
-            "circle-stroke-width": 2,
+            "circle-stroke-width": 3,
             "circle-stroke-color": "#ffffff"
           }
         });
@@ -995,7 +926,7 @@
             ],
             "text-size": 16,
             "text-anchor": "bottom",
-            "text-offset": [0, -1.5],
+            "text-offset": [0, -5.5],
             "text-allow-overlap": true
           },
           paint: {

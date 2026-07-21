@@ -26,7 +26,8 @@
               "type": "Feature",
               "properties": {
                 "kind": "marker",
-                "color": "#3388ff"
+                "color": "#3388ff",
+                "radius": 8
               },
               "geometry": {
                 "type": "Point",
@@ -43,7 +44,8 @@
                 "text": "This is a label",
                 "dotColor": "#3388ff",
                 "color": "#f0f0f0",
-                "haloColor": "#0f1419"
+                "haloColor": "#0f1419",
+                "radius": 8
               },
               "geometry": {
                 "type": "Point",
@@ -100,7 +102,8 @@
                 "dotColor": "#3388ff",
                 "color": "#f0f0f0",
                 "text": "Marker",
-                "haloColor": "#0f1419"
+                "haloColor": "#0f1419",
+                "radius": 8
               },
               "geometry": {
                 "type": "Point",

@@ -3,6 +3,7 @@ import express from "express";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { isDbEnabled, closePool } from "./services/db-service.js";
+import { authMiddleware } from "./middleware/auth.js";
 import storyRoutes from "./routes/stories.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -10,6 +11,7 @@ const PORT = parseInt(process.env.PORT, 10) || 3000;
 
 const app = express();
 
+app.use(authMiddleware());
 app.use(express.json({ limit: "5mb" }));
 
 // Story API (same prefix the Vite plugin uses, so the builder HTML works unchanged)

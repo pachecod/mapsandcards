@@ -132,6 +132,24 @@
       font-size: 0.85rem;
       color: var(--muted);
     }
+    .site-footer {
+      margin-top: 2.5rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .site-footer a {
+      display: inline;
+      padding: 0;
+      color: var(--muted);
+      text-decoration: underline;
+      text-underline-offset: 0.15em;
+    }
+    .site-footer a:hover {
+      background: transparent;
+      color: var(--accent);
+    }
   </style>
 </head>
 <body>
@@ -159,6 +177,10 @@
       Each folder under <code>Stories/</code> is one publishable story (<code>scroll-map-story.html</code> + JSON). Links here open the <strong>preview shell</strong> (<code>story-viewer.html</code>); the story file itself has no site navigation.
     </p>
   </section>
+
+  <footer class="site-footer">
+    <a href="https://github.com/pachecod/mapsandcards" target="_blank" rel="noopener noreferrer">Github</a>
+  </footer>
 
   <script>
 (function () {

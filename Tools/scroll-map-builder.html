@@ -115,7 +115,17 @@
       margin: 0;
       width: 100%;
     }
-    .hint { font-size: 0.75rem; color: var(--muted); max-width: 36rem; }
+    .topbar-license {
+      flex: 0 0 auto;
+      margin-left: auto;
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .topbar-license:hover {
+      color: var(--accent);
+    }
     .shell {
       display: flex;
       flex-direction: row;
@@ -820,12 +830,12 @@
         Saving into <code>Stories/</code> needs <code>npm run dev</code> (Vite).
       </p>
     </div>
-    <p class="hint">
-      Pick or create a story, edit locations, then <strong>Save</strong> to update
-      <code>scroll-map-story.json</code> and embed the same data into
-      <code>scroll-map-story.html</code> (so the story works when you open the HTML file directly, without a server).
-      Preview with <code>story-viewer.html?story=…</code> or open <code>scroll-map-story.html</code> in that folder.
-    </p>
+    <a
+      class="topbar-license"
+      href="https://github.com/pachecod/mapsandcards"
+      target="_blank"
+      rel="noopener noreferrer"
+    >Github</a>
     <p id="map-load-error" class="map-load-error hidden" role="alert">
       Map could not load (network or blocked requests). Serve this folder over
       <code>http://localhost</code> or <code>https://</code>, not <code>file://</code>.

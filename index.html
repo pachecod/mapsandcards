@@ -624,17 +624,17 @@
         storyGrid.appendChild(empty);
       } else {
         stories.forEach(function (slug) {
-          addStoryCard(slug, titles[slug] || (slug === "demo" ? "Demo" : slug));
+          addStoryCard(slug, titles[slug] || (slug === "earth" ? "Earth" : slug));
         });
       }
     })
     .catch(function () {
       if (loading) loading.remove();
       storyGrid.innerHTML = "";
-      addStoryCard("demo", "Demo");
+      addStoryCard("earth", "Earth");
       var note = document.createElement("p");
       note.className = "help";
-      note.textContent = "Story API unavailable. Showing Demo path only — Guest Mode still works.";
+      note.textContent = "Story API unavailable. Showing Earth path only — Guest Mode still works.";
       storyGrid.appendChild(note);
     });
 })();

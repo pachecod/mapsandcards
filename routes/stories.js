@@ -202,8 +202,10 @@ router.get("/list", async (_req, res) => {
     const label = r.title || DEFAULT_TEMPLATE_TITLES[r.slug] || r.slug;
     if (label && label !== r.slug) titles[r.slug] = label;
   });
-  // Ensure demo always displays as Demo even if title was stored as slug
-  if (stories.includes("demo")) titles.demo = "Demo";
+  // Ensure known defaults keep display titles even if title was stored as slug
+  for (const [slug, label] of Object.entries(DEFAULT_TEMPLATE_TITLES)) {
+    if (stories.includes(slug)) titles[slug] = label;
+  }
   res.json({ stories, titles });
 });
 

@@ -2929,7 +2929,7 @@
     stories.forEach(function (slug) {
       var o = document.createElement("option");
       o.value = slug;
-      o.textContent = titles[slug] || (slug === "demo" ? "Demo" : slug);
+      o.textContent = titles[slug] || (slug === "earth" ? "Earth" : slug);
       sel.appendChild(o);
     });
     if (!stories.length) {

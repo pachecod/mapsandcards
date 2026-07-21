@@ -9,8 +9,11 @@ const TEMPLATES_DIR = join(ROOT, "default_templates");
 
 /** Display titles for known template slugs (home page / lists). */
 export const DEFAULT_TEMPLATE_TITLES = {
-  demo: "Demo",
+  earth: "Earth",
 };
+
+/** Former default template slugs to drop from the DB when seeding. */
+const RETIRED_DEFAULT_SLUGS = ["demo"];
 
 function jsonSafeForHtmlScript(jsonStr) {
   return String(jsonStr).replace(/<\/script/gi, "<\\/script");
@@ -103,10 +106,19 @@ export async function seedDefaultTemplatesFs(rootDir = ROOT) {
  */
 export async function seedDefaultTemplatesDb(queryFn) {
   const templates = await listDefaultTemplates();
-  if (!templates.length) return { created: [], skipped: [] };
-
   const created = [];
   const skipped = [];
+  const retired = [];
+
+  for (const slug of RETIRED_DEFAULT_SLUGS) {
+    const result = await queryFn("DELETE FROM stories WHERE slug = $1 RETURNING slug", [slug]);
+    if (result.rows.length) retired.push(slug);
+  }
+  if (retired.length) {
+    console.log(`[seed] Removed retired default stories: ${retired.join(", ")}`);
+  }
+
+  if (!templates.length) return { created, skipped, retired };
 
   for (const t of templates) {
     const existing = await queryFn("SELECT 1 FROM stories WHERE slug = $1", [t.slug]);
@@ -125,7 +137,7 @@ export async function seedDefaultTemplatesDb(queryFn) {
   if (created.length) {
     console.log(`[seed] Created default stories in DB: ${created.join(", ")}`);
   }
-  return { created, skipped };
+  return { created, skipped, retired };
 }
 
 export function displayTitleForSlug(slug, titlesMap) {

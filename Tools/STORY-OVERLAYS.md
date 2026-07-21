@@ -29,7 +29,7 @@ Coordinates are **longitude, latitude** per GeoJSON.
 ## Reader (scroll-map-story.html)
 
 - **Story mode:** Overlays update when the active step changes (same timing as the map camera for that step).
-- **Explore mode:** Overlays stay aligned with the **last flown step** (the step you were on when you entered Explore, or the last step driven by Story mode). Panning in Explore does not switch overlays until you return to Story mode and scroll to another step (or switch basemap, which reapplies overlays for that last step).
+- **Explore mode:** Overlays from **all locations** are shown at once, each at its own coordinates on the map/globe. Returning to Story mode shows only the active step’s overlays again.
 
 ## Builder
 

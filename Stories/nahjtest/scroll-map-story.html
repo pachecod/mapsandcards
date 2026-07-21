@@ -1020,16 +1020,38 @@
     });
   }
 
+  function mergeAllStepOverlays() {
+    var merged = { type: "FeatureCollection", features: [] };
+    if (!config || !Array.isArray(config.steps)) return merged;
+    config.steps.forEach(function (step, i) {
+      normalizeStepOverlays(step);
+      var feats = step.overlays && step.overlays.geojson && step.overlays.geojson.features;
+      if (!Array.isArray(feats)) return;
+      feats.forEach(function (f) {
+        if (!f || !f.geometry) return;
+        var copy = JSON.parse(JSON.stringify(f));
+        if (!copy.properties) copy.properties = {};
+        copy.properties._stepIndex = i;
+        merged.features.push(copy);
+      });
+    });
+    return merged;
+  }
+
   function applyStepOverlays(stepIndex) {
     if (!map || !config || !config.steps) return;
     ensureOverlaySources();
-    var step = config.steps[stepIndex];
     var split;
-    if (step) {
-      normalizeStepOverlays(step);
-      split = splitOverlayFeatures(step.overlays.geojson);
+    if (storyInteractionMode === "explore") {
+      split = splitOverlayFeatures(mergeAllStepOverlays());
     } else {
-      split = { poly: EMPTY_FC, lines: EMPTY_FC, ptMark: EMPTY_FC, ptLabel: EMPTY_FC };
+      var step = config.steps[stepIndex];
+      if (step) {
+        normalizeStepOverlays(step);
+        split = splitOverlayFeatures(step.overlays.geojson);
+      } else {
+        split = { poly: EMPTY_FC, lines: EMPTY_FC, ptMark: EMPTY_FC, ptLabel: EMPTY_FC };
+      }
     }
     try {
       map.getSource(OV_SRC_POLY).setData(split.poly);
@@ -1478,6 +1500,7 @@
       } else {
         mapHandler("dragRotate", "disable");
       }
+      applyStepOverlays(lastFlownIndex >= 0 ? lastFlownIndex : 0);
     } else {
       mapHandler("scrollZoom", "disable");
       mapHandler("dragPan", "disable");

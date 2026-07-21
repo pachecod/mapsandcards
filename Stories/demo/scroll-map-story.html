@@ -191,6 +191,9 @@
       margin-right: 0;
       padding: 1.25rem 1.25rem 50vh;
     }
+    .story-scroll.is-explore-hidden {
+      display: none !important;
+    }
     .story-scroll .card {
       pointer-events: auto;
     }
@@ -953,16 +956,38 @@
     });
   }
 
+  function mergeAllStepOverlays() {
+    var merged = { type: "FeatureCollection", features: [] };
+    if (!config || !Array.isArray(config.steps)) return merged;
+    config.steps.forEach(function (step, i) {
+      normalizeStepOverlays(step);
+      var feats = step.overlays && step.overlays.geojson && step.overlays.geojson.features;
+      if (!Array.isArray(feats)) return;
+      feats.forEach(function (f) {
+        if (!f || !f.geometry) return;
+        var copy = JSON.parse(JSON.stringify(f));
+        if (!copy.properties) copy.properties = {};
+        copy.properties._stepIndex = i;
+        merged.features.push(copy);
+      });
+    });
+    return merged;
+  }
+
   function applyStepOverlays(stepIndex) {
     if (!map || !config || !config.steps) return;
     ensureOverlaySources();
-    var step = config.steps[stepIndex];
     var split;
-    if (step) {
-      normalizeStepOverlays(step);
-      split = splitOverlayFeatures(step.overlays.geojson);
+    if (storyInteractionMode === "explore") {
+      split = splitOverlayFeatures(mergeAllStepOverlays());
     } else {
-      split = { poly: EMPTY_FC, lines: EMPTY_FC, ptMark: EMPTY_FC, ptLabel: EMPTY_FC };
+      var step = config.steps[stepIndex];
+      if (step) {
+        normalizeStepOverlays(step);
+        split = splitOverlayFeatures(step.overlays.geojson);
+      } else {
+        split = { poly: EMPTY_FC, lines: EMPTY_FC, ptMark: EMPTY_FC, ptLabel: EMPTY_FC };
+      }
     }
     try {
       map.getSource(OV_SRC_POLY).setData(split.poly);
@@ -1391,12 +1416,16 @@
     if (mode !== "scroll" && mode !== "explore") return;
     storyInteractionMode = mode;
     var wrap = el("map-wrap");
+    var storyPanel = el("story-panel");
     if (wrap) {
       if (mode === "explore") {
         wrap.classList.add("map-wrap--explore");
       } else {
         wrap.classList.remove("map-wrap--explore");
       }
+    }
+    if (storyPanel) {
+      storyPanel.classList.toggle("is-explore-hidden", mode === "explore");
     }
     if (mode === "explore") {
       if (storyObserver) storyObserver.disconnect();
@@ -1411,6 +1440,7 @@
       } else {
         mapHandler("dragRotate", "disable");
       }
+      applyStepOverlays(lastFlownIndex >= 0 ? lastFlownIndex : 0);
     } else {
       mapHandler("scrollZoom", "disable");
       mapHandler("dragPan", "disable");

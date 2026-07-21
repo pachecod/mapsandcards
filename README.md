@@ -53,6 +53,7 @@ Open **Guest Mode** from the home page, or go to `/Tools/scroll-map-builder.html
 |----------|--------|
 | Persistence | Browser `localStorage` key `playground-{slug}` (same as WebxRide Public Playground) |
 | Project shape | `{ name, framework: "html", files: [index.html, scroll-map-story.json] }` |
+| New story | Defaults to a **blank** draft; optionally **Start from** a bundled template under `Starter Templates/` (e.g. Earth) |
 | Save | Local only — never calls `/__story-api` |
 | Preview | Blob URL of standalone viewer HTML |
 | Share | **Export Local Site** — client-side JSZip download |
@@ -92,7 +93,7 @@ Tools/
   scroll-map-story.html    Viewer template
   guest-playground.js      Guest Mode / WebxRide playground helpers
   STORY-OVERLAYS.md        Overlay schema notes
-default_templates/         Bundled stories seeded on install (e.g. earth → Earth)
+Starter Templates/         Bundled stories seeded on install (e.g. earth → Earth)
 story-api-plugin.js        Vite plugin: local story CRUD
 server.js                  Express app for production
 routes/  services/  db/    Production API + database

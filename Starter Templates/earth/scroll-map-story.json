@@ -4,7 +4,7 @@
       "id": "location-1",
       "lat": 45.48795249619337,
       "lng": -88.11745361861409,
-      "html": "<p>Welcome to Earth. It's a big planet, unless you view it from above.</p>",
+      "html": "<p>Welcome to Earth. It's a big planet, unless you view it from above. At least, that's what the astronauts tell us.</p>",
       "zoom": 0.2924911068177636,
       "baseMap": "esri-satellite",
       "overlays": {
@@ -12,7 +12,22 @@
           "type": "FeatureCollection",
           "features": []
         }
-      }
+      },
+      "spin": true
+    },
+    {
+      "id": "location-6",
+      "lat": 47.66379277153216,
+      "lng": -97.91927309076101,
+      "zoom": 2.9461892232822815,
+      "html": "<p>This is the continental United States. It's a big country, with 50 countries, mostly continguous on one continent with the exception of Alaska and Hawaii.</p>",
+      "overlays": {
+        "geojson": {
+          "type": "FeatureCollection",
+          "features": []
+        }
+      },
+      "baseMap": "esri-satellite"
     },
     {
       "id": "location-2",
@@ -83,5 +98,6 @@
   "projection": "globe",
   "satelliteLabels": true,
   "cardBackgroundColor": "#ffffff",
-  "cardBackgroundOpacity": 0.86
+  "cardBackgroundOpacity": 0.86,
+  "restartAtEnd": true
 }

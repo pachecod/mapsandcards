@@ -898,6 +898,12 @@
           Annotate
         </button>
       </div>
+      <div class="field" id="step-spin-field" style="margin:0.35rem 0 0">
+        <label for="step-spin-toggle" style="display:flex;gap:0.5rem;align-items:flex-start;font-size:0.78rem;font-weight:normal;cursor:pointer">
+          <input type="checkbox" id="step-spin-toggle" style="margin-top:0.15rem" />
+          <span>Spin globe while this card is active <span class="coords">(globe projection only)</span></span>
+        </label>
+      </div>
       <div class="annotate-panel" id="annotate-panel" role="region" aria-label="Map annotation" hidden>
         <div class="field">
           <div class="row" style="align-items:center;margin-bottom:0.35rem">
@@ -985,6 +991,12 @@
           </label>
         </div>
         <div class="field">
+          <label style="display:flex;align-items:flex-start;gap:0.5rem;cursor:pointer;font-size:0.875rem">
+            <input type="checkbox" id="restart-at-end-toggle" style="margin-top:0.2rem" />
+            <span>Show “Start from beginning” at the end of the story</span>
+          </label>
+        </div>
+        <div class="field">
           <label for="sources-text">Sources (HTML)</label>
           <textarea
             id="sources-text"
@@ -1060,6 +1072,16 @@
         <label for="ns-slug">Story name</label>
         <input type="text" id="ns-slug" placeholder="my-road-trip" autocomplete="off" spellcheck="false" />
       </div>
+      <div class="ns-field" id="ns-template-field" hidden>
+        <label for="ns-template">Start from</label>
+        <select id="ns-template" aria-label="Start from blank or a default template">
+          <option value="">Blank story</option>
+        </select>
+        <p class="coords" style="margin:0.35rem 0 0;font-size:0.75rem">
+          Default is a new blank story. Optionally copy a bundled example (e.g. Earth) into your guest draft.
+        </p>
+      </div>
+      <div id="ns-global-options">
       <p class="ns-section-label">Global options</p>
       <div class="ns-field">
         <label for="ns-basemap">Base map</label>
@@ -1098,6 +1120,7 @@
           <input type="range" id="ns-card-opacity" min="0" max="100" step="1" value="86" />
           <span class="coords" id="ns-card-opacity-value">86%</span>
         </div>
+      </div>
       </div>
       <div class="text-prompt-actions row">
         <button type="button" class="btn" id="ns-cancel">Cancel</button>
@@ -1207,6 +1230,7 @@
     terrain: false,
     projection: "globe",
     satelliteLabels: true,
+    restartAtEnd: false,
     sources: "",
     cardBackgroundColor: "#ffffff",
     cardBackgroundOpacity: 0.86,
@@ -1273,23 +1297,27 @@
     return window.location.pathname + q;
   }
 
-  function ensureGuestViewerTemplate() {
-    if (guestViewerTemplate) return Promise.resolve(guestViewerTemplate);
-    if (guestViewerTemplatePromise) return guestViewerTemplatePromise;
-    guestViewerTemplatePromise = fetch(VIEWER_TEMPLATE_URL, { cache: "force-cache" })
+  function ensureGuestViewerTemplate(opts) {
+    opts = opts || {};
+    var refresh = !!opts.refresh;
+    if (!refresh && guestViewerTemplate) return Promise.resolve(guestViewerTemplate);
+    if (!refresh && guestViewerTemplatePromise) return guestViewerTemplatePromise;
+    var req = fetch(VIEWER_TEMPLATE_URL, { cache: "no-store" })
       .then(function (r) {
         if (!r.ok) throw new Error("Could not load story viewer template");
         return r.text();
       })
       .then(function (html) {
         guestViewerTemplate = html;
+        guestViewerTemplatePromise = null;
         return html;
       })
       .catch(function (e) {
         guestViewerTemplatePromise = null;
         throw e;
       });
-    return guestViewerTemplatePromise;
+    if (!refresh) guestViewerTemplatePromise = req;
+    return req;
   }
 
   function buildGuestProject(slug, storyConfig) {
@@ -1306,7 +1334,8 @@
     if (!guestMode || !currentSlug || !window.MapsAndCardsGuest) return Promise.resolve();
     config = normalizeConfig(config);
     if (quiet) setSaveButtonLabel("Saving…", false);
-    return ensureGuestViewerTemplate()
+    /* Always refresh viewer HTML so Preview picks up latest flyTo/spin fixes. */
+    return ensureGuestViewerTemplate({ refresh: true })
       .then(function () {
         var project = buildGuestProject(currentSlug, config);
         if (!window.MapsAndCardsGuest.saveProject(currentSlug, project)) {
@@ -1551,6 +1580,134 @@
     }
   }
 
+  /* Per-step globe spin (Mapbox-style longitude easeTo loop). */
+  var globeSpinDesired = false;
+  var globeSpinUserInteracting = false;
+  var globeSpinWired = false;
+  var globeSpinResumeTimer = null;
+  var GLOBE_SPIN_SECONDS_PER_REV = 120;
+  var GLOBE_SPIN_MAX_ZOOM = 5;
+  var GLOBE_SPIN_SLOW_ZOOM = 3;
+  var GLOBE_SPIN_RESUME_MS = 2200;
+
+  function clearGlobeSpinResumeTimer() {
+    if (globeSpinResumeTimer) {
+      window.clearTimeout(globeSpinResumeTimer);
+      globeSpinResumeTimer = null;
+    }
+  }
+
+  function pauseGlobeSpinForInteraction() {
+    if (!globeSpinDesired) return;
+    globeSpinUserInteracting = true;
+    clearGlobeSpinResumeTimer();
+    if (map) {
+      try {
+        map.stop();
+      } catch (e) {}
+    }
+  }
+
+  function scheduleGlobeSpinResume() {
+    if (!globeSpinDesired) return;
+    clearGlobeSpinResumeTimer();
+    globeSpinResumeTimer = window.setTimeout(function () {
+      globeSpinResumeTimer = null;
+      globeSpinUserInteracting = false;
+      spinGlobeFrame();
+    }, GLOBE_SPIN_RESUME_MS);
+  }
+
+  function wireGlobeSpin() {
+    if (!map || globeSpinWired) return;
+    globeSpinWired = true;
+    map.on("mousedown", pauseGlobeSpinForInteraction);
+    map.on("touchstart", pauseGlobeSpinForInteraction);
+    map.on("wheel", pauseGlobeSpinForInteraction);
+    map.on("dragstart", pauseGlobeSpinForInteraction);
+    map.on("zoomstart", pauseGlobeSpinForInteraction);
+    map.on("rotatestart", pauseGlobeSpinForInteraction);
+    map.on("pitchstart", pauseGlobeSpinForInteraction);
+    map.on("mouseup", scheduleGlobeSpinResume);
+    map.on("touchend", scheduleGlobeSpinResume);
+    map.on("dragend", scheduleGlobeSpinResume);
+    map.on("zoomend", scheduleGlobeSpinResume);
+    map.on("rotateend", scheduleGlobeSpinResume);
+    map.on("pitchend", scheduleGlobeSpinResume);
+    map.on("moveend", function () {
+      if (!globeSpinUserInteracting) spinGlobeFrame();
+    });
+  }
+
+  function spinGlobeFrame() {
+    if (!map || !globeSpinDesired || globeSpinUserInteracting || !config) return;
+    if (config.projection !== "globe") return;
+    var zoom = map.getZoom();
+    if (zoom >= GLOBE_SPIN_MAX_ZOOM) return;
+    var distancePerSecond = 360 / GLOBE_SPIN_SECONDS_PER_REV;
+    if (zoom > GLOBE_SPIN_SLOW_ZOOM) {
+      var zoomDif =
+        (GLOBE_SPIN_MAX_ZOOM - zoom) / (GLOBE_SPIN_MAX_ZOOM - GLOBE_SPIN_SLOW_ZOOM);
+      distancePerSecond *= zoomDif;
+    }
+    var center = map.getCenter();
+    center.lng -= distancePerSecond;
+    map.easeTo({
+      center: center,
+      duration: 1000,
+      easing: function (n) {
+        return n;
+      }
+    });
+  }
+
+  function startGlobeSpin() {
+    if (!map) return;
+    wireGlobeSpin();
+    globeSpinDesired = true;
+    globeSpinUserInteracting = false;
+    clearGlobeSpinResumeTimer();
+    if (typeof map.isMoving === "function" && map.isMoving()) return;
+    spinGlobeFrame();
+  }
+
+  function stopGlobeSpin() {
+    var wasSpinning = globeSpinDesired;
+    globeSpinDesired = false;
+    globeSpinUserInteracting = false;
+    clearGlobeSpinResumeTimer();
+    /* Only cancel an in-flight easeTo if we were actually spinning — otherwise
+       map.stop() aborts the flyTo/jumpTo that just started for this step. */
+    if (map && wasSpinning) {
+      try {
+        map.stop();
+      } catch (e) {}
+    }
+  }
+
+  function syncGlobeSpinForStep(stepIndex) {
+    var s = config && config.steps && config.steps[stepIndex];
+    var want =
+      !!map &&
+      !!config &&
+      config.projection === "globe" &&
+      !!s &&
+      s.spin === true;
+    if (want) startGlobeSpin();
+    else stopGlobeSpin();
+  }
+
+  function syncStepSpinUi() {
+    var field = el("step-spin-field");
+    var cb = el("step-spin-toggle");
+    if (!cb || !config) return;
+    var globe = config.projection === "globe";
+    if (field) field.style.opacity = globe ? "1" : "0.55";
+    cb.disabled = !globe;
+    var s = config.steps[selectedIndex];
+    cb.checked = !!(s && s.spin === true);
+  }
+
   function syncProjectionSelect() {
     var sel = el("projection-select");
     if (!sel || !config) return;
@@ -1561,6 +1718,12 @@
     var c = el("terrain-toggle");
     if (!c || !config) return;
     c.checked = config.terrain === true;
+  }
+
+  function syncRestartAtEndToggle() {
+    var c = el("restart-at-end-toggle");
+    if (!c || !config) return;
+    c.checked = config.restartAtEnd === true;
   }
 
   function syncSatelliteLabelsUi() {
@@ -1687,6 +1850,8 @@
     if (typeof data.satelliteLabels !== "boolean") {
       data.satelliteLabels = true;
     }
+    if (data.restartAtEnd === true) data.restartAtEnd = true;
+    else delete data.restartAtEnd;
     if (typeof data.sources !== "string") {
       data.sources = "";
     }
@@ -1710,6 +1875,8 @@
 
   function normalizeStepOverlays(step) {
     if (!step || typeof step !== "object") return;
+    if (step.spin === true) step.spin = true;
+    else delete step.spin;
     if (!step.overlays || typeof step.overlays !== "object") {
       step.overlays = { geojson: { type: "FeatureCollection", features: [] } };
       return;
@@ -2038,13 +2205,61 @@
   }
 
   /**
+   * List bundled Starter Templates for Guest Mode "Start from".
+   * Falls back to probing /Starter Templates/earth/ if the API is unavailable.
+   */
+  function starterTemplatesBasePath() {
+    return "/" + encodeURIComponent("Starter Templates");
+  }
+
+  function fetchDefaultTemplateCatalog() {
+    return fetch("/__story-api/templates", { cache: "no-store" })
+      .then(function (r) {
+        if (!r.ok) throw new Error();
+        return r.json();
+      })
+      .then(function (data) {
+        return Array.isArray(data.templates) ? data.templates : [];
+      })
+      .catch(function () {
+        return fetch(starterTemplatesBasePath() + "/earth/scroll-map-story.json", {
+          cache: "force-cache"
+        })
+          .then(function (r) {
+            if (!r.ok) return [];
+            return [{ slug: "earth", title: "Earth" }];
+          })
+          .catch(function () {
+            return [];
+          });
+      });
+  }
+
+  function fetchDefaultTemplateConfig(templateSlug) {
+    return fetch(
+      starterTemplatesBasePath() +
+        "/" +
+        encodeURIComponent(templateSlug) +
+        "/scroll-map-story.json",
+      { cache: "force-cache" }
+    ).then(function (r) {
+      if (!r.ok) throw new Error("Could not load template \"" + templateSlug + "\".");
+      return r.json();
+    });
+  }
+
+  /**
    * New story dialog: folder name + global options.
-   * Resolves with { slug, defaults } or null if cancelled.
+   * Resolves with { slug, defaults, templateSlug } or null if cancelled.
+   * templateSlug is set when Guest Mode starts from a bundled default template.
    */
   function promptNewStoryModal() {
     return new Promise(function (resolve) {
       var modal = el("new-story-modal");
       var slugInput = el("ns-slug");
+      var templateField = el("ns-template-field");
+      var templateSel = el("ns-template");
+      var globalOpts = el("ns-global-options");
       var basemapSel = el("ns-basemap");
       var projectionSel = el("ns-projection");
       var terrainCb = el("ns-terrain");
@@ -2094,14 +2309,57 @@
       }
       syncSatVisibility();
 
+      function syncTemplateUi() {
+        var useTemplate = !!(templateSel && templateSel.value);
+        if (globalOpts) globalOpts.style.display = useTemplate ? "none" : "";
+      }
+
       function onBasemapChange() {
         syncSatVisibility();
       }
       function onOpacityInput() {
         if (opacityVal) opacityVal.textContent = opacityRange.value + "%";
       }
+      function onTemplateChange() {
+        syncTemplateUi();
+      }
 
-      modal.removeAttribute("hidden");
+      function openModal() {
+        syncTemplateUi();
+        modal.removeAttribute("hidden");
+        window.setTimeout(function () {
+          slugInput.focus();
+        }, 0);
+      }
+
+      function populateTemplatesThenOpen(templates) {
+        if (templateField && templateSel && guestMode && templates && templates.length) {
+          templateSel.innerHTML = "";
+          var blank = document.createElement("option");
+          blank.value = "";
+          blank.textContent = "Blank story";
+          templateSel.appendChild(blank);
+          templates.forEach(function (t) {
+            if (!t || !t.slug) return;
+            var o = document.createElement("option");
+            o.value = t.slug;
+            o.textContent = t.title || t.slug;
+            templateSel.appendChild(o);
+          });
+          templateSel.value = "";
+          templateField.hidden = false;
+        } else if (templateField) {
+          templateField.hidden = true;
+          if (templateSel) templateSel.value = "";
+        }
+        openModal();
+      }
+
+      if (guestMode) {
+        fetchDefaultTemplateCatalog().then(populateTemplatesThenOpen);
+      } else {
+        populateTemplatesThenOpen([]);
+      }
 
       function cleanup() {
         okBtn.removeEventListener("click", onOk);
@@ -2110,8 +2368,10 @@
         slugInput.removeEventListener("keydown", onSlugKey);
         if (basemapSel) basemapSel.removeEventListener("change", onBasemapChange);
         if (opacityRange) opacityRange.removeEventListener("input", onOpacityInput);
+        if (templateSel) templateSel.removeEventListener("change", onTemplateChange);
         document.removeEventListener("keydown", onDocKey, true);
         modal.setAttribute("hidden", "");
+        if (globalOpts) globalOpts.style.display = "";
       }
 
       function onOk() {
@@ -2122,6 +2382,8 @@
           slugInput.focus();
           return;
         }
+        var templateSlug =
+          guestMode && templateSel && templateSel.value ? String(templateSel.value).trim() : "";
         var opacityPct = opacityRange ? parseInt(opacityRange.value, 10) : 86;
         if (isNaN(opacityPct)) opacityPct = 86;
         opacityPct = Math.max(0, Math.min(100, opacityPct));
@@ -2137,7 +2399,11 @@
           cardBackgroundOpacity: opacityPct / 100
         };
         cleanup();
-        resolve({ slug: slug, defaults: defaults });
+        resolve({
+          slug: slug,
+          defaults: defaults,
+          templateSlug: templateSlug || null
+        });
       }
 
       function onCancel() {
@@ -2165,10 +2431,8 @@
       slugInput.addEventListener("keydown", onSlugKey);
       if (basemapSel) basemapSel.addEventListener("change", onBasemapChange);
       if (opacityRange) opacityRange.addEventListener("input", onOpacityInput);
+      if (templateSel) templateSel.addEventListener("change", onTemplateChange);
       document.addEventListener("keydown", onDocKey, true);
-      window.setTimeout(function () {
-        slugInput.focus();
-      }, 0);
     });
   }
 
@@ -2997,6 +3261,7 @@
       }
       syncBaseMapSelect();
       syncTerrainToggle();
+      syncRestartAtEndToggle();
       syncProjectionSelect();
       syncSatelliteLabelsUi();
       syncStorySelectValue();
@@ -3008,7 +3273,7 @@
         window.setTimeout(function () {
           promptNewStoryModal().then(function (result) {
             if (!result) return;
-            createGuestStory(result.slug, result.defaults);
+            createGuestStory(result.slug, result.defaults, result.templateSlug);
           });
         }, 0);
       }
@@ -3069,6 +3334,7 @@
       .then(function () {
         syncBaseMapSelect();
         syncTerrainToggle();
+        syncRestartAtEndToggle();
         syncProjectionSelect();
         syncSatelliteLabelsUi();
         syncStorySelectValue();
@@ -3079,22 +3345,32 @@
       });
   }
 
-  function createGuestStory(slug, defaultsPatch) {
-    var defaults = clone(DEFAULT_CONFIG);
-    if (defaultsPatch) {
-      Object.keys(defaultsPatch).forEach(function (k) {
-        defaults[k] = defaultsPatch[k];
-      });
-    }
-    defaults = normalizeConfig(defaults);
-    ensureGuestViewerTemplate()
-      .then(function () {
+  function createGuestStory(slug, defaultsPatch, templateSlug) {
+    var loadConfig = templateSlug
+      ? fetchDefaultTemplateConfig(templateSlug).then(function (json) {
+          return normalizeConfig(json);
+        })
+      : Promise.resolve(
+          (function () {
+            var defaults = clone(DEFAULT_CONFIG);
+            if (defaultsPatch) {
+              Object.keys(defaultsPatch).forEach(function (k) {
+                defaults[k] = defaultsPatch[k];
+              });
+            }
+            return normalizeConfig(defaults);
+          })()
+        );
+
+    Promise.all([ensureGuestViewerTemplate({ refresh: true }), loadConfig])
+      .then(function (pair) {
+        var storyConfig = pair[1];
         if (window.MapsAndCardsGuest.loadProject(slug)) {
           if (!confirm('Guest draft "' + slug + '" already exists. Overwrite it?')) {
             return;
           }
         }
-        var project = buildGuestProject(slug, defaults);
+        var project = buildGuestProject(slug, storyConfig);
         if (!window.MapsAndCardsGuest.saveProject(slug, project)) {
           throw new Error("localStorage full or unavailable");
         }
@@ -3422,18 +3698,24 @@
   }
 
   var _flyGen = 0;
+
+  function applyCameraForStep(s, animate) {
+    if (!map || !s) return;
+    var z = typeof s.zoom === "number" ? s.zoom : 6;
+    var pitch = config.terrain ? 42 : 0;
+    if (animate === false) {
+      map.jumpTo({ center: [s.lng, s.lat], zoom: z, pitch: pitch });
+    } else {
+      map.flyTo({ center: [s.lng, s.lat], zoom: z, duration: 1200, pitch: pitch });
+    }
+  }
+
   function flyToStep(i, animate) {
     var s = config.steps[i];
     if (!s || !map) return;
-    var z = typeof s.zoom === "number" ? s.zoom : 6;
-    var targetBase = (s.baseMap) ? s.baseMap : (config.baseMap || "openfreemap-bright");
+    stopGlobeSpin();
+    var targetBase = s.baseMap ? s.baseMap : (config.baseMap || "openfreemap-bright");
     var needSwitch = targetBase !== currentBuilderBaseMap;
-
-    if (animate === false) {
-      map.jumpTo({ center: [s.lng, s.lat], zoom: z });
-    } else {
-      map.flyTo({ center: [s.lng, s.lat], zoom: z, duration: 1200 });
-    }
 
     if (needSwitch) {
       var gen = ++_flyGen;
@@ -3449,14 +3731,23 @@
             ensureOverlaySources();
             applyStepOverlays(selectedIndex);
             map.resize();
+            /* setStyle resets the camera — restore this step's center/zoom. */
+            var step = config.steps[selectedIndex];
+            if (step) applyCameraForStep(step, false);
+            syncGlobeSpinForStep(selectedIndex);
           });
           map.setStyle(style);
         })
         .catch(function (err) {
           console.error("Step basemap switch failed:", err);
         });
+      applyStepOverlays(i);
+      return;
     }
+
+    applyCameraForStep(s, animate);
     applyStepOverlays(i);
+    syncGlobeSpinForStep(i);
   }
 
   function mapViewMatchesStoredLocation() {
@@ -3637,6 +3928,7 @@
     renderOverlayFeatureList();
     updateMapLocationButtonState();
     syncStepBasemapSelect();
+    syncStepSpinUi();
     var panel = el("annotate-panel");
     var btn = el("btn-annotate-toggle");
     var hasAnnotations = s.overlays && s.overlays.geojson &&
@@ -3707,6 +3999,10 @@
       else if (t.id === "projection-select") config.projection = t.value === "globe" ? "globe" : "mercator";
       else if (t.id === "terrain-toggle") config.terrain = !!t.checked;
       else if (t.id === "satellite-labels-toggle") config.satelliteLabels = !!t.checked;
+      else if (t.id === "restart-at-end-toggle") {
+        if (t.checked) config.restartAtEnd = true;
+        else delete config.restartAtEnd;
+      }
       else if (t.id === "sources-text") config.sources = t.value;
       else if (t.id === "card-bg-color") {
         config.cardBackgroundColor = normalizeCardBackgroundColor(t.value);
@@ -4028,7 +4324,7 @@
       if (!result) return;
       var slug = result.slug;
       if (guestMode) {
-        createGuestStory(slug, result.defaults);
+        createGuestStory(slug, result.defaults, result.templateSlug);
         return;
       }
       var defaults = clone(DEFAULT_CONFIG);
@@ -4159,6 +4455,21 @@
   el("projection-select").addEventListener("change", function () {
     config.projection = el("projection-select").value === "globe" ? "globe" : "mercator";
     applyProjectionIfNeeded();
+    syncStepSpinUi();
+    syncGlobeSpinForStep(selectedIndex);
+    saveSoon();
+  });
+
+  el("step-spin-toggle").addEventListener("change", function () {
+    var s = config.steps[selectedIndex];
+    if (!s) return;
+    if (el("step-spin-toggle").checked && config.projection === "globe") {
+      s.spin = true;
+    } else {
+      delete s.spin;
+    }
+    saveNow();
+    syncGlobeSpinForStep(selectedIndex);
   });
 
   el("satellite-labels-toggle").addEventListener("change", function () {
@@ -4387,6 +4698,7 @@
         renderStepList();
         syncBaseMapSelect();
         syncTerrainToggle();
+        syncRestartAtEndToggle();
         syncProjectionSelect();
         syncSatelliteLabelsUi();
         syncSourcesField();

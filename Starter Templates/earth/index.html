@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script type="module" src="/@vite/client"></script>
+
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Scroll map story</title>
+  <script src="/__analytics.js" defer></script>
   <!-- MapLibre + basemap style fallbacks; English labels via name:en / name_en where layers allow. -->
-  <link href="assets/maplibre-gl.css" rel="stylesheet" crossorigin="" />
+  <link href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.css" rel="stylesheet" crossorigin="" />
   <style>
     :root {
       --bg: #0f1419;
@@ -227,6 +230,30 @@
     }
     .card p { margin: 0 0 0.75rem; }
     .card p:last-child { margin-bottom: 0; }
+    .card--restart {
+      text-align: center;
+    }
+    .restart-btn {
+      display: inline-block;
+      margin-top: 0.15rem;
+      padding: 0.55rem 1rem;
+      border-radius: 8px;
+      border: 1px solid rgba(15, 20, 25, 0.18);
+      background: #1a2332;
+      color: #e8eaed;
+      font: inherit;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .restart-btn:hover {
+      background: #243044;
+    }
+    .restart-btn:focus-visible {
+      outline: 2px solid #3d8bfd;
+      outline-offset: 2px;
+    }
+    .card p:last-child { margin-bottom: 0; }
     .card code { font-size: 0.9em; }
     .map-error-banner {
       position: fixed;
@@ -421,96 +448,10 @@
     story data here so the story works without a server. Leave empty to load scroll-map-story.json via fetch (http(s) only).
   -->
   <script type="application/json" id="scroll-map-story-embedded">
-{
-  "steps": [
-    {
-      "id": "location-1",
-      "lat": 45.48795249619337,
-      "lng": -88.11745361861409,
-      "html": "<p>Welcome to Earth. It's a big planet, unless you view it from above.</p>",
-      "zoom": 0.2924911068177636,
-      "baseMap": "esri-satellite",
-      "overlays": {
-        "geojson": {
-          "type": "FeatureCollection",
-          "features": []
-        }
-      }
-    },
-    {
-      "id": "location-2",
-      "lat": 59.70293496457978,
-      "lng": 5.4757329175720315,
-      "html": "<p>This is Europe. Notice how when viewed on a globe, all of Europe is smaller in size than the entire United States.</p>",
-      "zoom": 1.5184232531985407,
-      "baseMap": "esri-satellite",
-      "overlays": {
-        "geojson": {
-          "type": "FeatureCollection",
-          "features": []
-        }
-      }
-    },
-    {
-      "id": "location-3",
-      "lat": 21.253995854763613,
-      "lng": 18.510240845009207,
-      "html": "<p>But Africa as a continent is not only bigger than the United States. All of the United States and Europe could fit inside it!</p>",
-      "zoom": 2.1156616872871923,
-      "baseMap": "esri-satellite",
-      "overlays": {
-        "geojson": {
-          "type": "FeatureCollection",
-          "features": []
-        }
-      }
-    },
-    {
-      "id": "location-4",
-      "lat": 76.72339865653731,
-      "lng": -70.77910487291342,
-      "html": "<p>See Greenland near the top? See how much smaller it looks when viewed on a globe.</p>",
-      "zoom": 0.7021515022282325,
-      "baseMap": "esri-satellite",
-      "overlays": {
-        "geojson": {
-          "type": "FeatureCollection",
-          "features": []
-        }
-      }
-    },
-    {
-      "id": "location-5",
-      "lat": 43.04801917720476,
-      "lng": -76.14297354917986,
-      "html": "<p>Let's go back to a city-level spot on the map. This is Syracuse, NY.</p>",
-      "zoom": 13.357704161725573,
-      "baseMap": "esri-satellite",
-      "overlays": {
-        "geojson": {
-          "type": "FeatureCollection",
-          "features": []
-        }
-      }
-    }
-  ],
-  "baseMap": "openfreemap-bright",
-  "sources": "",
-  "terrain": true,
-  "version": 1,
-  "initialMap": {
-    "lat": 45.48795249619337,
-    "lng": -88.11745361861409,
-    "zoom": 0.2924911068177636
-  },
-  "projection": "globe",
-  "satelliteLabels": true,
-  "cardBackgroundColor": "#ffffff",
-  "cardBackgroundOpacity": 0.86
-}
+{"steps":[{"id":"location-1","lat":45.48795249619337,"lng":-88.11745361861409,"html":"<p>Welcome to Earth. It's a big planet, unless you view it from above. At least, that's what the astronauts tell us.</p>","zoom":0.2924911068177636,"baseMap":"esri-satellite","overlays":{"geojson":{"type":"FeatureCollection","features":[]}},"spin":true},{"id":"location-6","lat":47.66379277153216,"lng":-97.91927309076101,"zoom":2.9461892232822815,"html":"<p>This is the continental United States. It's a big country, with 50 countries, mostly continguous on one continent with the exception of Alaska and Hawaii.</p>","overlays":{"geojson":{"type":"FeatureCollection","features":[]}},"baseMap":"esri-satellite"},{"id":"location-2","lat":59.70293496457978,"lng":5.4757329175720315,"html":"<p>This is Europe. Notice how when viewed on a globe, all of Europe is smaller in size than the entire United States.</p>","zoom":1.5184232531985407,"baseMap":"esri-satellite","overlays":{"geojson":{"type":"FeatureCollection","features":[]}}},{"id":"location-3","lat":21.253995854763613,"lng":18.510240845009207,"html":"<p>But Africa as a continent is not only bigger than the United States. All of the United States and Europe could fit inside it!</p>","zoom":2.1156616872871923,"baseMap":"esri-satellite","overlays":{"geojson":{"type":"FeatureCollection","features":[]}}},{"id":"location-4","lat":76.72339865653731,"lng":-70.77910487291342,"html":"<p>See Greenland near the top? See how much smaller it looks when viewed on a globe.</p>","zoom":0.7021515022282325,"baseMap":"esri-satellite","overlays":{"geojson":{"type":"FeatureCollection","features":[]}}},{"id":"location-5","lat":43.04801917720476,"lng":-76.14297354917986,"html":"<p>Let's go back to a city-level spot on the map. This is Syracuse, NY.</p>","zoom":13.357704161725573,"baseMap":"esri-satellite","overlays":{"geojson":{"type":"FeatureCollection","features":[]}}}],"baseMap":"openfreemap-bright","sources":"","terrain":true,"version":1,"initialMap":{"lat":45.48795249619337,"lng":-88.11745361861409,"zoom":0.2924911068177636},"projection":"globe","satelliteLabels":true,"cardBackgroundColor":"#ffffff","cardBackgroundOpacity":0.86,"restartAtEnd":true}
 </script>
 
-  <script src="assets/maplibre-gl.min.js" crossorigin=""></script>
+  <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.min.js" crossorigin=""></script>
   <script>
 (function () {
   function syncMapViewportHeight() {
@@ -770,6 +711,125 @@
     }
   }
 
+  /* Per-step globe spin (longitude easeTo loop; only when step.spin and globe projection). */
+  var globeSpinDesired = false;
+  var globeSpinUserInteracting = false;
+  var globeSpinWired = false;
+  var globeSpinResumeTimer = null;
+  var GLOBE_SPIN_SECONDS_PER_REV = 120;
+  var GLOBE_SPIN_MAX_ZOOM = 5;
+  var GLOBE_SPIN_SLOW_ZOOM = 3;
+  var GLOBE_SPIN_RESUME_MS = 2200;
+
+  function clearGlobeSpinResumeTimer() {
+    if (globeSpinResumeTimer) {
+      window.clearTimeout(globeSpinResumeTimer);
+      globeSpinResumeTimer = null;
+    }
+  }
+
+  function pauseGlobeSpinForInteraction() {
+    if (!globeSpinDesired) return;
+    globeSpinUserInteracting = true;
+    clearGlobeSpinResumeTimer();
+    if (map) {
+      try {
+        map.stop();
+      } catch (e) {}
+    }
+  }
+
+  function scheduleGlobeSpinResume() {
+    if (!globeSpinDesired) return;
+    clearGlobeSpinResumeTimer();
+    globeSpinResumeTimer = window.setTimeout(function () {
+      globeSpinResumeTimer = null;
+      globeSpinUserInteracting = false;
+      spinGlobeFrame();
+    }, GLOBE_SPIN_RESUME_MS);
+  }
+
+  function wireGlobeSpin() {
+    if (!map || globeSpinWired) return;
+    globeSpinWired = true;
+    map.on("mousedown", pauseGlobeSpinForInteraction);
+    map.on("touchstart", pauseGlobeSpinForInteraction);
+    map.on("wheel", pauseGlobeSpinForInteraction);
+    map.on("dragstart", pauseGlobeSpinForInteraction);
+    map.on("zoomstart", pauseGlobeSpinForInteraction);
+    map.on("rotatestart", pauseGlobeSpinForInteraction);
+    map.on("pitchstart", pauseGlobeSpinForInteraction);
+    map.on("mouseup", scheduleGlobeSpinResume);
+    map.on("touchend", scheduleGlobeSpinResume);
+    map.on("dragend", scheduleGlobeSpinResume);
+    map.on("zoomend", scheduleGlobeSpinResume);
+    map.on("rotateend", scheduleGlobeSpinResume);
+    map.on("pitchend", scheduleGlobeSpinResume);
+    map.on("moveend", function () {
+      if (!globeSpinUserInteracting) spinGlobeFrame();
+    });
+  }
+
+  function spinGlobeFrame() {
+    if (!map || !globeSpinDesired || globeSpinUserInteracting || !config) return;
+    if (config.projection !== "globe") return;
+    if (storyInteractionMode !== "scroll") return;
+    var zoom = map.getZoom();
+    if (zoom >= GLOBE_SPIN_MAX_ZOOM) return;
+    var distancePerSecond = 360 / GLOBE_SPIN_SECONDS_PER_REV;
+    if (zoom > GLOBE_SPIN_SLOW_ZOOM) {
+      var zoomDif =
+        (GLOBE_SPIN_MAX_ZOOM - zoom) / (GLOBE_SPIN_MAX_ZOOM - GLOBE_SPIN_SLOW_ZOOM);
+      distancePerSecond *= zoomDif;
+    }
+    var center = map.getCenter();
+    center.lng -= distancePerSecond;
+    map.easeTo({
+      center: center,
+      duration: 1000,
+      easing: function (n) {
+        return n;
+      }
+    });
+  }
+
+  function startGlobeSpin() {
+    if (!map) return;
+    wireGlobeSpin();
+    globeSpinDesired = true;
+    globeSpinUserInteracting = false;
+    clearGlobeSpinResumeTimer();
+    if (typeof map.isMoving === "function" && map.isMoving()) return;
+    spinGlobeFrame();
+  }
+
+  function stopGlobeSpin() {
+    var wasSpinning = globeSpinDesired;
+    globeSpinDesired = false;
+    globeSpinUserInteracting = false;
+    clearGlobeSpinResumeTimer();
+    /* Only cancel an in-flight easeTo if we were actually spinning — otherwise
+       map.stop() aborts the flyTo/jumpTo that just started for this step. */
+    if (map && wasSpinning) {
+      try {
+        map.stop();
+      } catch (e) {}
+    }
+  }
+
+  function syncGlobeSpinForStep(stepIndex) {
+    var s = config && config.steps && config.steps[stepIndex];
+    var want =
+      !!map &&
+      !!config &&
+      config.projection === "globe" &&
+      storyInteractionMode === "scroll" &&
+      !!s &&
+      s.spin === true;
+    if (want) startGlobeSpin();
+    else stopGlobeSpin();
+  }
+
   function normalizeConfig(data) {
     if (!data.steps || !Array.isArray(data.steps)) {
       throw new Error("Invalid JSON: need steps array");
@@ -791,6 +851,8 @@
     if (typeof data.satelliteLabels !== "boolean") {
       data.satelliteLabels = true;
     }
+    if (data.restartAtEnd === true) data.restartAtEnd = true;
+    else delete data.restartAtEnd;
     if (typeof data.sources !== "string") {
       data.sources = "";
     }
@@ -814,6 +876,8 @@
 
   function normalizeStepOverlays(step) {
     if (!step || typeof step !== "object") return;
+    if (step.spin === true) step.spin = true;
+    else delete step.spin;
     if (!step.overlays || typeof step.overlays !== "object") {
       step.overlays = { geojson: { type: "FeatureCollection", features: [] } };
       return;
@@ -1348,22 +1412,27 @@
   }
 
   var _flyGen = 0;
-  function flyToStep(i, animate) {
-    var s = config.steps[i];
-    if (!s || !map) return;
+
+  function applyCameraForStep(s, animate) {
+    if (!map || !s) return;
     var z = typeof s.zoom === "number" ? s.zoom : 6;
     var pitch = config.terrain ? 42 : 0;
-    lastFlownIndex = i;
-
-    var stepBase = s.baseMap || null;
-    var effectiveBase = stepBase || viewerBaseMap;
-    var needSwitch = effectiveBase !== currentLoadedBaseMap;
-
     if (animate === false) {
       map.jumpTo({ center: [s.lng, s.lat], zoom: z, pitch: pitch });
     } else {
       map.flyTo({ center: [s.lng, s.lat], zoom: z, duration: 1200, pitch: pitch });
     }
+  }
+
+  function flyToStep(i, animate) {
+    var s = config.steps[i];
+    if (!s || !map) return;
+    stopGlobeSpin();
+    lastFlownIndex = i;
+
+    var stepBase = s.baseMap || null;
+    var effectiveBase = stepBase || viewerBaseMap;
+    var needSwitch = effectiveBase !== currentLoadedBaseMap;
 
     if (needSwitch) {
       var gen = ++_flyGen;
@@ -1379,14 +1448,23 @@
             ensureOverlaySources();
             applyStepOverlays(lastFlownIndex);
             map.resize();
+            /* setStyle resets the camera — restore this step's center/zoom. */
+            var step = config.steps[lastFlownIndex];
+            if (step) applyCameraForStep(step, false);
+            syncGlobeSpinForStep(lastFlownIndex);
           });
           map.setStyle(style);
         })
         .catch(function (err) {
           console.warn("Step basemap switch failed:", err);
         });
+      applyStepOverlays(i);
+      return;
     }
+
+    applyCameraForStep(s, animate);
     applyStepOverlays(i);
+    syncGlobeSpinForStep(i);
   }
 
   function getCurrentVisibleStepIndex() {
@@ -1459,6 +1537,7 @@
       storyPanel.classList.toggle("is-explore-hidden", mode === "explore");
     }
     if (mode === "explore") {
+      stopGlobeSpin();
       if (storyObserver) storyObserver.disconnect();
       mapHandler("scrollZoom", "enable");
       mapHandler("dragPan", "enable");
@@ -1591,6 +1670,7 @@
           });
         if (!crossing.length) return;
         var idx = Number(crossing[0].target.dataset.stepIndex);
+        if (!isFinite(idx)) return;
         if (idx !== lastFlownIndex) flyToStep(idx, true);
       },
       {
@@ -1622,6 +1702,17 @@
     updateExploreBasemapVisibility();
   }
 
+  function restartStoryFromBeginning() {
+    try {
+      window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    } catch (e) {
+      window.scrollTo(0, 0);
+    }
+    if (config && config.steps && config.steps[0]) {
+      flyToStep(0, true);
+    }
+  }
+
   function renderStory() {
     var panel = el("story-panel");
     panel.innerHTML = "";
@@ -1637,6 +1728,26 @@
       wrap.appendChild(card);
       panel.appendChild(wrap);
     });
+    if (config.restartAtEnd === true && config.steps.length) {
+      var endWrap = document.createElement("div");
+      endWrap.className = "step-block step-block--restart";
+      var endCard = document.createElement("div");
+      endCard.className = "card card--restart";
+      endCard.style.backgroundColor = cardBgRgba;
+      var endMsg = document.createElement("p");
+      endMsg.textContent = "You've reached the end.";
+      var endBtn = document.createElement("button");
+      endBtn.type = "button";
+      endBtn.className = "restart-btn";
+      endBtn.textContent = "Start from beginning";
+      endBtn.addEventListener("click", function () {
+        restartStoryFromBeginning();
+      });
+      endCard.appendChild(endMsg);
+      endCard.appendChild(endBtn);
+      endWrap.appendChild(endCard);
+      panel.appendChild(endWrap);
+    }
     connectStoryObserver();
     applyCardBackgroundOpacity();
   }

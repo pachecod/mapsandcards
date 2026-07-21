@@ -5,7 +5,9 @@ import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
-const TEMPLATES_DIR = join(ROOT, "default_templates");
+/** Bundled starter stories (folder name is intentional; URLs must encode the space). */
+export const STARTER_TEMPLATES_DIR_NAME = "Starter Templates";
+const TEMPLATES_DIR = join(ROOT, STARTER_TEMPLATES_DIR_NAME);
 
 /** Display titles for known template slugs (home page / lists). */
 export const DEFAULT_TEMPLATE_TITLES = {
@@ -36,7 +38,7 @@ function injectEmbeddedStoryJson(html, jsonStr) {
 }
 
 /**
- * List template folders under default_templates/ that contain scroll-map-story.json.
+ * List template folders under Starter Templates/ that contain scroll-map-story.json.
  * @returns {Promise<Array<{ slug: string, title: string, configPath: string }>>}
  */
 export async function listDefaultTemplates() {
@@ -65,25 +67,22 @@ export async function seedDefaultTemplatesFs(rootDir = ROOT) {
   const storiesRoot = join(rootDir, "Stories");
   const viewerPath = join(rootDir, "Tools", "scroll-map-story.html");
   const templates = await listDefaultTemplates();
-  if (!templates.length) return { created: [], skipped: [] };
+  if (!templates.length) return { created: [], updated: [], skipped: [] };
 
   if (!existsSync(viewerPath)) {
     console.warn("[seed] Missing Tools/scroll-map-story.html — skipping filesystem seed.");
-    return { created: [], skipped: templates.map((t) => t.slug) };
+    return { created: [], updated: [], skipped: templates.map((t) => t.slug) };
   }
 
   const viewerHtml = await readFile(viewerPath, "utf8");
   await mkdir(storiesRoot, { recursive: true });
 
   const created = [];
-  const skipped = [];
+  const updated = [];
 
   for (const t of templates) {
     const dir = join(storiesRoot, t.slug);
-    if (existsSync(dir)) {
-      skipped.push(t.slug);
-      continue;
-    }
+    const existed = existsSync(dir);
     const configRaw = await readFile(t.configPath, "utf8");
     const config = JSON.parse(configRaw);
     const jsonStr = JSON.stringify(config, null, 2);
@@ -91,23 +90,27 @@ export async function seedDefaultTemplatesFs(rootDir = ROOT) {
     await writeFile(join(dir, "scroll-map-story.json"), jsonStr + "\n", "utf8");
     const html = injectEmbeddedStoryJson(viewerHtml, jsonStr);
     await writeFile(join(dir, "scroll-map-story.html"), html, "utf8");
-    created.push(t.slug);
+    if (existed) updated.push(t.slug);
+    else created.push(t.slug);
   }
 
   if (created.length) {
     console.log(`[seed] Created default stories: ${created.join(", ")}`);
   }
-  return { created, skipped };
+  if (updated.length) {
+    console.log(`[seed] Updated starter templates: ${updated.join(", ")}`);
+  }
+  return { created, updated, skipped: [] };
 }
 
 /**
- * Seed missing default templates into Postgres.
+ * Seed / refresh starter templates into Postgres from Starter Templates/.
  * @param {typeof import("./db-service.js").query} queryFn
  */
 export async function seedDefaultTemplatesDb(queryFn) {
   const templates = await listDefaultTemplates();
   const created = [];
-  const skipped = [];
+  const updated = [];
   const retired = [];
 
   for (const slug of RETIRED_DEFAULT_SLUGS) {
@@ -118,15 +121,19 @@ export async function seedDefaultTemplatesDb(queryFn) {
     console.log(`[seed] Removed retired default stories: ${retired.join(", ")}`);
   }
 
-  if (!templates.length) return { created, skipped, retired };
+  if (!templates.length) return { created, updated, skipped: [], retired };
 
   for (const t of templates) {
+    const config = JSON.parse(await readFile(t.configPath, "utf8"));
     const existing = await queryFn("SELECT 1 FROM stories WHERE slug = $1", [t.slug]);
     if (existing.rows.length > 0) {
-      skipped.push(t.slug);
+      await queryFn(
+        "UPDATE stories SET title = $2, config = $3, published = true, updated_at = now() WHERE slug = $1",
+        [t.slug, t.title, config]
+      );
+      updated.push(t.slug);
       continue;
     }
-    const config = JSON.parse(await readFile(t.configPath, "utf8"));
     await queryFn(
       "INSERT INTO stories (slug, title, config, published) VALUES ($1, $2, $3, true)",
       [t.slug, t.title, config]
@@ -137,7 +144,10 @@ export async function seedDefaultTemplatesDb(queryFn) {
   if (created.length) {
     console.log(`[seed] Created default stories in DB: ${created.join(", ")}`);
   }
-  return { created, skipped, retired };
+  if (updated.length) {
+    console.log(`[seed] Updated starter templates in DB: ${updated.join(", ")}`);
+  }
+  return { created, updated, skipped: [], retired };
 }
 
 export function displayTitleForSlug(slug, titlesMap) {

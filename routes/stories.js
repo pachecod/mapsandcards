@@ -8,6 +8,7 @@ import { query } from "../services/db-service.js";
 import {
   seedDefaultTemplatesDb,
   DEFAULT_TEMPLATE_TITLES,
+  listDefaultTemplates,
 } from "../services/seed-defaults.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -21,7 +22,7 @@ function isValidSlug(s) {
   const t = s.trim().toLowerCase();
   if (t.length < 1 || t.length > 64) return false;
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(t)) return false;
-  const reserved = new Set(["list", "create", "save", "new", "api"]);
+  const reserved = new Set(["list", "create", "save", "new", "api", "templates"]);
   return !reserved.has(t);
 }
 
@@ -187,6 +188,19 @@ function rewriteCdnToLocal(html) {
 /* ── Routes ── */
 
 const router = Router();
+
+// Bundled default templates (for Guest Mode "start from" picker)
+router.get("/templates", async (_req, res) => {
+  try {
+    const templates = await listDefaultTemplates();
+    res.json({
+      templates: templates.map((t) => ({ slug: t.slug, title: t.title })),
+    });
+  } catch (e) {
+    console.warn("[templates] list failed:", e.message || e);
+    res.json({ templates: [] });
+  }
+});
 
 // List all stories
 router.get("/list", async (_req, res) => {

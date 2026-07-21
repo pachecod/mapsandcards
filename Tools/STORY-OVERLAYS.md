@@ -30,6 +30,8 @@ Coordinates are **longitude, latitude** per GeoJSON.
 
 - **Story mode:** Overlays update when the active step changes (same timing as the map camera for that step).
 - **Explore mode:** Overlays from **all locations** are shown at once, each at its own coordinates on the map/globe. Returning to Story mode shows only the active step’s overlays again.
+- **Globe spin:** A step may set `"spin": true`. While that card is active and the story uses **globe** projection, the globe slowly rotates. Spin stops when you leave the card, switch to Explore, or zoom in past ~5.
+- **Restart:** If the story sets `"restartAtEnd": true`, a final card offers **Start from beginning** (scrolls to the top and returns the map to the first location).
 
 ## Builder
 

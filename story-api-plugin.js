@@ -6,6 +6,7 @@ import { deflateRawSync } from "zlib";
 import {
   seedDefaultTemplatesFs,
   DEFAULT_TEMPLATE_TITLES,
+  listDefaultTemplates,
 } from "./services/seed-defaults.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -46,7 +47,7 @@ function isValidSlug(s) {
   const t = s.trim().toLowerCase();
   if (t.length < 1 || t.length > 64) return false;
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(t)) return false;
-  const reserved = new Set(["list", "create", "save", "new", "api"]);
+  const reserved = new Set(["list", "create", "save", "new", "api", "templates"]);
   if (reserved.has(t)) return false;
   return true;
 }
@@ -186,6 +187,13 @@ function storyApiMiddleware(rootDir) {
     };
 
     try {
+      if (req.method === "GET" && url === "/__story-api/templates") {
+        const templates = await listDefaultTemplates();
+        return sendJson(200, {
+          templates: templates.map((t) => ({ slug: t.slug, title: t.title })),
+        });
+      }
+
       if (req.method === "GET" && url === "/__story-api/list") {
         await seedDefaultTemplatesFs(rootDir);
         await fs.mkdir(storiesRoot, { recursive: true });

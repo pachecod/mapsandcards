@@ -1,0 +1,92 @@
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.6;
+  color: #111827;
+  background: #f8fafc;
+}
+
+.legal-header {
+  background: #141414;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  padding: 0.85rem 1.25rem;
+}
+
+.legal-back {
+  color: #4ade80;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.legal-back:hover {
+  color: #86efac;
+}
+
+.legal-main {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 1.75rem 1.25rem 3rem;
+}
+
+.legal-content h1 {
+  color: #111827;
+  border-bottom: 3px solid #4ade80;
+  padding-bottom: 0.55rem;
+  margin: 0 0 1.25rem;
+  font-size: 1.75rem;
+  line-height: 1.25;
+}
+
+.legal-content h2 {
+  color: #111827;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  font-size: 1.15rem;
+}
+
+.legal-content h3 {
+  color: #1f2937;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+.legal-content p,
+.legal-content li {
+  margin-bottom: 0.75rem;
+}
+
+.legal-content ul,
+.legal-content ol {
+  padding-left: 1.5rem;
+}
+
+.legal-content a {
+  color: #15803d;
+}
+
+.legal-content code {
+  font-size: 0.9em;
+  background: #eef2f7;
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+}
+
+.legal-note {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.legal-meta {
+  margin-top: 2rem;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.legal-meta a {
+  color: #15803d;
+}

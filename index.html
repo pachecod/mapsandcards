@@ -3,236 +3,609 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Scroll Map Builder</title>
+  <title>Maps &amp; Cards</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;700&family=Sora:wght@500;700;800&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg: #0f1419;
-      --panel: #1a2332;
-      --text: #e8eaed;
-      --muted: #9aa7b2;
-      --border: #2a3544;
-      --accent: #3d8bfd;
+      --m-bg: #141414;
+      --m-bg-2: #1a1a1a;
+      --m-surface: #202020;
+      --m-card: #1e1e1e;
+      --m-border: rgba(255, 255, 255, 0.09);
+      --m-border-2: rgba(255, 255, 255, 0.14);
+      --m-green: #4ade80;
+      --m-green-glow: rgba(74, 222, 128, 0.18);
+      --m-orange: #f97316;
+      --m-text: #d4d4d4;
+      --m-muted: #737373;
+      --m-white: #f5f5f5;
+      --font: "Sora", system-ui, sans-serif;
+      --mono: "IBM Plex Mono", ui-monospace, monospace;
     }
     * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
     body {
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
       margin: 0;
-      padding: 2rem clamp(1rem, 4vw, 3rem);
+      min-height: 100vh;
+      font-family: var(--font);
+      background: var(--m-bg);
+      color: var(--m-text);
       line-height: 1.55;
-      background: var(--bg);
-      color: var(--text);
-      max-width: 40rem;
+      position: relative;
+      overflow-x: hidden;
     }
-    h1 {
-      margin: 0 0 0.35rem;
-      font-size: 1.5rem;
-      font-weight: 600;
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
     }
-    .lede {
-      margin: 0 0 2rem;
-      font-size: 0.9rem;
-      color: var(--muted);
-    }
-    section {
-      margin-bottom: 2rem;
-    }
-    section:last-of-type {
-      margin-bottom: 0;
-    }
-    h2 {
-      margin: 0 0 0.75rem;
-      font-size: 0.75rem;
-      font-weight: 600;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-    ul {
-      margin: 0;
-      padding: 0;
-      list-style: none;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: var(--panel);
-      overflow: hidden;
-    }
-    li {
-      border-bottom: 1px solid var(--border);
-    }
-    li:last-child {
-      border-bottom: none;
-    }
-    li .story-row {
+
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
       display: flex;
       align-items: center;
-      gap: 0;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0 1.5rem;
+      height: 52px;
+      background: var(--m-bg-2);
+      border-bottom: 1px solid var(--m-border);
     }
-    li .story-row a {
-      flex: 1;
-    }
-    a {
-      display: block;
-      padding: 0.75rem 1rem;
-      color: var(--text);
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
       text-decoration: none;
-      transition: background 0.12s ease;
+      color: inherit;
     }
-    a:hover {
-      background: rgba(61, 139, 253, 0.12);
-      color: var(--accent);
+    .nav-mark {
+      width: 1.75rem;
+      height: 1.75rem;
+      border-radius: 50%;
+      background: var(--m-white);
+      color: #0a0a0a;
+      display: grid;
+      place-items: center;
+      font-size: 0.85rem;
+      font-weight: 800;
+      line-height: 1;
     }
-    a .path {
-      display: block;
-      margin-top: 0.25rem;
-      font-size: 0.75rem;
-      font-family: ui-monospace, monospace;
-      color: var(--muted);
+    .nav-name {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--m-green);
+      letter-spacing: -0.01em;
     }
-    .btn-view {
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .nav-btn {
+      padding: 0.35rem 0.9rem;
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 700;
+      border-radius: 6px;
+      text-decoration: none;
+      border: 1px solid transparent;
+      transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+    }
+    .nav-btn-ghost {
+      color: var(--m-text);
+      background: transparent;
+      border-color: var(--m-border-2);
+    }
+    .nav-btn-ghost:hover {
+      border-color: rgba(255, 255, 255, 0.28);
+      color: var(--m-white);
+    }
+    .nav-btn-green {
+      color: #0a0a0a;
+      background: var(--m-green);
+      border-color: var(--m-green);
+    }
+    .nav-btn-green:hover {
+      background: #86efac;
+      box-shadow: 0 0 16px var(--m-green-glow);
+    }
+
+    main { position: relative; z-index: 1; }
+
+    .hero {
+      padding: 4.5rem 1.5rem 2.5rem;
+      text-align: center;
+      max-width: 760px;
+      margin: 0 auto;
+    }
+    .eyebrow {
       display: inline-flex;
       align-items: center;
-      padding: 0.4rem 0.75rem;
-      margin-right: 0.75rem;
-      font-size: 0.8rem;
-      border-radius: 6px;
-      border: 1px solid var(--border);
-      background: transparent;
-      color: var(--accent);
+      padding: 0.28rem 0.75rem;
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--m-green);
+      background: rgba(74, 222, 128, 0.08);
+      border: 1px solid rgba(74, 222, 128, 0.2);
+      border-radius: 4px;
+      margin-bottom: 1.5rem;
+      letter-spacing: 0.02em;
+      animation: rise 0.7s ease both;
+    }
+    .hero h1 {
+      margin: 0 0 1.1rem;
+      font-size: clamp(1.9rem, 5vw, 3rem);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      color: var(--m-white);
+      animation: rise 0.75s 0.06s ease both;
+    }
+    .hero h1 .brand { color: var(--m-green); }
+    .hero-sub {
+      margin: 0 auto 2rem;
+      max-width: 34rem;
+      font-size: 1rem;
+      color: var(--m-muted);
+      line-height: 1.7;
+      animation: rise 0.75s 0.12s ease both;
+    }
+    .ctas {
+      display: flex;
+      gap: 0.6rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      animation: rise 0.75s 0.18s ease both;
+    }
+    .cta {
+      padding: 0.65rem 1.4rem;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 800;
+      border-radius: 7px;
+      border: 1px solid transparent;
       text-decoration: none;
-      white-space: nowrap;
-      transition: background 0.12s ease, border-color 0.12s ease;
+      transition: transform 0.18s, box-shadow 0.18s, background 0.18s, border-color 0.18s, color 0.18s;
     }
-    .btn-view:hover {
-      background: rgba(61, 139, 253, 0.15);
-      border-color: var(--accent);
+    .cta:hover { transform: translateY(-1px); }
+    .cta-green {
+      background: var(--m-green);
+      color: #0a0a0a;
+      box-shadow: 0 2px 16px rgba(74, 222, 128, 0.25);
     }
-    .empty-hint {
-      padding: 0.75rem 1rem;
+    .cta-green:hover {
+      background: #86efac;
+      box-shadow: 0 2px 24px rgba(74, 222, 128, 0.4);
+    }
+    .cta-orange {
+      background: rgba(249, 115, 22, 0.12);
+      color: var(--m-orange);
+      border-color: rgba(249, 115, 22, 0.25);
+    }
+    .cta-orange:hover { background: rgba(249, 115, 22, 0.2); }
+    .cta-ghost {
+      background: transparent;
+      color: var(--m-text);
+      border-color: var(--m-border-2);
+    }
+    .cta-ghost:hover {
+      border-color: rgba(255, 255, 255, 0.3);
+      color: var(--m-white);
+    }
+
+    .section {
+      width: min(1260px, calc(100% - 2rem));
+      margin: 0 auto;
+      padding: 0 0 3.5rem;
+    }
+    .section-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.1rem;
+      flex-wrap: wrap;
+    }
+    .section-head.centered {
+      justify-content: center;
+      text-align: center;
+    }
+    .section-title {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--m-muted);
+    }
+    .section-note {
+      margin: 0 0 1rem;
       font-size: 0.85rem;
-      color: var(--muted);
+      color: var(--m-muted);
+      max-width: 40rem;
     }
+    .section-link {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--m-green);
+      text-decoration: none;
+    }
+    .section-link:hover { color: #86efac; }
+
+    .tgrid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 275px), 320px));
+      gap: 0.85rem;
+      justify-content: center;
+      justify-items: stretch;
+    }
+    .tcard {
+      display: flex;
+      gap: 0.85rem;
+      align-items: stretch;
+      padding: 0.85rem;
+      background: var(--m-card);
+      border: 1px solid var(--m-border);
+      border-radius: 10px;
+      text-decoration: none;
+      color: inherit;
+      transition: border-color 0.15s, transform 0.15s, background 0.15s;
+    }
+    .tcard:hover {
+      border-color: rgba(74, 222, 128, 0.35);
+      background: #222;
+      transform: translateY(-1px);
+    }
+    .tthumb {
+      flex: 0 0 72px;
+      width: 72px;
+      border-radius: 8px;
+      background:
+        radial-gradient(circle at 40% 45%, rgba(74, 222, 128, 0.35), transparent 55%),
+        linear-gradient(145deg, #1a2430, #12181f);
+      border: 1px solid var(--m-border);
+      display: grid;
+      place-items: center;
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--m-green);
+      letter-spacing: 0.04em;
+    }
+    .tbody { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 0.2rem; }
+    .ttitle {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--m-white);
+    }
+    .tid {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--m-muted);
+    }
+    .tdesc {
+      font-size: 0.78rem;
+      color: var(--m-muted);
+      line-height: 1.4;
+    }
+    .topen {
+      margin-top: auto;
+      padding-top: 0.45rem;
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: var(--m-green);
+    }
+    .help {
+      font-size: 0.85rem;
+      color: var(--m-muted);
+      padding: 0.75rem 0;
+    }
+    .guest-panel[hidden] { display: none !important; }
+
+    .confirm-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .confirm-overlay[hidden] { display: none !important; }
+    .confirm-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.72);
+    }
+    .confirm-dialog {
+      position: relative;
+      z-index: 1;
+      width: min(100%, 22rem);
+      padding: 1.25rem 1.35rem;
+      background: var(--m-bg-2);
+      border: 1px solid var(--m-border-2);
+      border-radius: 12px;
+      box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.45);
+    }
+    .confirm-dialog h2 {
+      margin: 0 0 0.5rem;
+      font-size: 1.05rem;
+      color: var(--m-white);
+    }
+    .confirm-dialog p {
+      margin: 0 0 1.1rem;
+      font-size: 0.9rem;
+      color: var(--m-muted);
+      line-height: 1.5;
+    }
+    .confirm-actions {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: flex-end;
+    }
+    .confirm-actions .cta {
+      padding: 0.5rem 1rem;
+      font-size: 0.85rem;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
     .site-footer {
-      margin-top: 2.5rem;
-      padding-top: 1.25rem;
-      border-top: 1px solid var(--border);
+      position: relative;
+      z-index: 1;
+      border-top: 1px solid var(--m-border);
+      padding: 1.5rem;
+      text-align: center;
       font-size: 0.8rem;
-      color: var(--muted);
+      color: var(--m-muted);
     }
     .site-footer a {
-      display: inline;
-      padding: 0;
-      color: var(--muted);
+      color: var(--m-muted);
       text-decoration: underline;
       text-underline-offset: 0.15em;
+      margin: 0 0.45rem;
     }
-    .site-footer a:hover {
-      background: transparent;
-      color: var(--accent);
+    .site-footer a:hover { color: var(--m-green); }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
   </style>
 </head>
 <body>
-  <h1>Scroll Map Builder</h1>
-  <p class="lede">Run <code style="color: var(--accent)">npm run dev</code> — Vite serves this project. Saving from the builder writes into <code>Stories/&lt;name&gt;/</code> (dev server API). Or use <strong>Guest Mode</strong> to author locally in the browser (WebxRide-compatible).</p>
+  <header class="nav">
+    <a class="nav-brand" href="/">
+      <span class="nav-mark" aria-hidden="true">M</span>
+      <span class="nav-name">Maps &amp; Cards</span>
+    </a>
+    <div class="nav-actions">
+      <a class="nav-btn nav-btn-ghost" href="/Tools/scroll-map-builder.html">Full editor</a>
+      <a class="nav-btn nav-btn-green" href="/Tools/scroll-map-builder.html?guest=1">Guest Mode</a>
+    </div>
+  </header>
 
-  <section aria-labelledby="tools-heading">
-    <h2 id="tools-heading">Tools</h2>
-    <ul>
-      <li>
-        <a href="/Tools/scroll-map-builder.html">
-          Scroll map builder
-          <span class="path">/Tools/scroll-map-builder.html</span>
-        </a>
-      </li>
-      <li>
-        <a href="/Tools/scroll-map-builder.html?guest=1">
-          Guest Mode (local only)
-          <span class="path">Edits in localStorage · Export Local Site ZIP · same as WebxRide Public Playground</span>
-        </a>
-      </li>
-    </ul>
-  </section>
+  <main>
+    <div class="hero">
+      <div class="eyebrow">Scroll-driven map stories</div>
+      <h1>
+        Control, Build &amp; Publish
+        <br />
+        <span class="brand">Maps &amp; Cards</span>
+        <br />
+        in your browser
+      </h1>
+      <p class="hero-sub">
+        As readers scroll through story cards, the map flies to each place.
+        Try Guest Mode instantly — no account — or open the full editor to save on this site.
+      </p>
+      <div class="ctas">
+        <a class="cta cta-green" href="/Tools/scroll-map-builder.html?guest=1">Try Guest Mode</a>
+        <a class="cta cta-ghost" href="/Tools/scroll-map-builder.html">Full editor</a>
+      </div>
+    </div>
 
-  <section aria-labelledby="guest-heading">
-    <h2 id="guest-heading">Guest drafts</h2>
-    <p class="lede" id="guest-privacy-note" style="display: none; margin: 0 0 0.75rem; font-size: 0.8rem;">
-      These are stored in your browser and are only visible to you.
-    </p>
-    <ul id="guest-links">
-      <li class="empty-hint" id="guest-links-loading">Loading guest drafts…</li>
-    </ul>
-  </section>
+    <section class="section" id="stories" aria-labelledby="stories-heading">
+      <div class="section-head centered">
+        <h2 class="section-title" id="stories-heading">Example Stories</h2>
+      </div>
+      <div class="tgrid" id="story-links">
+        <p class="help" id="story-links-loading">Loading stories…</p>
+      </div>
+    </section>
 
-  <section aria-labelledby="built-heading">
-    <h2 id="built-heading">Stories</h2>
-    <ul id="story-links">
-      <li class="empty-hint" id="story-links-loading">Loading story list…</li>
-    </ul>
-    <p class="lede" id="story-links-fallback" style="display: none; margin-top: 1rem; font-size: 0.8rem;">
-      Each folder under <code>Stories/</code> is one publishable story (<code>scroll-map-story.html</code> + JSON). Links here open the <strong>preview shell</strong> (<code>story-viewer.html</code>); the story file itself has no site navigation.
-    </p>
-  </section>
+    <section class="section guest-panel" id="guest-section" aria-labelledby="guest-heading" hidden>
+      <div class="section-head">
+        <h2 class="section-title" id="guest-heading">Your guest drafts</h2>
+      </div>
+      <p class="section-note" id="guest-privacy-note">
+        These are stored in your browser and are only visible to you.
+      </p>
+      <div class="tgrid" id="guest-links"></div>
+    </section>
+  </main>
 
   <footer class="site-footer">
+    <a href="/terms.html">Terms of Use</a>
+    <a href="/privacy-policy.html">Privacy Policy</a>
     <a href="https://github.com/pachecod/mapsandcards" target="_blank" rel="noopener noreferrer">Github</a>
   </footer>
 
+  <div id="view-story-modal" class="confirm-overlay" hidden>
+    <div class="confirm-backdrop" data-action="cancel"></div>
+    <div
+      class="confirm-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="view-story-title"
+    >
+      <h2 id="view-story-title">Open in a New Tab</h2>
+      <p id="view-story-message">This will open the story in a new browser tab.</p>
+      <div class="confirm-actions">
+        <button type="button" class="cta cta-ghost" data-action="cancel">Cancel</button>
+        <button type="button" class="cta cta-green" data-action="ok">OK</button>
+      </div>
+    </div>
+  </div>
+
   <script src="/Tools/guest-playground.js"></script>
+  <script src="/Tools/guest-agreement.js"></script>
   <script>
 (function () {
-  var ul = document.getElementById("story-links");
-  var loading = document.getElementById("story-links-loading");
-  var fallback = document.getElementById("story-links-fallback");
-  var guestUl = document.getElementById("guest-links");
-  var guestLoading = document.getElementById("guest-links-loading");
-
-  function addStory(slug, title) {
-    var li = document.createElement("li");
-    var row = document.createElement("div");
-    row.className = "story-row";
-    var name = document.createElement("span");
-    name.className = "story-name";
-    name.style.cssText = "flex:1;padding:0.75rem 1rem;min-width:0";
-    name.textContent = title || slug;
-    var viewLink = document.createElement("a");
-    viewLink.href = "/Stories/" + encodeURIComponent(slug) + "/scroll-map-story.html";
-    viewLink.className = "btn-view";
-    viewLink.target = "_blank";
-    viewLink.rel = "noopener noreferrer";
-    viewLink.textContent = "View";
-    row.appendChild(name);
-    row.appendChild(viewLink);
-    li.appendChild(row);
-    ul.appendChild(li);
+  if (window.MapsAndCardsGuestAgreement) {
+    window.MapsAndCardsGuestAgreement.interceptGuestModeLinks(document);
   }
 
-  function addGuestDraft(slug) {
-    var li = document.createElement("li");
+  var storyGrid = document.getElementById("story-links");
+  var loading = document.getElementById("story-links-loading");
+  var guestSection = document.getElementById("guest-section");
+  var guestGrid = document.getElementById("guest-links");
+  var viewModal = document.getElementById("view-story-modal");
+  var pendingViewUrl = null;
+
+  function thumbLabel(title) {
+    var t = String(title || "?").trim();
+    return (t.charAt(0) || "?").toUpperCase();
+  }
+
+  function closeViewModal() {
+    pendingViewUrl = null;
+    if (viewModal) viewModal.hidden = true;
+    document.body.style.overflow = "";
+  }
+
+  function openViewModal(url, title) {
+    pendingViewUrl = url;
+    var msg = document.getElementById("view-story-message");
+    if (msg) {
+      msg.textContent = title
+        ? 'Open "' + title + '" in a new browser tab?'
+        : "This will open the story in a new browser tab.";
+    }
+    if (viewModal) viewModal.hidden = false;
+    document.body.style.overflow = "hidden";
+    var ok = viewModal && viewModal.querySelector('[data-action="ok"]');
+    if (ok) ok.focus();
+  }
+
+  if (viewModal) {
+    viewModal.addEventListener("click", function (ev) {
+      var btn = ev.target.closest("[data-action]");
+      if (!btn) return;
+      var action = btn.getAttribute("data-action");
+      if (action === "cancel") {
+        closeViewModal();
+        return;
+      }
+      if (action === "ok" && pendingViewUrl) {
+        var url = pendingViewUrl;
+        closeViewModal();
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
+    });
+    document.addEventListener("keydown", function (ev) {
+      if (ev.key === "Escape" && viewModal && !viewModal.hidden) {
+        closeViewModal();
+      }
+    });
+  }
+
+  function addStoryCard(slug, title) {
+    var label = title || slug;
+    var url = "/Stories/" + encodeURIComponent(slug) + "/scroll-map-story.html";
     var a = document.createElement("a");
+    a.className = "tcard";
+    a.href = url;
+    a.title = label;
+
+    a.addEventListener("click", function (ev) {
+      if (ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey || ev.button !== 0) return;
+      ev.preventDefault();
+      openViewModal(url, label);
+    });
+
+    var thumb = document.createElement("div");
+    thumb.className = "tthumb";
+    thumb.setAttribute("aria-hidden", "true");
+    thumb.textContent = thumbLabel(label);
+
+    var body = document.createElement("div");
+    body.className = "tbody";
+
+    var name = document.createElement("div");
+    name.className = "ttitle";
+    name.textContent = label;
+
+    var id = document.createElement("div");
+    id.className = "tid";
+    id.textContent = slug;
+
+    var open = document.createElement("span");
+    open.className = "topen";
+    open.textContent = "View story";
+
+    body.appendChild(name);
+    body.appendChild(id);
+    body.appendChild(open);
+    a.appendChild(thumb);
+    a.appendChild(body);
+    storyGrid.appendChild(a);
+  }
+
+  function addGuestCard(slug) {
+    var a = document.createElement("a");
+    a.className = "tcard";
     a.href = "/Tools/scroll-map-builder.html?guest=1&story=" + encodeURIComponent(slug);
-    a.textContent = slug;
-    var path = document.createElement("span");
-    path.className = "path";
-    path.textContent = "Open in Guest Mode";
-    a.appendChild(path);
-    li.appendChild(a);
-    guestUl.appendChild(li);
+
+    var thumb = document.createElement("div");
+    thumb.className = "tthumb";
+    thumb.setAttribute("aria-hidden", "true");
+    thumb.textContent = thumbLabel(slug);
+
+    var body = document.createElement("div");
+    body.className = "tbody";
+
+    var name = document.createElement("div");
+    name.className = "ttitle";
+    name.textContent = slug;
+
+    var id = document.createElement("div");
+    id.className = "tid";
+    id.textContent = "local draft";
+
+    var open = document.createElement("span");
+    open.className = "topen";
+    open.textContent = "Open in Guest Mode";
+
+    body.appendChild(name);
+    body.appendChild(id);
+    body.appendChild(open);
+    a.appendChild(thumb);
+    a.appendChild(body);
+    guestGrid.appendChild(a);
   }
 
   (function loadGuestDrafts() {
-    if (guestLoading) guestLoading.remove();
-    var note = document.getElementById("guest-privacy-note");
     var ids = window.MapsAndCardsGuest ? window.MapsAndCardsGuest.listIds() : [];
     if (!ids.length) {
-      if (note) note.style.display = "none";
-      var empty = document.createElement("li");
-      empty.className = "empty-hint";
-      empty.textContent = "No guest drafts yet — open Guest Mode to create one.";
-      guestUl.appendChild(empty);
-    } else {
-      if (note) note.style.display = "block";
-      ids.forEach(addGuestDraft);
+      guestSection.hidden = true;
+      return;
     }
+    guestSection.hidden = false;
+    ids.forEach(addGuestCard);
   })();
 
   fetch("/__story-api/list", { cache: "no-store" })
@@ -245,25 +618,24 @@
       var stories = (data && data.stories) || [];
       var titles = (data && data.titles) || {};
       if (!stories.length) {
-        var li = document.createElement("li");
-        li.className = "empty-hint";
-        li.textContent = "No stories yet — use the builder and “New story”, or add a folder under Stories/.";
-        ul.appendChild(li);
+        var empty = document.createElement("p");
+        empty.className = "help";
+        empty.textContent = "No stories yet — try Guest Mode to create one locally.";
+        storyGrid.appendChild(empty);
       } else {
         stories.forEach(function (slug) {
-          addStory(slug, titles[slug] || (slug === "demo" ? "Demo" : slug));
+          addStoryCard(slug, titles[slug] || (slug === "demo" ? "Demo" : slug));
         });
       }
-      if (fallback) fallback.style.display = "block";
     })
     .catch(function () {
       if (loading) loading.remove();
-      ul.innerHTML = "";
-      addStory("demo", "Demo");
-      var note = document.createElement("li");
-      note.className = "empty-hint";
-      note.textContent = "Story API unavailable (run npm run dev). Showing Demo path only. Guest Mode still works without the API.";
-      ul.appendChild(note);
+      storyGrid.innerHTML = "";
+      addStoryCard("demo", "Demo");
+      var note = document.createElement("p");
+      note.className = "help";
+      note.textContent = "Story API unavailable. Showing Demo path only — Guest Mode still works.";
+      storyGrid.appendChild(note);
     });
 })();
   </script>

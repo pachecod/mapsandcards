@@ -11,7 +11,7 @@ const LOGIN_PAGE = `<!DOCTYPE html>
   * { box-sizing:border-box; }
   body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
          background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,sans-serif; }
-  form { background:var(--panel); border:1px solid var(--border); border-radius:12px;
+  form, .panel { background:var(--panel); border:1px solid var(--border); border-radius:12px;
          padding:2rem; width:100%; max-width:22rem; }
   h1 { margin:0 0 1.25rem; font-size:1.2rem; font-weight:600; text-align:center; }
   label { display:block; font-size:0.85rem; margin-bottom:0.35rem; }
@@ -21,22 +21,30 @@ const LOGIN_PAGE = `<!DOCTYPE html>
   button { width:100%; padding:0.55rem; border:none; border-radius:6px; background:var(--accent);
            color:#fff; font-size:0.95rem; cursor:pointer; font-weight:500; }
   button:hover { opacity:0.9; }
+  .btn-guest {
+    display:block; width:100%; margin-top:0.65rem; padding:0.55rem; border-radius:6px;
+    border:1px solid var(--border); background:transparent; color:var(--text);
+    font-size:0.95rem; font-weight:500; text-align:center; text-decoration:none;
+    box-sizing:border-box;
+  }
+  .btn-guest:hover { border-color:var(--accent); color:var(--accent); }
   .err { color:#dc3545; font-size:0.85rem; text-align:center; margin-bottom:1rem; }
-  .hint { margin:0 0 1rem; font-size:0.8rem; color:#9aa7b2; text-align:center; line-height:1.4; }
-  .hint a { color:var(--accent); }
+  .hint { margin:0 0 1rem; font-size:0.8rem; color:#9aa7b2; text-align:center; line-height:1.45; }
 </style>
 </head>
 <body>
-<form method="POST" action="/__auth/login">
-  <h1>Scroll Map Builder</h1>
-  <p class="hint">Enter a password to use the full editor. If you are a guest, click cancel, then click Guest Mode.</p>
-  %%ERROR%%
-  <input type="hidden" name="next" value="%%NEXT%%"/>
-  <label for="pw">Password</label>
-  <input type="password" id="pw" name="password" autofocus required/>
-  <button type="submit">Sign in</button>
-  <p class="hint" style="margin:1rem 0 0"><a href="/">Cancel</a></p>
-</form>
+<div class="panel">
+  <form method="POST" action="/__auth/login" style="background:transparent;border:none;padding:0;margin:0;max-width:none">
+    <h1>Scroll Map Builder</h1>
+    <p class="hint">Enter the password you were given to use the full editor. If you are a guest, click Guest Mode below. Guest mode keeps content in your browser on your own computer. You are fully responsible for that content.</p>
+    %%ERROR%%
+    <input type="hidden" name="next" value="%%NEXT%%"/>
+    <label for="pw">Password</label>
+    <input type="password" id="pw" name="password" autofocus required/>
+    <button type="submit">Sign in</button>
+  </form>
+  <a class="btn-guest" href="/Tools/scroll-map-builder.html?guest=1">Try Guest Mode</a>
+</div>
 </body>
 </html>`;
 

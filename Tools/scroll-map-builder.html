@@ -1129,6 +1129,7 @@
   <script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js" crossorigin=""></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" crossorigin=""></script>
   <script src="/Tools/guest-playground.js"></script>
+  <script src="/Tools/guest-agreement.js"></script>
   <script>
 (function () {
   var STORAGE_KEY = "scroll-map-story-config";
@@ -4373,26 +4374,40 @@
     });
   })();
 
-  loadConfigThen(function () {
-    initCardQuill();
-    initMap(function () {
-      /* set initial tracker so the first flyToStep knows not to switch styles unnecessarily */
-      var firstStep = config.steps && config.steps[0];
-      currentBuilderBaseMap = (firstStep && firstStep.baseMap)
-        ? firstStep.baseMap
-        : (config.baseMap || "openfreemap-bright");
-      renderStepList();
-      syncBaseMapSelect();
-      syncTerrainToggle();
-      syncProjectionSelect();
-      syncSatelliteLabelsUi();
-      syncSourcesField();
-      syncCardBackgroundFields();
-      syncEditorFromStep();
-      flyToStep(selectedIndex, false);
-      updateMapLocationButtonState();
+  function startBuilder() {
+    loadConfigThen(function () {
+      initCardQuill();
+      initMap(function () {
+        /* set initial tracker so the first flyToStep knows not to switch styles unnecessarily */
+        var firstStep = config.steps && config.steps[0];
+        currentBuilderBaseMap = (firstStep && firstStep.baseMap)
+          ? firstStep.baseMap
+          : (config.baseMap || "openfreemap-bright");
+        renderStepList();
+        syncBaseMapSelect();
+        syncTerrainToggle();
+        syncProjectionSelect();
+        syncSatelliteLabelsUi();
+        syncSourcesField();
+        syncCardBackgroundFields();
+        syncEditorFromStep();
+        flyToStep(selectedIndex, false);
+        updateMapLocationButtonState();
+      });
     });
-  });
+  }
+
+  if (isGuestModeFromUrl() && window.MapsAndCardsGuestAgreement) {
+    window.MapsAndCardsGuestAgreement.promptGuestAgreementIfNeeded().then(function (ok) {
+      if (!ok) {
+        window.location.href = "/";
+        return;
+      }
+      startBuilder();
+    });
+  } else {
+    startBuilder();
+  }
 })();
   </script>
 </body>

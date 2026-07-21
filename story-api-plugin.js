@@ -263,6 +263,20 @@ function storyApiMiddleware(rootDir) {
         return sendJson(200, { ok: true });
       }
 
+      if (req.method === "POST" && url === "/__story-api/delete") {
+        const body = await readJsonBody(req);
+        const slug = body && body.slug;
+        if (!isValidSlug(slug)) {
+          return sendJson(400, { error: "Invalid slug." });
+        }
+        const dir = path.join(storiesRoot, slug);
+        if (!existsSync(dir)) {
+          return sendJson(404, { error: "Story not found." });
+        }
+        await fs.rm(dir, { recursive: true, force: true });
+        return sendJson(200, { ok: true });
+      }
+
       if (req.method === "POST" && url === "/__story-api/export") {
         const body = await readJsonBody(req);
         const slug = body && body.slug;

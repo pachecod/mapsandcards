@@ -495,6 +495,8 @@
       font-size: 0.8rem;
     }
     .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.btn-danger { color: #f87171; border-color: #7f1d1d; }
+    .btn.btn-danger:hover { background: #7f1d1d; color: #fff; }
     /* Set Map Location: green = view differs from stored location; blue = matches (set). */
     .btn-map-loc-unset {
       background: #15803d;
@@ -730,6 +732,7 @@
         <label for="story-select">Story</label>
         <select id="story-select" aria-label="Current story"></select>
         <button type="button" class="btn" id="btn-new-story">New story</button>
+        <button type="button" class="btn btn-danger" id="btn-delete-story">Delete</button>
       </div>
       <p id="story-api-hint" class="api-offline-hint hidden" role="status">
         Saving into <code>Stories/</code> needs <code>npm run dev</code> (Vite).
@@ -2877,6 +2880,38 @@
           alert("Could not create story: " + (e.message || e));
         });
     });
+  });
+
+  el("btn-delete-story").addEventListener("click", function () {
+    if (!currentSlug) {
+      alert("No story selected.");
+      return;
+    }
+    if (!storyApiOk) {
+      alert("Delete requires the dev server. Run \"npm run dev\" first.");
+      return;
+    }
+    if (!confirm("Delete story \"" + currentSlug + "\"?\n\nThis permanently removes the Stories/" + currentSlug + "/ folder. This cannot be undone.")) {
+      return;
+    }
+    fetch("/__story-api/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug: currentSlug })
+    })
+      .then(function (r) {
+        return r.json().then(function (j) {
+          return { ok: r.ok, j: j };
+        });
+      })
+      .then(function (o) {
+        if (!o.ok) throw new Error(o.j.error || "Delete failed");
+        try { localStorage.removeItem(storageKeyForDraft()); } catch (e) {}
+        window.location.href = window.location.pathname;
+      })
+      .catch(function (e) {
+        alert("Delete failed: " + (e.message || e));
+      });
   });
 
   populateBaseMapSelect();

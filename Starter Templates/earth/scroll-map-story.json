@@ -20,7 +20,7 @@
       "lat": 47.66379277153216,
       "lng": -97.91927309076101,
       "zoom": 2.9461892232822815,
-      "html": "<p>This is the continental United States. It's a big country, with 50 countries, mostly continguous on one continent with the exception of Alaska and Hawaii.</p>",
+      "html": "<p>This is the continental United States. It's a big country, with 50 states in total. Most are contiguous on the mainland, with the exception of Alaska and Hawaii.</p>",
       "overlays": {
         "geojson": {
           "type": "FeatureCollection",
@@ -47,7 +47,7 @@
       "id": "location-3",
       "lat": 21.253995854763613,
       "lng": 18.510240845009207,
-      "html": "<p>But Africa as a continent is not only bigger than the United States. All of the United States and Europe could fit inside it!</p>",
+      "html": "<p>But Africa as a continent is not only bigger than the United States. All of the United States and Europe could fit inside it, with room for more countries to spare!</p>",
       "zoom": 2.1156616872871923,
       "baseMap": "esri-satellite",
       "overlays": {
@@ -61,7 +61,7 @@
       "id": "location-4",
       "lat": 76.72339865653731,
       "lng": -70.77910487291342,
-      "html": "<p>See Greenland near the top? See how much smaller it looks when viewed on a globe.</p>",
+      "html": "<p>See Greenland near the top? See how much smaller it looks when viewed on a globe. People often assume Greenland is larger than it is because they are used to viewing it on a flat map. Here, you see it on a globe in its true relative size.</p>",
       "zoom": 0.7021515022282325,
       "baseMap": "esri-satellite",
       "overlays": {

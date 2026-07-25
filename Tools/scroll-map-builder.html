@@ -1440,6 +1440,12 @@
         </div>
         <div class="step-list" id="step-list" role="group" aria-label="Locations"></div>
         <p class="coords" id="step-coords" style="margin: 0.35rem 0 0"></p>
+        <p class="coords" id="step-camera-hint" style="margin: 0.15rem 0 0">
+          Tip: right-drag the map to tilt and rotate, then Set Map Location.
+        </p>
+        <button type="button" class="btn" id="btn-clear-step-camera" hidden style="margin-top:0.35rem;padding:0.3rem 0.6rem;font-size:0.75rem">
+          Clear camera angle
+        </button>
       </div>
       <div class="row" style="align-items:flex-end">
         <div class="field" style="flex:1;margin:0;min-width:0">
@@ -2195,6 +2201,7 @@
   function apply3dBuildingsZoomPitch() {
     if (!map || !config || !window.Globe3dBuildings) return;
     var s = config.steps[selectedIndex];
+    if (s && stepHasCustomCamera(s)) return;
     var base = effectiveBaseForStep(s);
     if (!Globe3dBuildings.wants3dBuildings(config, base) && !config.terrain && config.projection !== "globe") {
       return;
@@ -2346,12 +2353,13 @@
   }
 
   function currentMapCamera() {
-    if (!map) return { center: [0, 0], zoom: 2, pitch: 0 };
+    if (!map) return { center: [0, 0], zoom: 2, pitch: 0, bearing: 0 };
     var c = map.getCenter();
     return {
       center: [c.lng, c.lat],
       zoom: map.getZoom(),
       pitch: map.getPitch(),
+      bearing: map.getBearing(),
     };
   }
 
@@ -2722,6 +2730,31 @@
     return data;
   }
 
+  function normalizeStepCamera(step) {
+    if (!step || typeof step !== "object") return;
+    if (typeof step.pitch === "number" && !isNaN(step.pitch)) {
+      step.pitch = Math.max(0, Math.min(85, Math.round(step.pitch * 10) / 10));
+    } else {
+      delete step.pitch;
+    }
+    if (typeof step.bearing === "number" && !isNaN(step.bearing)) {
+      var b = step.bearing % 360;
+      if (b > 180) b -= 360;
+      if (b <= -180) b += 360;
+      step.bearing = Math.round(b * 10) / 10;
+      if (Math.abs(step.bearing) < 0.05) delete step.bearing;
+    } else {
+      delete step.bearing;
+    }
+  }
+
+  function stepHasCustomCamera(step) {
+    return !!(
+      step &&
+      (typeof step.pitch === "number" || typeof step.bearing === "number")
+    );
+  }
+
   function normalizeStepOverlays(step) {
     if (!step || typeof step !== "object") return;
     if (step.type === "intro") {
@@ -2733,6 +2766,7 @@
     else delete step.spin;
     if (step.flyTransition === "smooth") step.flyTransition = "smooth";
     else delete step.flyTransition;
+    normalizeStepCamera(step);
     if (!step.overlays || typeof step.overlays !== "object") {
       step.overlays = { geojson: { type: "FeatureCollection", features: [] } };
       return;
@@ -4501,7 +4535,7 @@
           scrollZoom: true,
           attributionControl: false,
           pitch: config.terrain ? 42 : 0,
-          dragRotate: config.terrain === true
+          dragRotate: true
         });
         var creditsCtrl = new CreditsAttributionControl({
           getSourcesText: function () {
@@ -4511,7 +4545,7 @@
         map.addControl(creditsCtrl, "bottom-left");
         creditsPanelControl = creditsCtrl;
         map.addControl(
-          new maplibregl.NavigationControl({ showCompass: config.terrain === true }),
+          new maplibregl.NavigationControl({ showCompass: true }),
           "top-right"
         );
         map.on("error", function (e) {
@@ -4582,23 +4616,26 @@
   function peakCameraForStep(s) {
     var from = map.getCenter();
     var destZoom = typeof s.zoom === "number" ? s.zoom : 6;
+    var peakZoom = Math.min(getFlyPullBackZoom(), map.getZoom(), destZoom);
     return {
       center: [
         from.lng + (s.lng - from.lng) * 0.5,
         from.lat + (s.lat - from.lat) * 0.5,
       ],
-      zoom: Math.min(getFlyPullBackZoom(), map.getZoom(), destZoom),
-      pitch: stepPitch(destZoom, s),
+      zoom: peakZoom,
+      pitch: stepHasCustomCamera(s) ? stepPitch(peakZoom, s) : stepPitchForStep(s, destZoom),
+      bearing: stepBearingForStep(s),
     };
   }
 
-  function buildDirectFlyMove(lng, lat, zoom, pitch, duration) {
+  function buildDirectFlyMove(lng, lat, zoom, pitch, bearing, duration) {
     return {
       type: "fly",
       options: {
         center: [lng, lat],
         zoom: zoom,
         pitch: pitch,
+        bearing: typeof bearing === "number" ? bearing : 0,
         duration: duration,
         curve: 1.42,
         essential: true,
@@ -4645,13 +4682,35 @@
     return config.terrain ? 42 : config.projection === "globe" ? 28 : 0;
   }
 
+  function stepPitchForStep(s, stepZoom) {
+    if (s && typeof s.pitch === "number" && !isNaN(s.pitch)) {
+      return Math.max(0, Math.min(85, s.pitch));
+    }
+    return stepPitch(stepZoom, s);
+  }
+
+  function stepBearingForStep(s) {
+    if (s && typeof s.bearing === "number" && !isNaN(s.bearing)) {
+      var b = s.bearing % 360;
+      if (b > 180) b -= 360;
+      if (b <= -180) b += 360;
+      return b;
+    }
+    return 0;
+  }
+
   function effectiveBaseForStep(s) {
     return s.baseMap ? s.baseMap : (config.baseMap || "openfreemap-bright");
   }
 
-  function buildCameraMoveTo(lng, lat, zoom, pitch, animate, durationOverride) {
+  function buildCameraMoveTo(lng, lat, zoom, pitch, bearing, animate, durationOverride) {
     if (!map) return null;
-    var target = { center: [lng, lat], zoom: zoom, pitch: pitch, bearing: 0 };
+    var target = {
+      center: [lng, lat],
+      zoom: zoom,
+      pitch: pitch,
+      bearing: typeof bearing === "number" ? bearing : 0,
+    };
 
     if (animate === false) {
       return { type: "jump", options: target };
@@ -4679,6 +4738,7 @@
         center: target.center,
         zoom: zoom,
         pitch: pitch,
+        bearing: target.bearing,
         duration: duration,
         curve: 1.9,
         maxZoom: maxZoom,
@@ -4690,7 +4750,15 @@
   function buildCameraMove(s, animate, durationOverride) {
     if (!map || !s) return null;
     var z = typeof s.zoom === "number" ? s.zoom : 6;
-    return buildCameraMoveTo(s.lng, s.lat, z, stepPitch(z, s), animate, durationOverride);
+    return buildCameraMoveTo(
+      s.lng,
+      s.lat,
+      z,
+      stepPitchForStep(s, z),
+      stepBearingForStep(s),
+      animate,
+      durationOverride
+    );
   }
 
   function applyCameraMove(move) {
@@ -4698,7 +4766,6 @@
     if (move.type === "jump") {
       map.jumpTo(move.options);
     } else {
-      if (map.getBearing() !== 0) map.jumpTo({ bearing: 0 });
       map.flyTo(move.options);
     }
   }
@@ -4873,7 +4940,7 @@
             center: camera.center,
             zoom: camera.zoom,
             pitch: camera.pitch,
-            bearing: 0,
+            bearing: typeof camera.bearing === "number" ? camera.bearing : 0,
           });
           waitForBasemapReadyThenFade(gen, onReady);
         });
@@ -4892,7 +4959,7 @@
     switchBasemapAtCamera(
       i,
       gen,
-      { center: [s.lng, s.lat], zoom: z, pitch: stepPitch(z, s) },
+      { center: [s.lng, s.lat], zoom: z, pitch: stepPitchForStep(s, z), bearing: stepBearingForStep(s) },
       function () {
         applyStepOverlays(i);
         applyGlobe3dBuildingsIfNeeded(effectiveBaseForStep(s));
@@ -4902,8 +4969,6 @@
   }
 
   function flySmoothToStep(i, gen, s, needSwitch) {
-    if (map.getBearing() !== 0) map.jumpTo({ bearing: 0 });
-
     function flyInbound() {
       if (gen !== _flyGen) return;
       applyCameraMove(buildCameraMove(s, true));
@@ -4922,7 +4987,6 @@
   }
 
   function flyViaPullbackPeak(i, gen, s, switchBasemapAtPeak) {
-    if (map.getBearing() !== 0) map.jumpTo({ bearing: 0 });
     var halfDuration = Math.max(600, Math.round(flyDurationMs() / 2));
     var peak = peakCameraForStep(s);
 
@@ -4945,7 +5009,14 @@
     }
 
     applyCameraMove(
-      buildDirectFlyMove(peak.center[0], peak.center[1], peak.zoom, peak.pitch, halfDuration)
+      buildDirectFlyMove(
+        peak.center[0],
+        peak.center[1],
+        peak.zoom,
+        peak.pitch,
+        peak.bearing,
+        halfDuration
+      )
     );
     waitForMoveEnd(gen, continueFromPeak);
   }
@@ -4989,7 +5060,17 @@
     var latOk = Math.abs(c.lat - s.lat) < 1e-5;
     var lngOk = Math.abs(c.lng - s.lng) < 1e-5;
     var zoomOk = Math.abs(z - s.zoom) < 0.02;
-    return latOk && lngOk && zoomOk;
+    if (!latOk || !lngOk || !zoomOk) return false;
+    var autoPitch = stepPitchForStep(s, z);
+    var pitchOk =
+      typeof s.pitch === "number"
+        ? Math.abs(map.getPitch() - s.pitch) < 0.5
+        : Math.abs(map.getPitch() - autoPitch) < 0.5;
+    var bearingOk =
+      typeof s.bearing === "number"
+        ? Math.abs(map.getBearing() - s.bearing) < 0.5
+        : Math.abs(map.getBearing()) < 0.5;
+    return pitchOk && bearingOk;
   }
 
   function updateMapLocationButtonState() {
@@ -5010,11 +5091,19 @@
   function onCaptureClick() {
     var c = map.getCenter();
     var z = map.getZoom();
+    var p = map.getPitch();
+    var b = map.getBearing();
     var s = config.steps[selectedIndex];
     if (!s) return;
     s.lat = c.lat;
     s.lng = c.lng;
     s.zoom = z;
+    var autoPitch = stepPitch(z, s);
+    if (Math.abs(p - autoPitch) > 0.5) s.pitch = Math.round(p * 10) / 10;
+    else delete s.pitch;
+    if (Math.abs(b) > 0.5) s.bearing = Math.round(b * 10) / 10;
+    else delete s.bearing;
+    normalizeStepCamera(s);
     saveNow();
     syncEditorFromStep();
   }
@@ -5246,6 +5335,26 @@
     }
   }
 
+  function formatStepCoordsLine(s) {
+    if (!s) return "";
+    var prefix = isIntroStep(s) ? "Initial map view — " : "";
+    var parts = [
+      prefix + "lat " + s.lat.toFixed(5),
+      "lng " + s.lng.toFixed(5),
+      "zoom " + s.zoom,
+    ];
+    if (typeof s.pitch === "number") parts.push("pitch " + s.pitch.toFixed(1) + "\u00b0");
+    if (typeof s.bearing === "number") parts.push("bearing " + s.bearing.toFixed(1) + "\u00b0");
+    return parts.join(", ");
+  }
+
+  function syncStepCameraUi() {
+    var btn = el("btn-clear-step-camera");
+    var s = config && config.steps[selectedIndex];
+    if (!btn) return;
+    btn.hidden = !(s && stepHasCustomCamera(s));
+  }
+
   function syncEditorFromStep() {
     var s = config.steps[selectedIndex];
     if (!s) return;
@@ -5254,9 +5363,8 @@
     if (cardQuill) {
       cardQuill.root.innerHTML = html.replace(/^\s+|\s+$/g, "") ? html : "<p><br></p>";
     }
-    el("step-coords").textContent = isIntroStep(s)
-      ? "Initial map view — lat " + s.lat.toFixed(5) + ", lng " + s.lng.toFixed(5) + ", zoom " + s.zoom
-      : "lat " + s.lat.toFixed(5) + ", lng " + s.lng.toFixed(5) + ", zoom " + s.zoom;
+    el("step-coords").textContent = formatStepCoordsLine(s);
+    syncStepCameraUi();
     syncOverlayFieldsFromStep();
     renderOverlayFeatureList();
     updateMapLocationButtonState();
@@ -5700,6 +5808,17 @@
     }
     saveNow();
     syncGlobeSpinForStep(selectedIndex);
+  });
+
+  el("btn-clear-step-camera").addEventListener("click", function () {
+    var s = config.steps[selectedIndex];
+    if (!s) return;
+    delete s.pitch;
+    delete s.bearing;
+    normalizeStepCamera(s);
+    saveNow();
+    syncEditorFromStep();
+    flyToStep(selectedIndex, false);
   });
 
   el("restart-at-end-toggle").addEventListener("change", function () {

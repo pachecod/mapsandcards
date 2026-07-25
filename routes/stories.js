@@ -160,6 +160,7 @@ function buildZip(entries) {
 /* ── CDN asset cache for export ── */
 
 const MAPLIBRE_VERSION = "5.24.0";
+const NIGHTLAYER_VERSION = "1.0.0-alpha.16";
 const CDN_ASSETS = [
   {
     url: `https://cdn.jsdelivr.net/npm/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.min.js`,
@@ -169,7 +170,12 @@ const CDN_ASSETS = [
     url: `https://cdn.jsdelivr.net/npm/maplibre-gl@${MAPLIBRE_VERSION}/dist/maplibre-gl.css`,
     file: "maplibre-gl.css",
   },
+  {
+    url: `https://cdn.jsdelivr.net/npm/maplibre-gl-nightlayer@${NIGHTLAYER_VERSION}/dist/nightlayer.min.js`,
+    file: "nightlayer.min.js",
+  },
 ];
+const GLOBE_DAYNIGHT_PATH = join(ROOT, "Tools", "globe-daynight.js");
 
 const assetCache = new Map();
 
@@ -191,7 +197,12 @@ function rewriteCdnToLocal(html) {
     .replace(
       /src="https:\/\/cdn\.jsdelivr\.net\/npm\/maplibre-gl@[^"]*\/dist\/maplibre-gl\.min\.js"/,
       'src="assets/maplibre-gl.min.js"'
-    );
+    )
+    .replace(
+      /src="https:\/\/cdn\.jsdelivr\.net\/npm\/maplibre-gl-nightlayer@[^"]*\/dist\/nightlayer\.min\.js"/,
+      'src="assets/nightlayer.min.js"'
+    )
+    .replace(/src="\/Tools\/globe-daynight\.js"/, 'src="assets/globe-daynight.js"');
 }
 
 function markStandaloneExport(html) {
@@ -403,12 +414,15 @@ router.post("/export", async (req, res) => {
   html = markStandaloneExport(html);
 
   const assetBuffers = await Promise.all(CDN_ASSETS.map((a) => getCachedAsset(a)));
+  const globeDayNightJs = await readFile(GLOBE_DAYNIGHT_PATH);
 
   const zipBuf = buildZip([
     { name: "index.html", data: Buffer.from(html, "utf8") },
     { name: "scroll-map-story.json", data: Buffer.from(jsonStr, "utf8") },
     { name: "assets/maplibre-gl.min.js", data: assetBuffers[0] },
     { name: "assets/maplibre-gl.css", data: assetBuffers[1] },
+    { name: "assets/nightlayer.min.js", data: assetBuffers[2] },
+    { name: "assets/globe-daynight.js", data: globeDayNightJs },
   ]);
 
   res.set("Content-Type", "application/zip");

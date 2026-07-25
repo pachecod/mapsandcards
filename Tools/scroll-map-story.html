@@ -673,6 +673,8 @@
   <script type="application/json" id="scroll-map-story-embedded"></script>
 
   <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.min.js" crossorigin=""></script>
+  <script src="https://cdn.jsdelivr.net/npm/maplibre-gl-nightlayer@1.0.0-alpha.16/dist/nightlayer.min.js" crossorigin=""></script>
+  <script src="/Tools/globe-daynight.js"></script>
   <script>
 (function () {
   function syncMapViewportHeight() {
@@ -927,10 +929,26 @@
     var type = config.projection === "globe" ? "globe" : "mercator";
     try {
       var cur = map.getProjection && map.getProjection();
-      if (cur && cur.type === type) return;
+      if (cur && cur.type === type) {
+        applyGlobeDayNightIfNeeded();
+        return;
+      }
       map.setProjection({ type: type });
     } catch (e) {
       console.warn("Projection:", e);
+    }
+    applyGlobeDayNightIfNeeded();
+  }
+
+  function applyGlobeDayNightIfNeeded() {
+    if (window.GlobeDayNight && map && config) {
+      GlobeDayNight.apply(map, config);
+    }
+  }
+
+  function applyGlobeDayNightAfterStyle() {
+    if (window.GlobeDayNight && map && config) {
+      GlobeDayNight.syncAfterStyleLoad(map, config);
     }
   }
 
@@ -1111,6 +1129,7 @@
     if (data.projection !== "globe" && data.projection !== "mercator") {
       data.projection = "mercator";
     }
+    if (window.GlobeDayNight) GlobeDayNight.normalizeDayNightConfig(data);
     if (typeof data.satelliteLabels !== "boolean") {
       data.satelliteLabels = true;
     }
@@ -1159,7 +1178,6 @@
     if (!step || typeof step !== "object") return;
     if (step.type === "intro") {
       step.type = "intro";
-      delete step.spin;
       delete step.flyTransition;
       delete step.baseMap;
     }
@@ -1668,6 +1686,7 @@
           applyEnglishLabels(map);
           applyProjectionIfNeeded();
           applyTerrainIfNeeded();
+          applyGlobeDayNightIfNeeded();
           setTimeout(function () {
             syncMapViewportHeight();
             map.resize();
@@ -2023,6 +2042,7 @@
           applyEnglishLabels(map);
           applyProjectionIfNeeded();
           applyTerrainIfNeeded();
+          applyGlobeDayNightAfterStyle();
           ensureOverlaySources();
           map.resize();
           map.jumpTo({
@@ -2558,6 +2578,7 @@
           applyEnglishLabels(map);
           applyProjectionIfNeeded();
           applyTerrainIfNeeded();
+          applyGlobeDayNightAfterStyle();
           map.resize();
           if (storyInteractionMode === "scroll") {
             var stepIdx = getCurrentVisibleStepIndex();
@@ -2797,6 +2818,7 @@
             applyEnglishLabels(map);
             applyProjectionIfNeeded();
             applyTerrainIfNeeded();
+            applyGlobeDayNightAfterStyle();
             ensureOverlaySources();
             map.resize();
             resolve();

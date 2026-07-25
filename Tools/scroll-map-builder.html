@@ -1329,6 +1329,27 @@
           </select>
           <p class="field-hint">Default for new stories is Globe.</p>
         </div>
+        <div class="nav-flyout-field" id="globe-daynight-field">
+          <label class="check-label" for="globe-daynight-toggle">
+            <input type="checkbox" id="globe-daynight-toggle" />
+            <span>Show day/night on globe</span>
+          </label>
+          <p class="field-hint">Works best with Globe + satellite or dark basemaps.</p>
+        </div>
+        <div class="nav-flyout-field hidden" id="globe-daynight-options">
+          <label for="daynight-mode-select">Sun time</label>
+          <select id="daynight-mode-select" aria-label="Day/night sun time source">
+            <option value="live">Use viewer&rsquo;s current time</option>
+            <option value="fixed">Fixed date &amp; time</option>
+          </select>
+          <label for="daynight-datetime-local" id="daynight-datetime-label" class="hidden" style="margin-top:0.45rem">Fixed date &amp; time</label>
+          <input type="datetime-local" id="daynight-datetime-local" class="hidden" aria-label="Fixed date and time for day/night" />
+          <label for="daynight-opacity" style="margin-top:0.45rem">Night shadow opacity</label>
+          <div class="nav-flyout-opacity-row">
+            <input type="range" id="daynight-opacity" min="20" max="80" step="5" value="50" aria-label="Night shadow opacity" />
+            <span id="daynight-opacity-value" class="coords">50%</span>
+          </div>
+        </div>
         <div class="nav-flyout-field">
           <label for="fly-duration-seconds">Seconds between locations</label>
           <input type="number" id="fly-duration-seconds" min="1" max="30" step="1" value="3" aria-label="Seconds between locations" />
@@ -1590,6 +1611,8 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.min.js" crossorigin=""></script>
+  <script src="https://cdn.jsdelivr.net/npm/maplibre-gl-nightlayer@1.0.0-alpha.16/dist/nightlayer.min.js" crossorigin=""></script>
+  <script src="/Tools/globe-daynight.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mapbox/mapbox-gl-draw@1.4.3/dist/mapbox-gl-draw.js" crossorigin=""></script>
   <script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js" crossorigin=""></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" crossorigin=""></script>
@@ -2065,10 +2088,26 @@
     var type = config.projection === "globe" ? "globe" : "mercator";
     try {
       var cur = map.getProjection && map.getProjection();
-      if (cur && cur.type === type) return;
+      if (cur && cur.type === type) {
+        applyGlobeDayNightIfNeeded();
+        return;
+      }
       map.setProjection({ type: type });
     } catch (e) {
       console.warn("Projection:", e);
+    }
+    applyGlobeDayNightIfNeeded();
+  }
+
+  function applyGlobeDayNightIfNeeded() {
+    if (window.GlobeDayNight && map && config) {
+      GlobeDayNight.apply(map, config);
+    }
+  }
+
+  function applyGlobeDayNightAfterStyle() {
+    if (window.GlobeDayNight && map && config) {
+      GlobeDayNight.syncAfterStyleLoad(map, config);
     }
   }
 
@@ -2274,7 +2313,78 @@
     syncStepNavButtonsToggle();
     syncSourcesField();
     syncCardBackgroundFields();
+    syncGlobeDayNightUi();
     updateMapOptionsCardPreview();
+  }
+
+  function isoToDatetimeLocal(iso) {
+    if (!iso) return "";
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return "";
+    function pad(n) {
+      return n < 10 ? "0" + n : String(n);
+    }
+    return (
+      d.getFullYear() +
+      "-" +
+      pad(d.getMonth() + 1) +
+      "-" +
+      pad(d.getDate()) +
+      "T" +
+      pad(d.getHours()) +
+      ":" +
+      pad(d.getMinutes())
+    );
+  }
+
+  function datetimeLocalToIso(local) {
+    if (!local) return "";
+    var d = new Date(local);
+    if (isNaN(d.getTime())) return "";
+    return d.toISOString();
+  }
+
+  function syncGlobeDayNightUi() {
+    var field = el("globe-daynight-field");
+    var options = el("globe-daynight-options");
+    var toggle = el("globe-daynight-toggle");
+    var modeSel = el("daynight-mode-select");
+    var dtInput = el("daynight-datetime-local");
+    var dtLabel = el("daynight-datetime-label");
+    var opacity = el("daynight-opacity");
+    var opacityVal = el("daynight-opacity-value");
+    if (!toggle || !config) return;
+    var globe = config.projection === "globe";
+    var enabled = globe && config.globeDayNight === true;
+    if (field) field.style.opacity = globe ? "1" : "0.55";
+    toggle.disabled = !globe;
+    toggle.checked = enabled;
+    if (options) {
+      if (enabled) options.classList.remove("hidden");
+      else options.classList.add("hidden");
+    }
+    if (modeSel) {
+      modeSel.value = config.dayNightMode === "fixed" ? "fixed" : "live";
+      modeSel.disabled = !enabled;
+    }
+    var fixed = config.dayNightMode === "fixed";
+    if (dtLabel) dtLabel.classList.toggle("hidden", !fixed);
+    if (dtInput) {
+      dtInput.classList.toggle("hidden", !fixed);
+      dtInput.disabled = !enabled || !fixed;
+      dtInput.value = fixed ? isoToDatetimeLocal(config.dayNightTime) : "";
+    }
+    var op =
+      typeof config.dayNightOpacity === "number"
+        ? config.dayNightOpacity
+        : window.GlobeDayNight
+          ? GlobeDayNight.DEFAULT_OPACITY
+          : 0.5;
+    if (opacity) {
+      opacity.value = String(Math.round(op * 100));
+      opacity.disabled = !enabled;
+    }
+    if (opacityVal) opacityVal.textContent = Math.round(op * 100) + "%";
   }
 
   function applyGlobalBaseMapInBuilder() {
@@ -2289,6 +2399,7 @@
           applyEnglishLabels(map);
           applyProjectionIfNeeded();
           applyTerrainIfNeeded();
+          applyGlobeDayNightAfterStyle();
           map.resize();
           applyStepOverlays(selectedIndex);
         });
@@ -2365,6 +2476,7 @@
           applyEnglishLabels(map);
           applyProjectionIfNeeded();
           applyTerrainIfNeeded();
+          applyGlobeDayNightAfterStyle();
           map.resize();
           applyStepOverlays(stepIndex);
         });
@@ -2437,6 +2549,7 @@
     if (data.projection !== "globe" && data.projection !== "mercator") {
       data.projection = "mercator";
     }
+    if (window.GlobeDayNight) GlobeDayNight.normalizeDayNightConfig(data);
     if (typeof data.satelliteLabels !== "boolean") {
       data.satelliteLabels = true;
     }
@@ -2485,7 +2598,6 @@
     if (!step || typeof step !== "object") return;
     if (step.type === "intro") {
       step.type = "intro";
-      delete step.spin;
       delete step.flyTransition;
       delete step.baseMap;
     }
@@ -4277,6 +4389,7 @@
           applyEnglishLabels(map);
           applyProjectionIfNeeded();
           applyTerrainIfNeeded();
+          applyGlobeDayNightIfNeeded();
           initDrawControl();
           installMarkerPlacementClickCapture();
           applyStepOverlays(selectedIndex);
@@ -4604,6 +4717,7 @@
           applyEnglishLabels(map);
           applyProjectionIfNeeded();
           applyTerrainIfNeeded();
+          applyGlobeDayNightAfterStyle();
           ensureOverlaySources();
           map.resize();
           map.jumpTo({
@@ -4810,14 +4924,12 @@
     var intro = isIntroStep(s);
     var cap = captureButtonEl;
     if (cap) cap.textContent = intro ? "Set initial map view" : "Set Map Location";
-    var spinField = el("step-spin-field");
     var flySelect = el("step-fly-transition-select");
     var flyField = flySelect ? flySelect.closest(".field") : null;
     var basemapRow = el("step-basemap-select")
       ? el("step-basemap-select").closest(".row")
       : null;
     var annotateBtn = el("btn-annotate-toggle");
-    if (spinField) spinField.hidden = intro;
     if (flyField) flyField.hidden = intro;
     if (basemapRow) basemapRow.hidden = intro;
     if (annotateBtn) annotateBtn.hidden = intro;
@@ -5413,6 +5525,7 @@
           applyEnglishLabels(map);
           applyProjectionIfNeeded();
           applyTerrainIfNeeded();
+          applyGlobeDayNightAfterStyle();
           map.resize();
           applyStepOverlays(selectedIndex);
         });
@@ -5999,8 +6112,73 @@
       projSel.addEventListener("change", function () {
         if (!config) return;
         config.projection = projSel.value === "globe" ? "globe" : "mercator";
+        if (window.GlobeDayNight) GlobeDayNight.normalizeDayNightConfig(config);
         applyProjectionIfNeeded();
+        syncGlobeDayNightUi();
         syncStepSpinUi();
+        saveSoon();
+      });
+    }
+
+    var dayNightToggle = el("globe-daynight-toggle");
+    if (dayNightToggle && !dayNightToggle.dataset.optionsWired) {
+      dayNightToggle.dataset.optionsWired = "1";
+      dayNightToggle.addEventListener("change", function () {
+        if (!config) return;
+        if (dayNightToggle.checked) config.globeDayNight = true;
+        else {
+          delete config.globeDayNight;
+          delete config.dayNightMode;
+          delete config.dayNightTime;
+          delete config.dayNightOpacity;
+        }
+        if (window.GlobeDayNight) GlobeDayNight.normalizeDayNightConfig(config);
+        syncGlobeDayNightUi();
+        applyGlobeDayNightIfNeeded();
+        saveSoon();
+      });
+    }
+
+    var dayNightMode = el("daynight-mode-select");
+    if (dayNightMode && !dayNightMode.dataset.optionsWired) {
+      dayNightMode.dataset.optionsWired = "1";
+      dayNightMode.addEventListener("change", function () {
+        if (!config) return;
+        config.dayNightMode = dayNightMode.value === "fixed" ? "fixed" : "live";
+        if (config.dayNightMode !== "fixed") delete config.dayNightTime;
+        else if (!config.dayNightTime) config.dayNightTime = new Date().toISOString();
+        if (window.GlobeDayNight) GlobeDayNight.normalizeDayNightConfig(config);
+        syncGlobeDayNightUi();
+        applyGlobeDayNightIfNeeded();
+        saveSoon();
+      });
+    }
+
+    var dayNightDt = el("daynight-datetime-local");
+    if (dayNightDt && !dayNightDt.dataset.optionsWired) {
+      dayNightDt.dataset.optionsWired = "1";
+      dayNightDt.addEventListener("change", function () {
+        if (!config) return;
+        var iso = datetimeLocalToIso(dayNightDt.value);
+        if (iso) config.dayNightTime = iso;
+        else delete config.dayNightTime;
+        if (window.GlobeDayNight) GlobeDayNight.normalizeDayNightConfig(config);
+        applyGlobeDayNightIfNeeded();
+        saveSoon();
+      });
+    }
+
+    var dayNightOpacity = el("daynight-opacity");
+    if (dayNightOpacity && !dayNightOpacity.dataset.optionsWired) {
+      dayNightOpacity.dataset.optionsWired = "1";
+      dayNightOpacity.addEventListener("input", function () {
+        if (!config) return;
+        var v = parseInt(dayNightOpacity.value, 10);
+        if (isNaN(v)) v = 50;
+        config.dayNightOpacity = Math.max(20, Math.min(80, v)) / 100;
+        if (window.GlobeDayNight) GlobeDayNight.normalizeDayNightConfig(config);
+        syncGlobeDayNightUi();
+        applyGlobeDayNightIfNeeded();
         saveSoon();
       });
     }

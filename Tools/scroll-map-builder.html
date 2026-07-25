@@ -1441,7 +1441,7 @@
         <div class="step-list" id="step-list" role="group" aria-label="Locations"></div>
         <p class="coords" id="step-coords" style="margin: 0.35rem 0 0"></p>
         <p class="coords" id="step-camera-hint" style="margin: 0.15rem 0 0">
-          Tip: right-drag the map to tilt and rotate, then Set Map Location.
+          Tip: Ctrl+drag (or right-drag) the map to tilt and rotate, then Set Map Location.
         </p>
         <button type="button" class="btn" id="btn-clear-step-camera" hidden style="margin-top:0.35rem;padding:0.3rem 0.6rem;font-size:0.75rem">
           Clear camera angle
@@ -2208,9 +2208,42 @@
     }
     var zoom = map.getZoom();
     var targetPitch = Globe3dBuildings.buildingPitchForZoom(config, zoom, base);
-    if (Math.abs(map.getPitch() - targetPitch) > 0.5) {
+    var currentPitch = map.getPitch();
+    var autoPitch = stepPitch(zoom, s);
+    /* Don't snap pitch while the user is manually tilting the map in the builder. */
+    if (Math.abs(currentPitch - autoPitch) > 0.5 && Math.abs(currentPitch - targetPitch) > 0.5) {
+      return;
+    }
+    if (Math.abs(currentPitch - targetPitch) > 0.5) {
       map.easeTo({ pitch: targetPitch, duration: 400 });
     }
+  }
+
+  function wireBuilderMapCameraInteraction() {
+    if (!map || map.__builderCameraWired) return;
+    map.__builderCameraWired = true;
+    var container = map.getContainer();
+    var canvas = map.getCanvas();
+    function blockContextMenu(ev) {
+      ev.preventDefault();
+    }
+    if (container) container.addEventListener("contextmenu", blockContextMenu);
+    if (canvas) canvas.addEventListener("contextmenu", blockContextMenu);
+    function releaseStuckInteraction() {
+      if (!map) return;
+      if (globeSpinDesired && globeSpinUserInteracting) {
+        globeSpinUserInteracting = false;
+        clearGlobeSpinResumeTimer();
+      }
+      try {
+        if (map.dragPan && map.dragPan.enable) map.dragPan.enable();
+        if (map.dragRotate && map.dragRotate.enable) map.dragRotate.enable();
+        if (map.scrollZoom && map.scrollZoom.enable) map.scrollZoom.enable();
+      } catch (e) {}
+    }
+    window.addEventListener("mouseup", releaseStuckInteraction);
+    window.addEventListener("touchend", releaseStuckInteraction);
+    window.addEventListener("blur", releaseStuckInteraction);
   }
 
   /* Per-step globe spin (Mapbox-style longitude easeTo loop). */
@@ -2230,10 +2263,14 @@
     }
   }
 
-  function pauseGlobeSpinForInteraction() {
+  function pauseGlobeSpinForInteraction(ev) {
     if (!globeSpinDesired) return;
     globeSpinUserInteracting = true;
     clearGlobeSpinResumeTimer();
+    if (map && ev && ev.originalEvent && ev.originalEvent.button === 2) {
+      /* Right-drag for pitch/bearing — don't map.stop(); it can leave rotate stuck. */
+      return;
+    }
     if (map) {
       try {
         map.stop();
@@ -4535,7 +4572,10 @@
           scrollZoom: true,
           attributionControl: false,
           pitch: config.terrain ? 42 : 0,
-          dragRotate: true
+          dragRotate: true,
+          pitchWithRotate: true,
+          touchPitch: true,
+          touchZoomRotate: true
         });
         var creditsCtrl = new CreditsAttributionControl({
           getSourcesText: function () {
@@ -4563,6 +4603,7 @@
           applyGlobe3dBuildingsIfNeeded();
           initDrawControl();
           installMarkerPlacementClickCapture();
+          wireBuilderMapCameraInteraction();
           applyStepOverlays(selectedIndex);
           function afterLayout() {
             map.resize();

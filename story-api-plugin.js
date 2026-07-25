@@ -181,7 +181,8 @@ function rewriteCdnToLocal(html) {
       /src="https:\/\/cdn\.jsdelivr\.net\/npm\/maplibre-gl-nightlayer@[^"]*\/dist\/nightlayer\.min\.js"/,
       'src="assets/nightlayer.min.js"'
     )
-    .replace(/src="\/Tools\/globe-daynight\.js"/, 'src="assets/globe-daynight.js"');
+    .replace(/src="\/Tools\/globe-daynight\.js"/, 'src="assets/globe-daynight.js"')
+    .replace(/src="\/Tools\/globe-3d-buildings\.js"/, 'src="assets/globe-3d-buildings.js"');
 }
 
 function markStandaloneExport(html) {
@@ -354,6 +355,7 @@ function storyApiMiddleware(rootDir) {
           CDN_ASSETS.map((a) => getCachedAsset(cacheDir, a))
         );
         const globeDayNightJs = await fs.readFile(path.join(toolsDir, "globe-daynight.js"));
+        const globe3dBuildingsJs = await fs.readFile(path.join(toolsDir, "globe-3d-buildings.js"));
 
         const zipBuf = buildZip([
           { name: "index.html", data: Buffer.from(html, "utf8") },
@@ -362,6 +364,7 @@ function storyApiMiddleware(rootDir) {
           { name: "assets/maplibre-gl.css", data: assetBuffers[1] },
           { name: "assets/nightlayer.min.js", data: assetBuffers[2] },
           { name: "assets/globe-daynight.js", data: globeDayNightJs },
+          { name: "assets/globe-3d-buildings.js", data: globe3dBuildingsJs },
         ]);
 
         res.statusCode = 200;

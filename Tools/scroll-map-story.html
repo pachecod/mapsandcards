@@ -675,6 +675,7 @@
   <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.min.js" crossorigin=""></script>
   <script src="https://cdn.jsdelivr.net/npm/maplibre-gl-nightlayer@1.0.0-alpha.16/dist/nightlayer.min.js" crossorigin=""></script>
   <script src="/Tools/globe-daynight.js"></script>
+  <script src="/Tools/globe-3d-buildings.js"></script>
   <script>
 (function () {
   function syncMapViewportHeight() {
@@ -719,13 +720,33 @@
       url: "https://tiles.openfreemap.org/styles/bright"
     },
     {
+      id: "openfreemap-dark",
+      label: "OpenFreeMap — dark",
+      url: "https://tiles.openfreemap.org/styles/dark"
+    },
+    {
       id: "carto-voyager",
       label: "Carto — Voyager",
       url: "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json"
     },
     {
+      id: "carto-positron",
+      label: "Carto — Positron",
+      url: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
+    },
+    {
+      id: "carto-dark-matter",
+      label: "Carto — Dark Matter",
+      url: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
+    },
+    {
       id: "esri-satellite",
       label: "Satellite (Esri — free, attribution)",
+      url: null
+    },
+    {
+      id: "esri-topo",
+      label: "Topo (Esri — free, attribution)",
       url: null
     }
   ];
@@ -774,6 +795,33 @@
       });
     }
     return style;
+  }
+
+  function buildEsriTopoStyle() {
+    return {
+      version: 8,
+      glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
+      sources: {
+        esri_topo: {
+          type: "raster",
+          tiles: [
+            "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
+          ],
+          tileSize: 256,
+          attribution:
+            "Esri, HERE, Garmin, FAO, NOAA, USGS, EPA, NRCAN, GeoBase, IGN, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), OpenStreetMap contributors, and the GIS User Community"
+        }
+      },
+      layers: [
+        {
+          id: "esri_topo",
+          type: "raster",
+          source: "esri_topo",
+          minzoom: 0,
+          maxzoom: 22
+        }
+      ]
+    };
   }
 
   var config;
@@ -836,6 +884,9 @@
       return Promise.resolve(
         buildSatelliteEsriStyle(config.satelliteLabels !== false)
       );
+    }
+    if (baseMapId === "esri-topo") {
+      return Promise.resolve(buildEsriTopoStyle());
     }
     return pickMapStyleUrl(styleUrlsForConfig(baseMapId));
   }
@@ -931,6 +982,7 @@
       var cur = map.getProjection && map.getProjection();
       if (cur && cur.type === type) {
         applyGlobeDayNightIfNeeded();
+        applyGlobe3dBuildingsIfNeeded();
         return;
       }
       map.setProjection({ type: type });
@@ -938,6 +990,7 @@
       console.warn("Projection:", e);
     }
     applyGlobeDayNightIfNeeded();
+    applyGlobe3dBuildingsIfNeeded();
   }
 
   function applyGlobeDayNightIfNeeded() {
@@ -949,6 +1002,49 @@
   function applyGlobeDayNightAfterStyle() {
     if (window.GlobeDayNight && map && config) {
       GlobeDayNight.syncAfterStyleLoad(map, config);
+    }
+  }
+
+  function currentViewerStepFor3d() {
+    if (!config || !config.steps || !config.steps.length) return null;
+    var idx =
+      storyInteractionMode === "explore"
+        ? exploreActiveStepIndex
+        : lastFlownIndex >= 0
+          ? lastFlownIndex
+          : 0;
+    return config.steps[Math.min(Math.max(idx, 0), config.steps.length - 1)];
+  }
+
+  function applyGlobe3dBuildingsIfNeeded(baseMapId) {
+    if (window.Globe3dBuildings && map && config) {
+      var s = currentViewerStepFor3d();
+      var base = baseMapId || effectiveBaseForStep(s);
+      Globe3dBuildings.apply(map, config, base);
+    }
+  }
+
+  function applyGlobe3dBuildingsAfterStyle(baseMapId) {
+    if (window.Globe3dBuildings && map && config) {
+      var s = currentViewerStepFor3d();
+      var base = baseMapId || effectiveBaseForStep(s);
+      Globe3dBuildings.syncAfterStyleLoad(map, config, base);
+    }
+  }
+
+  function apply3dBuildingsZoomPitch() {
+    if (!map || !config || !window.Globe3dBuildings) return;
+    if (storyInteractionMode !== "explore") return;
+    var s = currentViewerStepFor3d();
+    if (!s) return;
+    var base = effectiveBaseForStep(s);
+    if (!Globe3dBuildings.wants3dBuildings(config, base) && !config.terrain && config.projection !== "globe") {
+      return;
+    }
+    var zoom = map.getZoom();
+    var targetPitch = Globe3dBuildings.buildingPitchForZoom(config, zoom, base);
+    if (Math.abs(map.getPitch() - targetPitch) > 0.5) {
+      map.easeTo({ pitch: targetPitch, duration: 400 });
     }
   }
 
@@ -1130,6 +1226,7 @@
       data.projection = "mercator";
     }
     if (window.GlobeDayNight) GlobeDayNight.normalizeDayNightConfig(data);
+    if (window.Globe3dBuildings) Globe3dBuildings.normalize3dBuildingsConfig(data);
     if (typeof data.satelliteLabels !== "boolean") {
       data.satelliteLabels = true;
     }
@@ -1528,6 +1625,13 @@
           }
         }
       } catch (e) {}
+      if (
+        window.Globe3dBuildings &&
+        Globe3dBuildings.isLayerActive(map) &&
+        attributions.indexOf(Globe3dBuildings.BUILDINGS_ATTRIBUTION) < 0
+      ) {
+        attributions.push(Globe3dBuildings.BUILDINGS_ATTRIBUTION);
+      }
       return dedupeAttributions(attributions);
     }
 
@@ -1682,11 +1786,13 @@
         map.on("error", function (e) {
           if (e && e.error) console.warn("Map error:", e.error);
         });
+        map.on("zoomend", apply3dBuildingsZoomPitch);
         map.on("load", function () {
           applyEnglishLabels(map);
           applyProjectionIfNeeded();
           applyTerrainIfNeeded();
           applyGlobeDayNightIfNeeded();
+          applyGlobe3dBuildingsIfNeeded();
           setTimeout(function () {
             syncMapViewportHeight();
             map.resize();
@@ -1751,7 +1857,7 @@
         from.lat + (s.lat - from.lat) * 0.5,
       ],
       zoom: Math.min(getFlyPullBackZoom(), map.getZoom(), destZoom),
-      pitch: stepPitch(),
+      pitch: stepPitch(destZoom, s),
     };
   }
 
@@ -1793,7 +1899,18 @@
     });
   }
 
-  function stepPitch() {
+  function stepPitch(stepZoom, stepOrBase) {
+    if (window.Globe3dBuildings && config) {
+      var base =
+        typeof stepOrBase === "string"
+          ? stepOrBase
+          : effectiveBaseForStep(stepOrBase || currentViewerStepFor3d());
+      return Globe3dBuildings.buildingPitchForZoom(
+        config,
+        typeof stepZoom === "number" ? stepZoom : 0,
+        base
+      );
+    }
     return config.terrain ? 42 : config.projection === "globe" ? 28 : 0;
   }
 
@@ -1842,7 +1959,7 @@
   function buildCameraMove(s, animate, durationOverride) {
     if (!map || !s) return null;
     var z = typeof s.zoom === "number" ? s.zoom : 6;
-    return buildCameraMoveTo(s.lng, s.lat, z, stepPitch(), animate, durationOverride);
+    return buildCameraMoveTo(s.lng, s.lat, z, stepPitch(z, s), animate, durationOverride);
   }
 
   function applyCameraMove(move) {
@@ -2043,6 +2160,7 @@
           applyProjectionIfNeeded();
           applyTerrainIfNeeded();
           applyGlobeDayNightAfterStyle();
+          applyGlobe3dBuildingsAfterStyle(effectiveBaseForStep(config.steps[i]));
           ensureOverlaySources();
           map.resize();
           map.jumpTo({
@@ -2078,9 +2196,10 @@
     switchBasemapAtCamera(
       i,
       gen,
-      { center: [s.lng, s.lat], zoom: z, pitch: stepPitch() },
+      { center: [s.lng, s.lat], zoom: z, pitch: stepPitch(z, s) },
       function () {
         applyStepOverlays(i);
+        applyGlobe3dBuildingsIfNeeded(effectiveBaseForStep(s));
         scheduleGlobeSpinAfterCameraMove(i, gen, false);
       }
     );
@@ -2109,6 +2228,7 @@
       waitForMoveEnd(gen, function () {
         nudgeGlobeRepaint();
         applyStepOverlays(i);
+        applyGlobe3dBuildingsIfNeeded(effectiveBaseForStep(s));
         scheduleGlobeSpinAfterCameraMove(i, gen, false);
       });
     }
@@ -2131,6 +2251,7 @@
       waitForMoveEnd(gen, function () {
         nudgeGlobeRepaint();
         applyStepOverlays(i);
+        applyGlobe3dBuildingsIfNeeded(effectiveBaseForStep(s));
         scheduleGlobeSpinAfterCameraMove(i, gen, false);
       });
     }
@@ -2175,6 +2296,7 @@
 
     applyCameraForStep(s, false);
     applyStepOverlays(i);
+    applyGlobe3dBuildingsIfNeeded(effectiveBaseForStep(s));
     scheduleGlobeSpinAfterCameraMove(i, gen, false);
   }
 
@@ -2579,6 +2701,7 @@
           applyProjectionIfNeeded();
           applyTerrainIfNeeded();
           applyGlobeDayNightAfterStyle();
+          applyGlobe3dBuildingsAfterStyle(viewerBaseMap);
           map.resize();
           if (storyInteractionMode === "scroll") {
             var stepIdx = getCurrentVisibleStepIndex();
@@ -2799,7 +2922,7 @@
     map.jumpTo({
       center: [s.lng, s.lat],
       zoom: z,
-      pitch: stepPitch(),
+      pitch: stepPitch(z, s),
       bearing: 0,
     });
     if (typeof map.triggerRepaint === "function") map.triggerRepaint();
@@ -2819,6 +2942,7 @@
             applyProjectionIfNeeded();
             applyTerrainIfNeeded();
             applyGlobeDayNightAfterStyle();
+            applyGlobe3dBuildingsAfterStyle(baseMapId);
             ensureOverlaySources();
             map.resize();
             resolve();

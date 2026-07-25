@@ -1,0 +1,54 @@
+openapi: 3.0.3
+info:
+  title: Maps and Cards Platform API
+  version: 1.0.0
+  description: Classroom admin API for mapsandcards.com (future webxride.com federated client)
+servers:
+  - url: /api/platform/v1
+paths:
+  /auth/admin/login:
+    post:
+      summary: Admin login (APP_PASSWORD)
+  /auth/admin/me:
+    get:
+      summary: Current admin session
+  /auth/student/login:
+    post:
+      summary: Student login (classId, studentId, password)
+  /auth/student/handoff:
+    post:
+      summary: Redeem one-time cross-host token
+  /classes:
+    get:
+      summary: Public class list for student login
+  /classes/{classId}/students:
+    get:
+      summary: Student names in class (login picker)
+  /admin/classes:
+    get:
+      summary: Admin class list
+    post:
+      summary: Create class
+  /admin/students:
+    get:
+      summary: List students
+    post:
+      summary: Create student
+  /admin/settings:
+    get:
+      summary: Site settings
+    put:
+      summary: Update site settings
+  /admin/submissions:
+    get:
+      summary: Story submission inbox
+  /admin/files/common:
+    get:
+      summary: List common assets
+    post:
+      summary: Upload common asset (JSON base64)
+  /files/student:
+    get:
+      summary: Student file list
+    post:
+      summary: Student upload

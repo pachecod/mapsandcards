@@ -4,6 +4,7 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import pg from "pg";
 import { seedDefaultTemplatesDb } from "../services/seed-defaults.js";
+import { seedLegalPagesIfEmpty } from "../services/seed-legal.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -26,6 +27,7 @@ async function migrate() {
     console.log("Migration complete.");
     const queryFn = (text, params) => pool.query(text, params);
     await seedDefaultTemplatesDb(queryFn);
+    await seedLegalPagesIfEmpty(queryFn);
   } catch (err) {
     console.error("Migration failed:", err.message);
     process.exit(1);

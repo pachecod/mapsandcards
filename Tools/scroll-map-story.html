@@ -62,6 +62,32 @@
       min-height: 100%;
       background: #111;
     }
+    .map-basemap-fade-overlay {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+      z-index: 2;
+      opacity: 1;
+    }
+    .map-wrap.is-basemap-crossfade #map {
+      opacity: 0;
+      transition: opacity 500ms ease;
+      will-change: opacity;
+    }
+    .map-wrap.is-basemap-crossfade .map-basemap-fade-overlay {
+      opacity: 1;
+      transition: opacity 500ms ease;
+      will-change: opacity;
+    }
+    .map-wrap.is-basemap-crossfade.is-basemap-crossfade-active #map {
+      opacity: 1;
+    }
+    .map-wrap.is-basemap-crossfade.is-basemap-crossfade-active .map-basemap-fade-overlay {
+      opacity: 0;
+    }
     .map-wrap .credits-attrib {
       background: hsla(0, 0%, 100%, 0.92);
       border-radius: 10px;
@@ -213,6 +239,9 @@
       align-items: center;
       justify-content: flex-end;
     }
+    .step-block--intro {
+      min-height: 120vh;
+    }
     .card {
       width: 100%;
       /* No backdrop-filter: it composites the map and makes translucent fills look solid white. */
@@ -269,6 +298,87 @@
     .map-error-banner[hidden] {
       display: none !important;
     }
+    .story-preload-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(15, 20, 25, 0.94);
+      color: #e8eaed;
+      font-family: inherit;
+    }
+    .story-preload-overlay[hidden] {
+      display: none !important;
+    }
+    .story-preload-panel {
+      width: min(92vw, 22rem);
+      padding: 1.35rem 1.25rem 1.25rem;
+      text-align: center;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(26, 35, 50, 0.96);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+    }
+    .story-preload-status {
+      margin: 0;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    .story-preload-detail {
+      margin: 0.45rem 0 0;
+      font-size: 0.78rem;
+      color: rgba(232, 234, 237, 0.72);
+    }
+    .story-preload-bar {
+      height: 6px;
+      margin: 1rem 0 0.45rem;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.12);
+    }
+    .story-preload-bar-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: inherit;
+      background: #3d8bfd;
+      transition: width 0.25s ease;
+    }
+    .story-preload-percent {
+      margin: 0;
+      font-size: 0.72rem;
+      color: rgba(232, 234, 237, 0.65);
+      font-variant-numeric: tabular-nums;
+    }
+    .story-preload-begin {
+      margin-top: 1rem;
+      padding: 0.65rem 1.15rem;
+      border-radius: 999px;
+      border: 0;
+      background: #3d8bfd;
+      color: #fff;
+      font: inherit;
+      font-size: 0.92rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .story-preload-begin:hover {
+      filter: brightness(1.06);
+    }
+    .story-preload-begin[hidden] {
+      display: none !important;
+    }
+    body.story-preload-active {
+      overflow: hidden;
+    }
+    body.story-preload-active .story-scroll {
+      visibility: hidden;
+      pointer-events: none;
+    }
+    body.story-preload-active .map-wrap {
+      visibility: hidden;
+    }
     /* Story vs Explore + Options panel (basemap, etc.; see JS). */
     .story-controls {
       position: fixed;
@@ -321,6 +431,47 @@
     }
     .story-options-panel[hidden] {
       display: none !important;
+    }
+    .explore-locations-panel .explore-locations-label {
+      display: block;
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: rgba(0, 0, 0, 0.48);
+      margin-bottom: 0.35rem;
+    }
+    .explore-locations-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      max-height: min(50vh, 16rem);
+      overflow-y: auto;
+    }
+    .explore-location-btn {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 0.45rem 0.55rem;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      font: inherit;
+      font-size: 0.8rem;
+      line-height: 1.35;
+      color: #111;
+      cursor: pointer;
+    }
+    .explore-location-btn:hover {
+      background: rgba(0, 0, 0, 0.06);
+    }
+    .explore-location-btn.active {
+      background: rgba(61, 139, 253, 0.15);
+      font-weight: 600;
+    }
+    .explore-location-btn:focus-visible {
+      outline: 2px solid #3d8bfd;
+      outline-offset: 1px;
     }
     .story-options-panel .story-option-group + .story-option-group {
       margin-top: 0.65rem;
@@ -377,6 +528,45 @@
       color: #111;
       font-weight: 600;
     }
+    .story-step-nav {
+      position: fixed;
+      top: 0.65rem;
+      right: 0.65rem;
+      z-index: 4;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 0.35rem;
+      pointer-events: auto;
+    }
+    .story-step-nav[hidden] {
+      display: none !important;
+    }
+    .story-step-nav-btn {
+      margin: 0;
+      padding: 0.35rem 0.65rem;
+      border: 0;
+      border-radius: 999px;
+      background: hsla(0, 0%, 100%, 0.88);
+      box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
+      font: inherit;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: #111;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .story-step-nav-btn:hover:not(:disabled) {
+      background: #fff;
+    }
+    .story-step-nav-btn:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+    .story-step-nav-btn:focus-visible {
+      outline: 2px solid #3d8bfd;
+      outline-offset: 2px;
+    }
     .map-wrap.map-wrap--explore {
       pointer-events: auto;
     }
@@ -394,6 +584,17 @@
   </style>
 </head>
 <body>
+  <div id="story-preload-overlay" class="story-preload-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="story-preload-status">
+    <div class="story-preload-panel">
+      <p class="story-preload-status" id="story-preload-status">Downloading…</p>
+      <p class="story-preload-detail" id="story-preload-detail">Preparing map assets</p>
+      <div class="story-preload-bar" aria-hidden="true">
+        <div class="story-preload-bar-fill" id="story-preload-bar-fill"></div>
+      </div>
+      <p class="story-preload-percent" id="story-preload-percent">0%</p>
+      <button type="button" class="story-preload-begin" id="story-preload-begin" hidden>Scroll to Begin</button>
+    </div>
+  </div>
   <div class="story-controls" id="story-controls">
     <div class="story-controls-bar">
       <div
@@ -411,12 +612,32 @@
       <button
         type="button"
         class="story-options-link"
+        id="explore-locations-toggle"
+        aria-expanded="false"
+        aria-controls="explore-locations-panel"
+        hidden
+      >
+        Locations
+      </button>
+      <button
+        type="button"
+        class="story-options-link"
         id="story-options-toggle"
         aria-expanded="false"
         aria-controls="story-options-panel"
       >
         Options
       </button>
+    </div>
+    <div
+      class="story-options-panel explore-locations-panel"
+      id="explore-locations-panel"
+      role="region"
+      aria-label="Story locations"
+      hidden
+    >
+      <span class="explore-locations-label">Go to location</span>
+      <div class="explore-locations-list" id="explore-locations-list" role="list"></div>
     </div>
     <div
       class="story-options-panel"
@@ -430,6 +651,10 @@
         <select id="explore-basemap-select" aria-label="Basemap"></select>
       </div>
     </div>
+  </div>
+  <div class="story-step-nav" id="story-step-nav" hidden role="group" aria-label="Story navigation">
+    <button type="button" class="story-step-nav-btn" id="story-prev-step" disabled aria-label="Previous card">&larr; Prev</button>
+    <button type="button" class="story-step-nav-btn" id="story-next-step" aria-label="Next card">Next &rarr;</button>
   </div>
   <div class="shell" id="shell">
     <div id="map-error" class="map-error-banner" hidden role="alert">
@@ -556,6 +781,8 @@
   var storyInteractionMode = "scroll";
   var storyModeToggleWired = false;
   var exploreBasemapWired = false;
+  var exploreLocationsWired = false;
+  var exploreActiveStepIndex = 0;
   var storyOptionsWired = false;
   var navigationControl = null;
   var navControlOnMap = false;
@@ -826,6 +1053,46 @@
     else stopGlobeSpin();
   }
 
+  var DEFAULT_FLY_DURATION_SECONDS = 3;
+  var DEFAULT_FLY_PULLBACK_ZOOM = 3;
+
+  function normalizeFlyDurationSeconds(v) {
+    if (typeof v === "number" && !isNaN(v)) {
+      return Math.max(1, Math.min(30, Math.round(v)));
+    }
+    return DEFAULT_FLY_DURATION_SECONDS;
+  }
+
+  function normalizeFlyPullBackZoom(v) {
+    if (typeof v === "number" && !isNaN(v)) {
+      return Math.max(1, Math.min(8, Math.round(v * 2) / 2));
+    }
+    return DEFAULT_FLY_PULLBACK_ZOOM;
+  }
+
+  function isIntroStep(step) {
+    return !!(step && step.type === "intro");
+  }
+
+  function pinIntroStepFirst(data) {
+    if (!data.steps || !data.steps.length) return;
+    var introIdx = -1;
+    for (var i = 0; i < data.steps.length; i++) {
+      if (data.steps[i] && data.steps[i].type === "intro") {
+        if (introIdx >= 0) delete data.steps[i].type;
+        else introIdx = i;
+      }
+    }
+    if (introIdx < 0) return;
+    if (introIdx > 0) {
+      var intro = data.steps.splice(introIdx, 1)[0];
+      data.steps.unshift(intro);
+    }
+    var introStep = data.steps[0];
+    introStep.type = "intro";
+    if (!introStep.id) introStep.id = "intro";
+  }
+
   function normalizeConfig(data) {
     if (!data.steps || !Array.isArray(data.steps)) {
       throw new Error("Invalid JSON: need steps array");
@@ -849,11 +1116,29 @@
     }
     if (data.restartAtEnd === true) data.restartAtEnd = true;
     else delete data.restartAtEnd;
+    if (data.stepNavButtons === false) data.stepNavButtons = false;
+    else delete data.stepNavButtons;
+    if (data.flySpeed === "slow") data.flyDurationSeconds = 8;
+    else if (data.flySpeed === "fast") data.flyDurationSeconds = 3;
+    delete data.flySpeed;
+    if (typeof data.flyDurationSeconds === "number" && !isNaN(data.flyDurationSeconds)) {
+      data.flyDurationSeconds = normalizeFlyDurationSeconds(data.flyDurationSeconds);
+      if (data.flyDurationSeconds === DEFAULT_FLY_DURATION_SECONDS) delete data.flyDurationSeconds;
+    } else {
+      delete data.flyDurationSeconds;
+    }
+    if (typeof data.flyPullBackZoom === "number" && !isNaN(data.flyPullBackZoom)) {
+      data.flyPullBackZoom = normalizeFlyPullBackZoom(data.flyPullBackZoom);
+      if (data.flyPullBackZoom === DEFAULT_FLY_PULLBACK_ZOOM) delete data.flyPullBackZoom;
+    } else {
+      delete data.flyPullBackZoom;
+    }
     if (typeof data.sources !== "string") {
       data.sources = "";
     }
     data.cardBackgroundOpacity = normalizeCardBackgroundOpacity(data.cardBackgroundOpacity);
     data.cardBackgroundColor = normalizeCardBackgroundColor(data.cardBackgroundColor);
+    pinIntroStepFirst(data);
     if (data.steps[0]) {
       var s0 = data.steps[0];
       data.initialMap = {
@@ -872,8 +1157,16 @@
 
   function normalizeStepOverlays(step) {
     if (!step || typeof step !== "object") return;
+    if (step.type === "intro") {
+      step.type = "intro";
+      delete step.spin;
+      delete step.flyTransition;
+      delete step.baseMap;
+    }
     if (step.spin === true) step.spin = true;
     else delete step.spin;
+    if (step.flyTransition === "smooth") step.flyTransition = "smooth";
+    else delete step.flyTransition;
     if (!step.overlays || typeof step.overlays !== "object") {
       step.overlays = { geojson: { type: "FeatureCollection", features: [] } };
       return;
@@ -1409,78 +1702,642 @@
 
   var _flyGen = 0;
 
-  function applyCameraForStep(s, animate) {
-    if (!map || !s) return;
-    var z = typeof s.zoom === "number" ? s.zoom : 6;
-    var pitch = config.terrain ? 42 : 0;
+  function haversineKm(lng1, lat1, lng2, lat2) {
+    var R = 6371;
+    var dLat = ((lat2 - lat1) * Math.PI) / 180;
+    var dLng = ((lng2 - lng1) * Math.PI) / 180;
+    var a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  function flyDurationMs() {
+    return normalizeFlyDurationSeconds(config && config.flyDurationSeconds) * 1000;
+  }
+
+  function getFlyPullBackZoom() {
+    return normalizeFlyPullBackZoom(config && config.flyPullBackZoom);
+  }
+
+  function peakCameraForStep(s) {
+    var from = map.getCenter();
+    var destZoom = typeof s.zoom === "number" ? s.zoom : 6;
+    return {
+      center: [
+        from.lng + (s.lng - from.lng) * 0.5,
+        from.lat + (s.lat - from.lat) * 0.5,
+      ],
+      zoom: Math.min(getFlyPullBackZoom(), map.getZoom(), destZoom),
+      pitch: stepPitch(),
+    };
+  }
+
+  function buildDirectFlyMove(lng, lat, zoom, pitch, duration) {
+    return {
+      type: "fly",
+      options: {
+        center: [lng, lat],
+        zoom: zoom,
+        pitch: pitch,
+        duration: duration,
+        curve: 1.42,
+        essential: true,
+      },
+    };
+  }
+
+  function scheduleGlobeSpinAfterCameraMove(stepIndex, gen, animate) {
+    if (!map) return;
     if (animate === false) {
-      map.jumpTo({ center: [s.lng, s.lat], zoom: z, pitch: pitch });
-    } else {
-      map.flyTo({ center: [s.lng, s.lat], zoom: z, duration: 1200, pitch: pitch });
+      if (gen === _flyGen) syncGlobeSpinForStep(stepIndex);
+      return;
     }
+    map.once("moveend", function () {
+      if (gen !== _flyGen) return;
+      syncGlobeSpinForStep(stepIndex);
+    });
+  }
+
+  function waitForMoveEnd(gen, cb) {
+    if (!map) return;
+    map.once("moveend", function wait() {
+      if (gen !== _flyGen) return;
+      if (typeof map.isMoving === "function" && map.isMoving()) {
+        map.once("moveend", wait);
+        return;
+      }
+      cb();
+    });
+  }
+
+  function stepPitch() {
+    return config.terrain ? 42 : config.projection === "globe" ? 28 : 0;
+  }
+
+  function effectiveBaseForStep(s) {
+    return s.baseMap || viewerBaseMap;
+  }
+
+  function buildCameraMoveTo(lng, lat, zoom, pitch, animate, durationOverride) {
+    if (!map) return null;
+    var target = { center: [lng, lat], zoom: zoom, pitch: pitch, bearing: 0 };
+
+    if (animate === false) {
+      return { type: "jump", options: target };
+    }
+
+    var from = map.getCenter();
+    var fromZoom = map.getZoom();
+    var distKm = haversineKm(from.lng, from.lat, lng, lat);
+    var duration = durationOverride != null ? durationOverride : flyDurationMs();
+    var maxZoom;
+    if (distKm < 8) {
+      maxZoom = Math.max(fromZoom, zoom) + 0.45;
+    } else if (distKm < 120) {
+      maxZoom = Math.max(4.5, Math.min(fromZoom, zoom) + 0.8);
+    } else {
+      maxZoom = Math.max(
+        3.2,
+        Math.min(fromZoom, zoom) - Math.min(4.2, distKm / 220)
+      );
+    }
+
+    return {
+      type: "fly",
+      options: {
+        center: target.center,
+        zoom: zoom,
+        pitch: pitch,
+        duration: duration,
+        curve: 1.9,
+        maxZoom: maxZoom,
+        essential: true,
+      },
+    };
+  }
+
+  function buildCameraMove(s, animate, durationOverride) {
+    if (!map || !s) return null;
+    var z = typeof s.zoom === "number" ? s.zoom : 6;
+    return buildCameraMoveTo(s.lng, s.lat, z, stepPitch(), animate, durationOverride);
+  }
+
+  function applyCameraMove(move) {
+    if (!map || !move) return;
+    if (move.type === "jump") {
+      map.jumpTo(move.options);
+      nudgeGlobeRepaint();
+    } else {
+      if (map.getBearing() !== 0) map.jumpTo({ bearing: 0 });
+      map.flyTo(move.options);
+    }
+  }
+
+  function applyCameraForStep(s, animate, durationOverride) {
+    applyCameraMove(buildCameraMove(s, animate, durationOverride));
+  }
+
+  var BASEMAP_FADE_MS = 500;
+  var _basemapFadeOverlay = null;
+
+  function clearBasemapFadeOverlay() {
+    if (_basemapFadeOverlay && _basemapFadeOverlay.parentNode) {
+      _basemapFadeOverlay.parentNode.removeChild(_basemapFadeOverlay);
+    }
+    _basemapFadeOverlay = null;
+  }
+
+  function isGlobeProjectionActive() {
+    if (!map || !config || config.projection !== "globe") return false;
+    try {
+      var cur = map.getProjection && map.getProjection();
+      return !!(cur && cur.type === "globe");
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function nudgeGlobeRepaint() {
+    if (!map || !isGlobeProjectionActive()) return;
+    if (typeof map.triggerRepaint === "function") map.triggerRepaint();
+    map.once("idle", function () {
+      if (typeof map.triggerRepaint === "function") map.triggerRepaint();
+    });
+  }
+
+  function resetGlobeProjection() {
+    if (!map || !config || config.projection !== "globe") return Promise.resolve();
+    try {
+      map.setProjection({ type: "mercator" });
+      map.setProjection({ type: "globe" });
+    } catch (e) {}
+    return waitForMapIdle(12000);
+  }
+
+  function shouldUsePullbackForGlobeFly(s) {
+    if (!map || !isGlobeProjectionActive() || !s) return false;
+    var c = map.getCenter();
+    return haversineKm(c.lng, c.lat, s.lng, s.lat) > 350;
+  }
+
+  function captureBasemapFadeOverlay() {
+    clearBasemapFadeOverlay();
+    if (isGlobeProjectionActive()) return null;
+    if (!map) return null;
+    var wrap = el("map-wrap");
+    if (!wrap) return null;
+    var canvas = map.getCanvas && map.getCanvas();
+    if (!canvas || !canvas.toDataURL) return null;
+    try {
+      var img = document.createElement("img");
+      img.className = "map-basemap-fade-overlay";
+      img.src = canvas.toDataURL("image/png");
+      img.alt = "";
+      img.setAttribute("aria-hidden", "true");
+      wrap.appendChild(img);
+      _basemapFadeOverlay = img;
+      return img;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function crossfadeBasemapReveal(cb) {
+    var overlay = _basemapFadeOverlay;
+    _basemapFadeOverlay = null;
+    var wrap = el("map-wrap");
+    var mapEl = el("map");
+    if (!overlay || !wrap || !mapEl) {
+      clearBasemapFadeOverlay();
+      if (wrap) wrap.classList.remove("is-basemap-crossfade", "is-basemap-crossfade-active");
+      if (cb) cb();
+      return;
+    }
+    var done = false;
+    function finish() {
+      if (done) return;
+      done = true;
+      wrap.classList.remove("is-basemap-crossfade", "is-basemap-crossfade-active");
+      if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+      mapEl.style.opacity = "";
+      if (cb) cb();
+    }
+    overlay.addEventListener(
+      "transitionend",
+      function (e) {
+        if (e.propertyName === "opacity") finish();
+      },
+      { once: true }
+    );
+    window.setTimeout(finish, BASEMAP_FADE_MS + 100);
+    wrap.classList.add("is-basemap-crossfade");
+    void wrap.offsetWidth;
+    requestAnimationFrame(function () {
+      wrap.classList.add("is-basemap-crossfade-active");
+    });
+  }
+
+  function waitForBasemapReadyThenFade(gen, onReady) {
+    function abortFade() {
+      clearBasemapFadeOverlay();
+      var wrap = el("map-wrap");
+      if (wrap) wrap.classList.remove("is-basemap-crossfade", "is-basemap-crossfade-active");
+      var mapEl = el("map");
+      if (mapEl) mapEl.style.opacity = "";
+    }
+    function startFade() {
+      if (gen !== _flyGen) {
+        abortFade();
+        return;
+      }
+      crossfadeBasemapReveal(onReady);
+    }
+    function afterGlobePaint() {
+      requestAnimationFrame(function () {
+        requestAnimationFrame(startFade);
+      });
+    }
+    function waitForGlobeReady(attemptsLeft) {
+      if (gen !== _flyGen) {
+        abortFade();
+        return;
+      }
+      if (!isGlobeProjectionActive()) applyProjectionIfNeeded();
+      map.once("idle", function () {
+        if (gen !== _flyGen) {
+          abortFade();
+          return;
+        }
+        if (!isGlobeProjectionActive() && attemptsLeft > 0) {
+          waitForGlobeReady(attemptsLeft - 1);
+          return;
+        }
+        afterGlobePaint();
+      });
+      if (typeof map.triggerRepaint === "function") map.triggerRepaint();
+    }
+
+    if (config.projection === "globe") {
+      waitForGlobeReady(3);
+    } else {
+      map.once("idle", function () {
+        if (gen !== _flyGen) {
+          abortFade();
+          return;
+        }
+        startFade();
+      });
+    }
+  }
+
+  function switchBasemapAtCamera(i, gen, camera, onReady) {
+    var s = config.steps[i];
+    if (!s || !map || gen !== _flyGen) return;
+    var effectiveBase = effectiveBaseForStep(s);
+    if (effectiveBase === currentLoadedBaseMap) {
+      if (onReady) onReady();
+      return;
+    }
+    currentLoadedBaseMap = effectiveBase;
+    captureBasemapFadeOverlay();
+
+    getBaseMapStylePromise(effectiveBase)
+      .then(function (style) {
+        if (gen !== _flyGen) {
+          clearBasemapFadeOverlay();
+          return;
+        }
+        map.once("style.load", function () {
+          if (gen !== _flyGen) return;
+          applyProjectionIfNeeded();
+        });
+        map.once("idle", function () {
+          if (gen !== _flyGen) {
+            clearBasemapFadeOverlay();
+            return;
+          }
+          applyEnglishLabels(map);
+          applyProjectionIfNeeded();
+          applyTerrainIfNeeded();
+          ensureOverlaySources();
+          map.resize();
+          map.jumpTo({
+            center: camera.center,
+            zoom: camera.zoom,
+            pitch: camera.pitch,
+            bearing: 0,
+          });
+          function afterBasemapReady() {
+            if (isGlobeProjectionActive()) {
+              resetGlobeProjection().then(function () {
+                nudgeGlobeRepaint();
+                if (onReady) onReady();
+              });
+              return;
+            }
+            waitForBasemapReadyThenFade(gen, onReady);
+          }
+          afterBasemapReady();
+        });
+        map.setStyle(style);
+      })
+      .catch(function (err) {
+        clearBasemapFadeOverlay();
+        console.warn("Step basemap switch failed:", err);
+      });
+  }
+
+  function switchBasemapForStep(i, gen) {
+    var s = config.steps[i];
+    if (!s) return;
+    var z = typeof s.zoom === "number" ? s.zoom : 6;
+    switchBasemapAtCamera(
+      i,
+      gen,
+      { center: [s.lng, s.lat], zoom: z, pitch: stepPitch() },
+      function () {
+        applyStepOverlays(i);
+        scheduleGlobeSpinAfterCameraMove(i, gen, false);
+      }
+    );
+  }
+
+  function stepUsesSmoothFly(s) {
+    return !!(s && s.flyTransition === "smooth");
+  }
+
+  function currentMapCamera() {
+    if (!map) return { center: [0, 0], zoom: 2, pitch: 0 };
+    var c = map.getCenter();
+    return {
+      center: [c.lng, c.lat],
+      zoom: map.getZoom(),
+      pitch: map.getPitch(),
+    };
+  }
+
+  function flySmoothToStep(i, gen, s, needSwitch) {
+    if (map.getBearing() !== 0) map.jumpTo({ bearing: 0 });
+
+    function flyInbound() {
+      if (gen !== _flyGen) return;
+      applyCameraMove(buildCameraMove(s, true));
+      waitForMoveEnd(gen, function () {
+        nudgeGlobeRepaint();
+        applyStepOverlays(i);
+        scheduleGlobeSpinAfterCameraMove(i, gen, false);
+      });
+    }
+
+    if (needSwitch) {
+      switchBasemapAtCamera(i, gen, currentMapCamera(), flyInbound);
+    } else {
+      flyInbound();
+    }
+  }
+
+  function flyViaPullbackPeak(i, gen, s, switchBasemapAtPeak) {
+    if (map.getBearing() !== 0) map.jumpTo({ bearing: 0 });
+    var halfDuration = Math.max(600, Math.round(flyDurationMs() / 2));
+    var peak = peakCameraForStep(s);
+
+    function flyInbound() {
+      if (gen !== _flyGen) return;
+      applyCameraMove(buildCameraMove(s, true, halfDuration));
+      waitForMoveEnd(gen, function () {
+        nudgeGlobeRepaint();
+        applyStepOverlays(i);
+        scheduleGlobeSpinAfterCameraMove(i, gen, false);
+      });
+    }
+
+    function continueFromPeak() {
+      if (switchBasemapAtPeak) {
+        switchBasemapAtCamera(i, gen, peak, flyInbound);
+      } else {
+        flyInbound();
+      }
+    }
+
+    applyCameraMove(
+      buildDirectFlyMove(peak.center[0], peak.center[1], peak.zoom, peak.pitch, halfDuration)
+    );
+    waitForMoveEnd(gen, continueFromPeak);
   }
 
   function flyToStep(i, animate) {
     var s = config.steps[i];
     if (!s || !map) return;
+    var gen = ++_flyGen;
     stopGlobeSpin();
     lastFlownIndex = i;
 
-    var stepBase = s.baseMap || null;
-    var effectiveBase = stepBase || viewerBaseMap;
+    var effectiveBase = effectiveBaseForStep(s);
     var needSwitch = effectiveBase !== currentLoadedBaseMap;
 
-    if (needSwitch) {
-      var gen = ++_flyGen;
-      currentLoadedBaseMap = effectiveBase;
-      getBaseMapStylePromise(effectiveBase)
-        .then(function (style) {
-          if (gen !== _flyGen) return;
-          map.once("idle", function () {
-            if (gen !== _flyGen) return;
-            applyEnglishLabels(map);
-            applyProjectionIfNeeded();
-            applyTerrainIfNeeded();
-            ensureOverlaySources();
-            applyStepOverlays(lastFlownIndex);
-            map.resize();
-            /* setStyle resets the camera — restore this step's center/zoom. */
-            var step = config.steps[lastFlownIndex];
-            if (step) applyCameraForStep(step, false);
-            syncGlobeSpinForStep(lastFlownIndex);
-          });
-          map.setStyle(style);
-        })
-        .catch(function (err) {
-          console.warn("Step basemap switch failed:", err);
-        });
-      applyStepOverlays(i);
+    if (animate !== false) {
+      if (stepUsesSmoothFly(s) && !shouldUsePullbackForGlobeFly(s)) {
+        flySmoothToStep(i, gen, s, needSwitch);
+      } else {
+        flyViaPullbackPeak(i, gen, s, needSwitch);
+      }
       return;
     }
 
-    applyCameraForStep(s, animate);
+    if (needSwitch) {
+      switchBasemapForStep(i, gen);
+      return;
+    }
+
+    applyCameraForStep(s, false);
     applyStepOverlays(i);
-    syncGlobeSpinForStep(i);
+    scheduleGlobeSpinAfterCameraMove(i, gen, false);
+  }
+
+  function stepIndexFromBlock(node) {
+    if (!node || !node.dataset) return -1;
+    if (node.classList && node.classList.contains("step-block--restart")) return -1;
+    var raw = node.dataset.stepIndex;
+    if (raw == null || raw === "") return -1;
+    var n = parseInt(raw, 10);
+    return isNaN(n) ? -1 : n;
+  }
+
+  function pickActiveStepFromObserverEntries(entries) {
+    var bestIdx = -1;
+    var bestRatio = 0;
+    for (var i = 0; i < entries.length; i++) {
+      var e = entries[i];
+      if (!e.isIntersecting) continue;
+      var idx = stepIndexFromBlock(e.target);
+      if (idx < 0) continue;
+      if (e.intersectionRatio > bestRatio) {
+        bestRatio = e.intersectionRatio;
+        bestIdx = idx;
+      }
+    }
+    return bestIdx;
   }
 
   function getCurrentVisibleStepIndex() {
-    var panels = document.querySelectorAll("#story-panel .step-block");
+    var panels = document.querySelectorAll("#story-panel .step-block[data-step-index]");
     if (!panels.length) return 0;
     var best = 0;
     var bestScore = -Infinity;
     var vpH = window.innerHeight;
     var targetY = vpH * 0.42;
     for (var i = 0; i < panels.length; i++) {
+      var idx = stepIndexFromBlock(panels[i]);
+      if (idx < 0) continue;
       var r = panels[i].getBoundingClientRect();
       if (r.bottom < 0 || r.top > vpH) continue;
       var center = (r.top + r.bottom) / 2;
       var score = -Math.abs(center - targetY);
       if (score > bestScore) {
         bestScore = score;
-        best = i;
+        best = idx;
       }
     }
     return best;
+  }
+
+  function maybeFlyToActiveScrollStep(idx) {
+    if (_stepNavInProgress) return;
+    if (storyInteractionMode !== "scroll") return;
+    if (idx < 0 || !config || !config.steps || idx >= config.steps.length) return;
+    if (idx !== lastFlownIndex) flyToStep(idx, true);
+    syncStoryStepNavButtons(idx);
+  }
+
+  var _stepNavInProgress = false;
+  var _stepNavBusy = false;
+
+  function usesStepNavButtons() {
+    return !config || config.stepNavButtons !== false;
+  }
+
+  function getActiveStoryStepIndex() {
+    if (lastFlownIndex >= 0 && config && config.steps && lastFlownIndex < config.steps.length) {
+      return lastFlownIndex;
+    }
+    return getCurrentVisibleStepIndex();
+  }
+
+  function updateStoryStepNavVisibility() {
+    var nav = el("story-step-nav");
+    if (!nav) return;
+    var show =
+      usesStepNavButtons() &&
+      storyInteractionMode === "scroll" &&
+      config &&
+      config.steps &&
+      config.steps.length > 1;
+    nav.hidden = !show;
+    if (show) syncStoryStepNavButtons();
+  }
+
+  function syncStoryStepNavButtons(stepIndex) {
+    var prevBtn = el("story-prev-step");
+    var nextBtn = el("story-next-step");
+    if (!prevBtn || !nextBtn || !config || !config.steps) return;
+    var idx =
+      typeof stepIndex === "number" && stepIndex >= 0
+        ? stepIndex
+        : getActiveStoryStepIndex();
+    var last = config.steps.length - 1;
+    prevBtn.disabled = _stepNavBusy || idx <= 0;
+    nextBtn.disabled = _stepNavBusy || idx >= last;
+  }
+
+  function finishStoryStepNav(stepIndex) {
+    _stepNavInProgress = false;
+    _stepNavBusy = false;
+    syncStoryStepNavButtons(stepIndex);
+  }
+
+  function goToStoryStep(i) {
+    if (_stepNavBusy) return;
+    if (!config || !config.steps || i < 0 || i >= config.steps.length) return;
+    var fromIndex = getActiveStoryStepIndex();
+    if (i === fromIndex && i === lastFlownIndex) return;
+
+    _stepNavInProgress = true;
+    _stepNavBusy = true;
+    syncStoryStepNavButtons(i);
+
+    var panel = el("story-panel");
+    var block =
+      panel &&
+      panel.querySelector('.step-block[data-step-index="' + i + '"]');
+    if (block) {
+      try {
+        block.scrollIntoView({ behavior: "instant", block: "center" });
+      } catch (e1) {
+        try {
+          block.scrollIntoView({ block: "center" });
+        } catch (e2) {
+          block.scrollIntoView(true);
+        }
+      }
+    }
+
+    flyToStep(i, true);
+    var gen = _flyGen;
+    var fromStep = config.steps[fromIndex];
+    var toStep = config.steps[i];
+    var longGlobeHop =
+      !!fromStep &&
+      !!toStep &&
+      isGlobeProjectionActive() &&
+      haversineKm(fromStep.lng, fromStep.lat, toStep.lng, toStep.lat) > 350;
+
+    waitForMoveEnd(gen, function () {
+      if (gen !== _flyGen) return;
+      nudgeGlobeRepaint();
+      var settled = false;
+      function done() {
+        if (settled) return;
+        settled = true;
+        finishStoryStepNav(i);
+      }
+      if (longGlobeHop) {
+        resetGlobeProjection().then(done);
+        window.setTimeout(done, 15000);
+        return;
+      }
+      if (!map) {
+        done();
+        return;
+      }
+      map.once("idle", done);
+      window.setTimeout(done, 1500);
+    });
+  }
+
+  function wireStoryStepNavButtons() {
+    var prevBtn = el("story-prev-step");
+    var nextBtn = el("story-next-step");
+    if (!prevBtn || !nextBtn || prevBtn.dataset.stepNavWired) return;
+    prevBtn.dataset.stepNavWired = "1";
+    nextBtn.dataset.stepNavWired = "1";
+    prevBtn.addEventListener("click", function () {
+      if (_stepNavBusy) return;
+      goToStoryStep(getActiveStoryStepIndex() - 1);
+    });
+    nextBtn.addEventListener("click", function () {
+      if (_stepNavBusy) return;
+      goToStoryStep(getActiveStoryStepIndex() + 1);
+    });
+  }
+
+  function onStoryIntersection(entries) {
+    var idx = pickActiveStepFromObserverEntries(entries);
+    if (idx < 0) idx = getCurrentVisibleStepIndex();
+    maybeFlyToActiveScrollStep(idx);
   }
 
   function mapHandler(name, method) {
@@ -1499,6 +2356,7 @@
     btnExplore.classList.toggle("active", !scroll);
     btnScroll.setAttribute("aria-pressed", scroll ? "true" : "false");
     btnExplore.setAttribute("aria-pressed", scroll ? "false" : "true");
+    updateStoryStepNavVisibility();
   }
 
   function syncNavigationControlVisibility() {
@@ -1535,6 +2393,7 @@
     if (mode === "explore") {
       stopGlobeSpin();
       if (storyObserver) storyObserver.disconnect();
+      exploreActiveStepIndex = lastFlownIndex >= 0 ? lastFlownIndex : 0;
       mapHandler("scrollZoom", "enable");
       mapHandler("dragPan", "enable");
       mapHandler("touchZoomRotate", "enable");
@@ -1565,14 +2424,89 @@
     if (map) map.resize();
   }
 
-  function updateExploreBasemapVisibility() {
+  function getStepDisplayLabel(step, index) {
+    if (isIntroStep(step)) return "Intro";
+    if (!step) return "Location " + (index + 1);
+    var html = step.html || "";
+    if (html) {
+      var tmp = document.createElement("div");
+      tmp.innerHTML = html;
+      var heading = tmp.querySelector("h1,h2,h3,h4");
+      if (heading && heading.textContent.trim()) return heading.textContent.trim();
+      var para = tmp.querySelector("p");
+      if (para && para.textContent.trim()) {
+        var text = para.textContent.trim().replace(/\s+/g, " ");
+        return text.length > 52 ? text.slice(0, 49) + "…" : text;
+      }
+    }
+    if (step.id) return step.id;
+    var locNum = 0;
+    if (config && config.steps) {
+      for (var j = 0; j <= index; j++) {
+        if (!isIntroStep(config.steps[j])) locNum++;
+      }
+    }
+    return "Location " + (locNum || 1);
+  }
+
+  function renderExploreLocationsList() {
+    var list = el("explore-locations-list");
+    if (!list || !config || !config.steps) return;
+    list.innerHTML = "";
+    config.steps.forEach(function (step, i) {
+      if (isIntroStep(step)) return;
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "explore-location-btn";
+      btn.setAttribute("role", "listitem");
+      btn.textContent = getStepDisplayLabel(step, i);
+      btn.title = "Fly to " + getStepDisplayLabel(step, i);
+      if (i === exploreActiveStepIndex) btn.classList.add("active");
+      btn.addEventListener("click", function () {
+        exploreGoToStep(i);
+      });
+      list.appendChild(btn);
+    });
+  }
+
+  function exploreGoToStep(i) {
+    if (!config || !config.steps || i < 0 || i >= config.steps.length) return;
+    exploreActiveStepIndex = i;
+    renderExploreLocationsList();
+    flyToStep(i, true);
+  }
+
+  function setExploreLocationsOpen(open) {
+    var panel = el("explore-locations-panel");
+    var btn = el("explore-locations-toggle");
+    if (panel) panel.hidden = !open;
+    if (btn) btn.setAttribute("aria-expanded", open ? "true" : "false");
+    if (open) {
+      setStoryOptionsOpen(false);
+      renderExploreLocationsList();
+    }
+  }
+
+  function updateExploreControlsVisibility() {
     var sel = el("explore-basemap-select");
     if (sel) sel.value = viewerBaseMap;
+    var inExplore = storyInteractionMode === "explore";
     var optBtn = el("story-options-toggle");
     var optPanel = el("story-options-panel");
-    var inExplore = storyInteractionMode === "explore";
+    var locBtn = el("explore-locations-toggle");
+    var locPanel = el("explore-locations-panel");
     if (optBtn) optBtn.style.display = inExplore ? "" : "none";
+    if (locBtn) {
+      locBtn.hidden = !inExplore;
+      locBtn.style.display = inExplore ? "" : "none";
+    }
     if (optPanel && !inExplore) optPanel.hidden = true;
+    if (locPanel && !inExplore) locPanel.hidden = true;
+    if (inExplore) renderExploreLocationsList();
+  }
+
+  function updateExploreBasemapVisibility() {
+    updateExploreControlsVisibility();
   }
 
   function setStoryOptionsOpen(open) {
@@ -1580,6 +2514,18 @@
     var btn = el("story-options-toggle");
     if (panel) panel.hidden = !open;
     if (btn) btn.setAttribute("aria-expanded", open ? "true" : "false");
+    if (open) setExploreLocationsOpen(false);
+  }
+
+  function wireExploreLocations() {
+    if (exploreLocationsWired) return;
+    var btn = el("explore-locations-toggle");
+    var panel = el("explore-locations-panel");
+    if (!btn || !panel) return;
+    exploreLocationsWired = true;
+    btn.addEventListener("click", function () {
+      setExploreLocationsOpen(panel.hidden);
+    });
   }
 
   function wireStoryOptions() {
@@ -1656,26 +2602,14 @@
     if (!panel) return;
     if (storyObserver) storyObserver.disconnect();
     storyObserver = new IntersectionObserver(
-      function (entries) {
-        var crossing = entries
-          .filter(function (e) {
-            return e.isIntersecting;
-          })
-          .sort(function (a, b) {
-            return b.intersectionRatio - a.intersectionRatio;
-          });
-        if (!crossing.length) return;
-        var idx = Number(crossing[0].target.dataset.stepIndex);
-        if (!isFinite(idx)) return;
-        if (idx !== lastFlownIndex) flyToStep(idx, true);
-      },
+      onStoryIntersection,
       {
         root: null,
         rootMargin: "-42% 0px -42% 0px",
         threshold: [0, 0.1, 0.25, 0.5, 0.75, 1]
       }
     );
-    Array.prototype.forEach.call(panel.querySelectorAll(".step-block"), function (node) {
+    Array.prototype.forEach.call(panel.querySelectorAll(".step-block[data-step-index]"), function (node) {
       storyObserver.observe(node);
     });
   }
@@ -1693,6 +2627,7 @@
       setStoryInteractionMode("explore");
     });
     wireExploreBasemap();
+    wireExploreLocations();
     wireStoryOptions();
     updateStoryModeUI();
     updateExploreBasemapVisibility();
@@ -1716,6 +2651,7 @@
     config.steps.forEach(function (step, i) {
       var wrap = document.createElement("div");
       wrap.className = "step-block";
+      if (isIntroStep(step)) wrap.classList.add("step-block--intro");
       wrap.dataset.stepIndex = String(i);
       var card = document.createElement("div");
       card.className = "card";
@@ -1735,7 +2671,7 @@
       var endBtn = document.createElement("button");
       endBtn.type = "button";
       endBtn.className = "restart-btn";
-      endBtn.textContent = "Start from beginning";
+      endBtn.textContent = "Return to beginning";
       endBtn.addEventListener("click", function () {
         restartStoryFromBeginning();
       });
@@ -1746,6 +2682,8 @@
     }
     connectStoryObserver();
     applyCardBackgroundOpacity();
+    wireStoryStepNavButtons();
+    updateStoryStepNavVisibility();
   }
 
   function showLoadError(message) {
@@ -1767,6 +2705,179 @@
     if (map) map.resize();
   });
 
+  var storyPreloadDismissed = false;
+
+  function isStandaloneExport() {
+    return document.documentElement.getAttribute("data-standalone-export") === "1";
+  }
+
+  function showPreloadOverlay() {
+    var overlay = el("story-preload-overlay");
+    if (!overlay) return;
+    overlay.hidden = false;
+    document.body.classList.add("story-preload-active");
+    updatePreloadProgress(0, "Downloading…", "Preparing map assets");
+    var beginBtn = el("story-preload-begin");
+    if (beginBtn) beginBtn.hidden = true;
+  }
+
+  function updatePreloadProgress(pct, status, detail) {
+    var fill = el("story-preload-bar-fill");
+    var pctEl = el("story-preload-percent");
+    var statusEl = el("story-preload-status");
+    var detailEl = el("story-preload-detail");
+    var n = Math.max(0, Math.min(100, Math.round(pct)));
+    if (fill) fill.style.width = n + "%";
+    if (pctEl) pctEl.textContent = n + "%";
+    if (statusEl && status) statusEl.textContent = status;
+    if (detailEl && detail != null) detailEl.textContent = detail;
+  }
+
+  function dismissPreloadOverlay() {
+    if (storyPreloadDismissed) return;
+    storyPreloadDismissed = true;
+    var overlay = el("story-preload-overlay");
+    if (overlay) overlay.hidden = true;
+    document.body.classList.remove("story-preload-active");
+  }
+
+  function showPreloadBeginButton(onBegin) {
+    updatePreloadProgress(100, "Ready", "Map assets downloaded");
+    var beginBtn = el("story-preload-begin");
+    if (!beginBtn) {
+      dismissPreloadOverlay();
+      if (typeof onBegin === "function") onBegin();
+      return;
+    }
+    beginBtn.hidden = false;
+    beginBtn.onclick = function () {
+      dismissPreloadOverlay();
+      if (typeof onBegin === "function") onBegin();
+    };
+    beginBtn.focus();
+  }
+
+  function waitForMapIdle(timeoutMs) {
+    return new Promise(function (resolve) {
+      if (!map) return resolve();
+      var settled = false;
+      function done() {
+        if (settled) return;
+        settled = true;
+        resolve();
+      }
+      map.once("idle", done);
+      window.setTimeout(done, timeoutMs || 10000);
+    });
+  }
+
+  function jumpToStepForPreload(i) {
+    var s = config.steps[i];
+    if (!s || !map) return Promise.resolve();
+    var z = typeof s.zoom === "number" ? s.zoom : 6;
+    map.jumpTo({
+      center: [s.lng, s.lat],
+      zoom: z,
+      pitch: stepPitch(),
+      bearing: 0,
+    });
+    if (typeof map.triggerRepaint === "function") map.triggerRepaint();
+    return waitForMapIdle(12000);
+  }
+
+  function switchBasemapForPreload(baseMapId) {
+    if (!map || baseMapId === currentLoadedBaseMap) return Promise.resolve();
+    return getBaseMapStylePromise(baseMapId)
+      .then(function (style) {
+        return new Promise(function (resolve) {
+          var settled = false;
+          function done() {
+            if (settled) return;
+            settled = true;
+            applyEnglishLabels(map);
+            applyProjectionIfNeeded();
+            applyTerrainIfNeeded();
+            ensureOverlaySources();
+            map.resize();
+            resolve();
+          }
+          map.once("idle", done);
+          window.setTimeout(done, 15000);
+          currentLoadedBaseMap = baseMapId;
+          map.setStyle(style);
+        });
+      })
+      .catch(function () {
+        return Promise.resolve();
+      });
+  }
+
+  function setPreloadMercatorMode(enabled) {
+    if (!map || !config || config.projection !== "globe") return Promise.resolve();
+    try {
+      map.setProjection({ type: enabled ? "mercator" : "globe" });
+    } catch (e) {}
+    return waitForMapIdle(8000);
+  }
+
+  function preloadStandaloneExportAssets(onReady) {
+    if (!isStandaloneExport() || !config || !config.steps || !config.steps.length || !map) {
+      if (typeof onReady === "function") onReady();
+      return;
+    }
+
+    showPreloadOverlay();
+    var steps = config.steps;
+    var index = 0;
+
+    function runNext() {
+      if (index >= steps.length) {
+        setPreloadMercatorMode(false)
+          .then(function () {
+            return jumpToStepForPreload(0);
+          })
+          .then(function () {
+            return resetGlobeProjection();
+          })
+          .then(function () {
+            nudgeGlobeRepaint();
+            applyStepOverlays(0);
+            showPreloadBeginButton(onReady);
+          });
+        return;
+      }
+
+      var stepNum = index + 1;
+      var pct = ((index / steps.length) * 100);
+      updatePreloadProgress(
+        pct,
+        "Downloading…",
+        "Loading location " + stepNum + " of " + steps.length
+      );
+
+      var s = steps[index];
+      var base = effectiveBaseForStep(s);
+      switchBasemapForPreload(base)
+        .then(function () {
+          return jumpToStepForPreload(index);
+        })
+        .then(function () {
+          index += 1;
+          runNext();
+        })
+        .catch(function () {
+          index += 1;
+          runNext();
+        });
+    }
+
+    waitForMapIdle(5000)
+      .then(function () {
+        return setPreloadMercatorMode(true);
+      })
+      .then(runNext);
+  }
+
   loadStoryData()
     .then(function (data) {
       config = normalizeConfig(data);
@@ -1778,7 +2889,14 @@
       initMap(function () {
         renderStory();
         lastFlownIndex = -1;
-        if (config.steps[0]) flyToStep(0, false);
+        function startStory() {
+          if (config.steps[0]) flyToStep(0, false);
+        }
+        if (isStandaloneExport()) {
+          preloadStandaloneExportAssets(startStory);
+        } else {
+          startStory();
+        }
       });
     })
     .catch(function (err) {

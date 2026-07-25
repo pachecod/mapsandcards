@@ -4,7 +4,16 @@ import { readFile } from "fs/promises";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { deflateRawSync } from "zlib";
-import { query } from "../services/db-service.js";
+import { query, isDbEnabled } from "../services/db-service.js";
+import {
+  getStoryAccessContext,
+  storyListSql,
+  canReadStory,
+  canWriteStory,
+  buildStudentSlug,
+  isPlatformRosterEnabled,
+} from "../middleware/story-access.js";
+import { getSiteSettings } from "../services/platform-service.js";
 import {
   seedDefaultTemplatesDb,
   DEFAULT_TEMPLATE_TITLES,
@@ -45,6 +54,11 @@ function injectEmbeddedStoryJson(html, jsonStr) {
   return html.replace(/<\/body>/i, block + "\n</body>");
 }
 
+const INTRO_DEFAULT_HTML =
+  "<h2>Welcome</h2>" +
+  "<p>Scroll down to explore this story. Each card moves the map to a new place.</p>" +
+  "<p>Use <strong>Story</strong> mode to follow along, or switch to <strong>Explore</strong> to jump between locations and pan or zoom freely.</p>";
+
 const DEFAULT_CONFIG = {
   version: 1,
   baseMap: "openfreemap-bright",
@@ -54,25 +68,20 @@ const DEFAULT_CONFIG = {
   initialMap: { lat: 43.0481, lng: -76.1474, zoom: 11 },
   steps: [
     {
+      id: "intro",
+      type: "intro",
+      lat: 43.0481,
+      lng: -76.1474,
+      zoom: 11,
+      html: INTRO_DEFAULT_HTML,
+    },
+    {
       id: "location-1",
       lat: 43.0481,
       lng: -76.1474,
       zoom: 11,
       html: "<p>Syracuse, NY</p>",
-    },
-    {
-      id: "location-2",
-      lat: 40.7128,
-      lng: -74.006,
-      zoom: 10,
-      html: "<p>New York City, NY</p>",
-    },
-    {
-      id: "location-3",
-      lat: 38.9072,
-      lng: -77.0369,
-      zoom: 11,
-      html: "<p>Washington, DC</p>",
+      flyTransition: "smooth",
     },
   ],
 };
@@ -185,14 +194,31 @@ function rewriteCdnToLocal(html) {
     );
 }
 
+function markStandaloneExport(html) {
+  if (/data-standalone-export/i.test(html)) return html;
+  return html.replace(/<html(\s[^>]*)>/i, function (match) {
+    if (/data-standalone-export/i.test(match)) return match;
+    return match.replace("<html", '<html data-standalone-export="1"');
+  });
+}
+
 /* ── Routes ── */
 
 const router = Router();
 
 // Bundled default templates (for Guest Mode "start from" picker)
-router.get("/templates", async (_req, res) => {
+router.get("/templates", async (req, res) => {
   try {
-    const templates = await listDefaultTemplates();
+    let templates = await listDefaultTemplates();
+    if (isDbEnabled()) {
+      try {
+        const settings = await getSiteSettings();
+        const allowed = new Set(settings.public_template_slugs || ["earth"]);
+        templates = templates.filter((t) => allowed.has(t.slug));
+      } catch {
+        /* use full list */
+      }
+    }
     res.json({
       templates: templates.map((t) => ({ slug: t.slug, title: t.title })),
     });
@@ -202,21 +228,22 @@ router.get("/templates", async (_req, res) => {
   }
 });
 
-// List all stories
-router.get("/list", async (_req, res) => {
+// List stories (scoped by role)
+router.get("/list", async (req, res) => {
   try {
     await seedDefaultTemplatesDb(query);
   } catch (e) {
     console.warn("[seed] DB seed on list failed:", e.message || e);
   }
-  const { rows } = await query("SELECT slug, title FROM stories ORDER BY slug");
+  const ctx = await getStoryAccessContext(req);
+  const { sql, params } = storyListSql(ctx);
+  const { rows } = await query(sql, params);
   const stories = rows.map((r) => r.slug);
   const titles = {};
   rows.forEach((r) => {
     const label = r.title || DEFAULT_TEMPLATE_TITLES[r.slug] || r.slug;
     if (label && label !== r.slug) titles[r.slug] = label;
   });
-  // Ensure known defaults keep display titles even if title was stored as slug
   for (const [slug, label] of Object.entries(DEFAULT_TEMPLATE_TITLES)) {
     if (stories.includes(slug)) titles[slug] = label;
   }
@@ -225,7 +252,14 @@ router.get("/list", async (_req, res) => {
 
 // Create a new story
 router.post("/create", async (req, res) => {
-  const { slug, defaultJson } = req.body || {};
+  const ctx = await getStoryAccessContext(req);
+  if (isPlatformRosterEnabled() && ctx.role === "anonymous") {
+    return res.status(401).json({ error: "Student sign-in required." });
+  }
+  let { slug, defaultJson } = req.body || {};
+  if (ctx.role === "student") {
+    slug = buildStudentSlug(ctx, slug);
+  }
   if (!isValidSlug(slug)) {
     return res.status(400).json({ error: "Invalid slug (use lowercase letters, numbers, hyphens)." });
   }
@@ -238,18 +272,27 @@ router.post("/create", async (req, res) => {
   const config =
     typeof defaultJson === "object" && defaultJson !== null ? defaultJson : DEFAULT_CONFIG;
 
+  const ownerId = ctx.role === "student" ? ctx.studentId : null;
+  const classId = ctx.role === "student" ? ctx.classId : null;
+
   await query(
-    "INSERT INTO stories (slug, title, config) VALUES ($1, $2, $3)",
-    [slug, config.title || slug, config]
+    `INSERT INTO stories (slug, title, config, owner_student_id, class_id, status)
+     VALUES ($1, $2, $3, $4, $5, 'draft')`,
+    [slug, config.title || slug, config, ownerId, classId]
   );
   res.status(201).json({ slug, ok: true });
 });
 
 // Save / update a story
 router.post("/save", async (req, res) => {
+  const ctx = await getStoryAccessContext(req);
   const { slug, json: data } = req.body || {};
   if (!isValidSlug(slug)) {
     return res.status(400).json({ error: "Invalid slug." });
+  }
+  const access = await canWriteStory(ctx, slug);
+  if (!access.ok) {
+    return res.status(access.reason === "auth_required" ? 401 : 403).json({ error: "Not allowed to edit this story." });
   }
   if (typeof data !== "object" || data === null || !Array.isArray(data.steps)) {
     return res.status(400).json({ error: "Invalid json payload (need steps array)." });
@@ -269,9 +312,14 @@ router.post("/save", async (req, res) => {
 
 // Delete a story
 router.post("/delete", async (req, res) => {
+  const ctx = await getStoryAccessContext(req);
   const { slug } = req.body || {};
   if (!isValidSlug(slug)) {
     return res.status(400).json({ error: "Invalid slug." });
+  }
+  const access = await canWriteStory(ctx, slug);
+  if (!access.ok) {
+    return res.status(access.reason === "auth_required" ? 401 : 403).json({ error: "Not allowed to delete this story." });
   }
 
   const result = await query("DELETE FROM stories WHERE slug = $1", [slug]);
@@ -281,11 +329,62 @@ router.post("/delete", async (req, res) => {
   res.json({ ok: true });
 });
 
+// Submit story to admin
+router.post("/submit", async (req, res) => {
+  const ctx = await getStoryAccessContext(req);
+  if (ctx.role !== "student") {
+    return res.status(401).json({ error: "Student sign-in required." });
+  }
+  const { slug, comment } = req.body || {};
+  if (!isValidSlug(slug)) {
+    return res.status(400).json({ error: "Invalid slug." });
+  }
+  try {
+    const { submitStoryForReview } = await import("../services/platform-service.js");
+    const submission = await submitStoryForReview({
+      storySlug: slug,
+      studentId: ctx.studentId,
+      studentComment: comment,
+    });
+    res.json({ ok: true, submission });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+// Import guest localStorage draft into student account
+router.post("/import-guest", async (req, res) => {
+  const ctx = await getStoryAccessContext(req);
+  if (ctx.role !== "student") {
+    return res.status(401).json({ error: "Student sign-in required." });
+  }
+  const { slug, config } = req.body || {};
+  if (!config || !Array.isArray(config.steps)) {
+    return res.status(400).json({ error: "Invalid guest project config." });
+  }
+  const newSlug = buildStudentSlug(ctx, slug || config.title || "guest-import");
+  const existing = await query("SELECT 1 FROM stories WHERE slug = $1", [newSlug]);
+  if (existing.rows.length > 0) {
+    return res.status(409).json({ error: "Import slug already exists.", slug: newSlug });
+  }
+  await query(
+    `INSERT INTO stories (slug, title, config, owner_student_id, class_id, status)
+     VALUES ($1, $2, $3, $4, $5, 'draft')`,
+    [newSlug, config.title || newSlug, config, ctx.studentId, ctx.classId]
+  );
+  res.status(201).json({ slug: newSlug, ok: true });
+});
+
 // Export as standalone ZIP
 router.post("/export", async (req, res) => {
+  const ctx = await getStoryAccessContext(req);
   const { slug } = req.body || {};
   if (!isValidSlug(slug)) {
     return res.status(400).json({ error: "Invalid slug." });
+  }
+  const access = await canWriteStory(ctx, slug);
+  if (!access.ok && ctx.role !== "admin") {
+    return res.status(access.reason === "auth_required" ? 401 : 403).json({ error: "Not allowed." });
   }
 
   const { rows } = await query("SELECT config FROM stories WHERE slug = $1", [slug]);
@@ -301,6 +400,7 @@ router.post("/export", async (req, res) => {
   let html = await readFile(VIEWER_TEMPLATE, "utf8");
   html = injectEmbeddedStoryJson(html, jsonStr);
   html = rewriteCdnToLocal(html);
+  html = markStandaloneExport(html);
 
   const assetBuffers = await Promise.all(CDN_ASSETS.map((a) => getCachedAsset(a)));
 
@@ -324,9 +424,13 @@ router.get("/story-data/:slug/scroll-map-story.json", async (req, res) => {
   const { slug } = req.params;
   if (!isValidSlug(slug)) return res.status(400).json({ error: "Invalid slug." });
 
-  const { rows } = await query("SELECT config FROM stories WHERE slug = $1", [slug]);
-  if (rows.length === 0) return res.status(404).json({ error: "Story not found." });
+  const ctx = await getStoryAccessContext(req);
+  const access = await canReadStory(ctx, slug);
+  if (!access.ok) {
+    return res.status(access.reason === "not_found" ? 404 : 403).json({ error: "Story not available." });
+  }
 
+  const { rows } = await query("SELECT config FROM stories WHERE slug = $1", [slug]);
   res.json(rows[0].config);
 });
 
@@ -335,8 +439,13 @@ router.get("/story-data/:slug/scroll-map-story.html", async (req, res) => {
   const { slug } = req.params;
   if (!isValidSlug(slug)) return res.status(400).send("Invalid slug.");
 
+  const ctx = await getStoryAccessContext(req);
+  const access = await canReadStory(ctx, slug);
+  if (!access.ok) {
+    return res.status(access.reason === "not_found" ? 404 : 403).send("Story not available.");
+  }
+
   const { rows } = await query("SELECT config FROM stories WHERE slug = $1", [slug]);
-  if (rows.length === 0) return res.status(404).send("Story not found.");
 
   if (!existsSync(VIEWER_TEMPLATE)) return res.status(500).send("Viewer template missing.");
 

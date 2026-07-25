@@ -1,5 +1,9 @@
 import crypto from "crypto";
 import { injectAnalyticsScript } from "./analytics.js";
+import { parseCookies } from "../lib/session.js";
+import { getStudentSession } from "./student-auth.js";
+import { getAdminSession } from "./admin-auth.js";
+import { isDbEnabled } from "../services/db-service.js";
 
 const LOGIN_PAGE = `<!DOCTYPE html>
 <html lang="en">
@@ -53,42 +57,78 @@ function makeToken(password) {
   return crypto.createHmac("sha256", password).update("mapsandcards-session").digest("hex").slice(0, 32);
 }
 
-function parseCookies(header) {
-  const cookies = {};
-  if (!header) return cookies;
-  header.split(";").forEach((pair) => {
-    const [k, ...v] = pair.split("=");
-    cookies[k.trim()] = v.join("=").trim();
-  });
-  return cookies;
-}
-
 function safeNextPath(raw) {
   if (typeof raw !== "string") return "/Tools/scroll-map-builder.html";
   const t = raw.trim();
   if (!t.startsWith("/") || t.startsWith("//")) return "/Tools/scroll-map-builder.html";
+  if (t === "/admin") return "/admin/";
   return t;
 }
 
+function studentAuthRequired() {
+  return process.env.STUDENT_AUTH_REQUIRED === "true" && isDbEnabled();
+}
+
+function hasBuilderAccess(req, cookies, validToken) {
+  if (cookies.mc_auth === validToken) return true;
+  if (getAdminSession(req)) return true;
+  const student = getStudentSession(req);
+  if (student?.studentId) return true;
+  return false;
+}
+
 /** Paths that require a signed-in session when APP_PASSWORD is set. */
-function requiresAuth(pathname, searchParams) {
-  // Non-guest builder UI
+function requiresAuth(pathname, searchParams, req, validToken, password) {
+  const cookies = parseCookies(req);
+
   if (
     pathname === "/Tools/scroll-map-builder.html" ||
     pathname.endsWith("/scroll-map-builder.html")
   ) {
     const guest =
       searchParams.get("guest") === "1" || searchParams.get("mode") === "guest";
-    return !guest;
+    if (guest) return false;
+    if (isDbEnabled()) {
+      return !hasBuilderAccess(req, cookies, validToken);
+    }
+    if (studentAuthRequired()) {
+      return !hasBuilderAccess(req, cookies, validToken);
+    }
+    return !!password;
   }
 
   // Story authoring API (reads stay public so home + viewers work)
   if (pathname.startsWith("/__story-api/")) {
     const action = pathname.slice("/__story-api/".length).split("/")[0];
-    return ["create", "save", "delete", "export"].includes(action);
+    return ["create", "save", "delete", "export", "submit", "import-guest"].includes(action);
+  }
+
+  // Admin panel handles its own sign-in via /api/platform/v1/auth/admin/*.
+
+  if (pathname === "/Tools/myfiles.html") {
+    return false;
+  }
+
+  if (pathname === "/Tools/student-login.html") {
+    return false;
   }
 
   return false;
+}
+
+function isBuilderPath(pathname) {
+  return (
+    pathname === "/Tools/scroll-map-builder.html" ||
+    pathname.endsWith("/scroll-map-builder.html")
+  );
+}
+
+function redirectToStudentLogin(res, pathname, search) {
+  const nextPath = pathname + (search ? `?${search}` : "");
+  res.writeHead(302, {
+    Location: `/Tools/student-login.html?next=${encodeURIComponent(nextPath)}`,
+  });
+  res.end();
 }
 
 function renderLogin(res, { error = false, next = "/Tools/scroll-map-builder.html" } = {}) {
@@ -103,11 +143,11 @@ function renderLogin(res, { error = false, next = "/Tools/scroll-map-builder.htm
 
 export function authMiddleware() {
   const password = (process.env.APP_PASSWORD || "").trim();
-  if (!password) {
+  const validToken = password ? makeToken(password) : "";
+
+  if (!password && !studentAuthRequired() && !isDbEnabled()) {
     return (_req, _res, next) => next();
   }
-
-  const validToken = makeToken(password);
 
   return (req, res, next) => {
     const rawUrl = req.url || "/";
@@ -150,13 +190,24 @@ export function authMiddleware() {
       return;
     }
 
-    const cookies = parseCookies(req.headers.cookie);
-    if (cookies.mc_auth === validToken) {
+    const cookies = parseCookies(req);
+    if (validToken && cookies.mc_auth === validToken) {
+      return next();
+    }
+    if (getAdminSession(req)) {
+      return next();
+    }
+    if (getStudentSession(req)?.studentId) {
       return next();
     }
 
-    if (!requiresAuth(pathname, searchParams)) {
+    if (!requiresAuth(pathname, searchParams, req, validToken, password)) {
       return next();
+    }
+
+    if (isBuilderPath(pathname) && isDbEnabled()) {
+      redirectToStudentLogin(res, pathname, search);
+      return;
     }
 
     const nextPath = pathname + (search ? `?${search}` : "");

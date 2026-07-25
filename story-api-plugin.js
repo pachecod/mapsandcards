@@ -3,11 +3,14 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { existsSync } from "fs";
 import { deflateRawSync } from "zlib";
+import express from "express";
 import {
   seedDefaultTemplatesFs,
   DEFAULT_TEMPLATE_TITLES,
   listDefaultTemplates,
 } from "./services/seed-defaults.js";
+import { isDbEnabled } from "./services/db-service.js";
+import storyRoutes from "./routes/stories.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -171,6 +174,14 @@ function rewriteCdnToLocal(html) {
     );
 }
 
+function markStandaloneExport(html) {
+  if (/data-standalone-export/i.test(html)) return html;
+  return html.replace(/<html(\s[^>]*)>/i, function (match) {
+    if (/data-standalone-export/i.test(match)) return match;
+    return match.replace("<html", '<html data-standalone-export="1"');
+  });
+}
+
 function storyApiMiddleware(rootDir) {
   const storiesRoot = path.join(rootDir, "Stories");
   const toolsDir = path.join(rootDir, "Tools");
@@ -240,25 +251,23 @@ function storyApiMiddleware(rootDir) {
               initialMap: { lat: 43.0481, lng: -76.1474, zoom: 11 },
               steps: [
                 {
+                  id: "intro",
+                  type: "intro",
+                  lat: 43.0481,
+                  lng: -76.1474,
+                  zoom: 11,
+                  html:
+                    "<h2>Welcome</h2>" +
+                    "<p>Scroll down to explore this story. Each card moves the map to a new place.</p>" +
+                    "<p>Use <strong>Story</strong> mode to follow along, or switch to <strong>Explore</strong> to jump between locations and pan or zoom freely.</p>"
+                },
+                {
                   id: "location-1",
                   lat: 43.0481,
                   lng: -76.1474,
                   zoom: 11,
-                  html: "<p>Syracuse, NY</p>"
-                },
-                {
-                  id: "location-2",
-                  lat: 40.7128,
-                  lng: -74.006,
-                  zoom: 10,
-                  html: "<p>New York City, NY</p>"
-                },
-                {
-                  id: "location-3",
-                  lat: 38.9072,
-                  lng: -77.0369,
-                  zoom: 11,
-                  html: "<p>Washington, DC</p>"
+                  html: "<p>Syracuse, NY</p>",
+                  flyTransition: "smooth"
                 }
               ]
             },
@@ -328,6 +337,7 @@ function storyApiMiddleware(rootDir) {
         let html = await fs.readFile(viewerTemplate, "utf8");
         html = injectEmbeddedStoryJson(html, jsonStr);
         html = rewriteCdnToLocal(html);
+        html = markStandaloneExport(html);
 
         const cacheDir = path.join(rootDir, ".cache", "maplibre");
         const assetBuffers = await Promise.all(
@@ -361,6 +371,21 @@ function storyApiMiddleware(rootDir) {
 }
 
 export function storyApiPlugin() {
+  if (isDbEnabled()) {
+    const app = express();
+    app.use(express.json({ limit: "15mb" }));
+    app.use("/__story-api", storyRoutes);
+    return {
+      name: "story-api-db",
+      configureServer(server) {
+        server.middlewares.use(app);
+      },
+      configurePreviewServer(server) {
+        server.middlewares.use(app);
+      },
+    };
+  }
+
   const rootDir = path.resolve(__dirname);
   const mw = storyApiMiddleware(rootDir);
   return {

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Full editor — Maps and Cards</title>
+  <link rel="stylesheet" href="/admin/admin.css" />
+  <style>
+    .panel-wide { max-width: 26rem; }
+    .entry-divider {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin: 1.25rem 0;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+    .entry-divider::before,
+    .entry-divider::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+    .btn-guest-entry {
+      display: block;
+      width: 100%;
+      text-align: center;
+      text-decoration: none;
+      padding: 0.55rem 0.75rem;
+      border-radius: 8px;
+      border: 1px solid rgba(74, 222, 128, 0.45);
+      background: rgba(74, 222, 128, 0.12);
+      color: #8fd4a8;
+      font-weight: 600;
+    }
+    .btn-guest-entry:hover { border-color: #8fd4a8; }
+    .step-label {
+      margin: 0 0 0.75rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .staff-link {
+      display: block;
+      margin-top: 1rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-align: center;
+    }
+    .signed-in-bar {
+      margin-bottom: 1rem;
+      padding: 0.65rem 0.75rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(61, 139, 253, 0.08);
+      font-size: 0.85rem;
+    }
+    .signed-in-bar button {
+      margin-top: 0.5rem;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div class="panel panel-wide" style="margin:3rem auto">
+    <h1>Full editor</h1>
+    <p class="hint">Continue as a guest (work stays in this browser), or sign in with your class account.</p>
+
+    <div id="signed-in-bar" class="signed-in-bar hidden" role="status"></div>
+
+    <a class="btn-guest-entry" id="btn-guest-mode" href="/Tools/scroll-map-builder.html?guest=1">Continue as Guest</a>
+    <p class="hint" style="margin-top:0.5rem;font-size:0.78rem;">Local drafts only. Export ZIP or sign in to save and submit.</p>
+
+    <div class="entry-divider">or sign in as a student</div>
+
+    <p id="login-error" class="error hidden"></p>
+    <p id="step-label" class="step-label">Step 1 of 3 — Choose your class</p>
+    <label>Class
+      <select id="class-select"><option value="">Loading…</option></select>
+    </label>
+    <label>Name
+      <select id="student-select" disabled><option value="">Select a class first</option></select>
+    </label>
+    <label>Password
+      <input type="password" id="student-password" autocomplete="current-password" placeholder="Password you were given" disabled />
+    </label>
+    <button type="button" id="btn-login" class="primary" style="width:100%;margin-top:0.5rem" disabled>Sign in</button>
+    <button type="button" id="btn-import-guest" style="width:100%;margin-top:0.5rem" disabled>Import guest draft to my account</button>
+
+    <a class="staff-link" id="staff-login-link" href="/__auth/login?next=%2FTools%2Fscroll-map-builder.html">Staff / teacher sign in</a>
+
+    <a class="back-link" href="/">← Home</a>
+  </div>
+  <script src="/Tools/guest-playground.js"></script>
+  <script src="/Tools/guest-agreement.js"></script>
+  <script src="/Tools/builder-auth-ui.js"></script>
+  <script type="module">
+    import { platformApi } from "/Tools/platform-api.js";
+
+    const params = new URLSearchParams(location.search);
+    const next = params.get("next") || "/Tools/scroll-map-builder.html";
+    const handoff = params.get("handoff");
+    const importSlug = params.get("import");
+
+    const classSelect = document.getElementById("class-select");
+    const studentSelect = document.getElementById("student-select");
+    const passwordInput = document.getElementById("student-password");
+    const stepLabel = document.getElementById("step-label");
+    const errEl = document.getElementById("login-error");
+    const staffLink = document.getElementById("staff-login-link");
+    const signedInBar = document.getElementById("signed-in-bar");
+    const btnLogin = document.getElementById("btn-login");
+    const btnImport = document.getElementById("btn-import-guest");
+
+    staffLink.href = "/__auth/login?next=" + encodeURIComponent(next);
+
+    if (window.MapsAndCardsGuestAgreement) {
+      window.MapsAndCardsGuestAgreement.interceptGuestModeLinks(document);
+    }
+
+    function updateStep() {
+      if (!classSelect.value) {
+        stepLabel.textContent = "Step 1 of 3 — Choose your class";
+        passwordInput.disabled = true;
+        btnLogin.disabled = true;
+        btnImport.disabled = true;
+        return;
+      }
+      if (!studentSelect.value) {
+        stepLabel.textContent = "Step 2 of 3 — Choose your name";
+        passwordInput.disabled = true;
+        btnLogin.disabled = true;
+        btnImport.disabled = true;
+        return;
+      }
+      stepLabel.textContent = "Step 3 of 3 — Enter your password";
+      passwordInput.disabled = false;
+      btnLogin.disabled = false;
+      btnImport.disabled = false;
+    }
+
+    async function finishLogin() {
+      if (importSlug && window.MapsAndCardsBuilderAuth) {
+        try {
+          const result = await window.MapsAndCardsBuilderAuth.importGuestSlug(importSlug);
+          location.href = "/Tools/scroll-map-builder.html?story=" + encodeURIComponent(result.slug);
+          return;
+        } catch (e) {
+          errEl.textContent = e.message;
+          errEl.classList.remove("hidden");
+        }
+      }
+      location.href = next;
+    }
+
+    function showSignedInBar(student) {
+      signedInBar.classList.remove("hidden");
+      signedInBar.innerHTML =
+        "Signed in as <strong>" +
+        student.displayName +
+        "</strong> · " +
+        student.className +
+        '<button type="button" class="primary" id="btn-continue">Continue to editor</button>' +
+        '<button type="button" id="btn-logout">Sign out</button>';
+      document.getElementById("btn-continue").addEventListener("click", () => {
+        location.href = next;
+      });
+      document.getElementById("btn-logout").addEventListener("click", async () => {
+        if (!confirm("Log out and return to the sign-in screen?")) return;
+        await platformApi.studentLogout();
+        location.reload();
+      });
+    }
+
+    async function init() {
+      if (handoff) {
+        try {
+          await platformApi.studentHandoff(handoff);
+          await finishLogin();
+          return;
+        } catch (e) {
+          errEl.textContent = e.message;
+          errEl.classList.remove("hidden");
+        }
+      }
+      try {
+        const me = await platformApi.studentMe();
+        if (me.student) {
+          if (importSlug) {
+            await finishLogin();
+            return;
+          }
+          showSignedInBar(me.student);
+          return;
+        }
+      } catch {}
+      const { classes } = await platformApi.listClasses();
+      classSelect.innerHTML =
+        '<option value="">Choose class…</option>' +
+        classes.map((c) => `<option value="${c.id}">${c.name} (${c.student_count})</option>`).join("");
+      updateStep();
+    }
+
+    classSelect.addEventListener("change", async () => {
+      studentSelect.disabled = true;
+      studentSelect.innerHTML = '<option value="">Loading…</option>';
+      studentSelect.value = "";
+      passwordInput.value = "";
+      updateStep();
+      if (!classSelect.value) {
+        studentSelect.innerHTML = '<option value="">Select a class first</option>';
+        return;
+      }
+      const { students } = await platformApi.listStudentsInClass(classSelect.value);
+      studentSelect.innerHTML =
+        '<option value="">Choose your name…</option>' +
+        students.map((s) => `<option value="${s.id}">${s.display_name}</option>`).join("");
+      studentSelect.disabled = false;
+      updateStep();
+    });
+
+    studentSelect.addEventListener("change", () => {
+      passwordInput.value = "";
+      updateStep();
+      if (studentSelect.value) passwordInput.focus();
+    });
+
+    btnLogin.addEventListener("click", async () => {
+      errEl.classList.add("hidden");
+      try {
+        await platformApi.studentLogin(
+          classSelect.value,
+          studentSelect.value,
+          passwordInput.value
+        );
+        await finishLogin();
+      } catch (e) {
+        errEl.textContent = e.message;
+        errEl.classList.remove("hidden");
+      }
+    });
+
+    passwordInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !btnLogin.disabled) btnLogin.click();
+    });
+
+    btnImport.addEventListener("click", async () => {
+      errEl.classList.add("hidden");
+      try {
+        await platformApi.studentLogin(
+          classSelect.value,
+          studentSelect.value,
+          passwordInput.value
+        );
+        const ids = window.MapsAndCardsGuest ? window.MapsAndCardsGuest.listIds() : [];
+        if (!ids.length) {
+          alert("No guest drafts in this browser.");
+          return;
+        }
+        const slug = ids[0];
+        const project = window.MapsAndCardsGuest.loadProject(slug);
+        const config = project ? window.MapsAndCardsGuest.configFromProject(project) : null;
+        if (!config) throw new Error("Invalid guest project");
+        const res = await fetch("/__story-api/import-guest", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ slug, config }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Import failed");
+        location.href = "/Tools/scroll-map-builder.html?story=" + encodeURIComponent(data.slug);
+      } catch (e) {
+        errEl.textContent = e.message;
+        errEl.classList.remove("hidden");
+      }
+    });
+
+    init().catch((e) => {
+      errEl.textContent = e.message;
+      errEl.classList.remove("hidden");
+    });
+  </script>
+</body>
+</html>

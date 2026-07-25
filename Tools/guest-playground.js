@@ -156,6 +156,14 @@
    * Client-side ZIP download (same approach as WebxRide PublicPlayground Export Local Site).
    * Requires global JSZip.
    */
+  function markStandaloneExportHtml(html) {
+    if (!html || /data-standalone-export/i.test(html)) return html;
+    return String(html).replace(/<html(\s[^>]*)>/i, function (match) {
+      if (/data-standalone-export/i.test(match)) return match;
+      return match.replace("<html", '<html data-standalone-export="1"');
+    });
+  }
+
   function exportLocalSite(project) {
     if (!project || !project.files) {
       return Promise.reject(new Error("No project to export"));
@@ -165,7 +173,15 @@
     }
     var zip = new JSZip();
     project.files.forEach(function (file) {
-      zip.file(file.name, file.content != null ? file.content : "");
+      var content = file.content != null ? file.content : "";
+      if (
+        file.name &&
+        String(file.name).toLowerCase() === "index.html" &&
+        typeof content === "string"
+      ) {
+        content = markStandaloneExportHtml(content);
+      }
+      zip.file(file.name, content);
     });
     return zip.generateAsync({ type: "blob" }).then(function (blob) {
       var url = URL.createObjectURL(blob);

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin — Maps and Cards</title>
+  <link rel="stylesheet" href="/admin/admin.css" />
+</head>
+<body>
+  <div id="login-view" class="panel hidden">
+    <h1>Admin sign in</h1>
+    <p class="hint">Use the same password as the Scroll Map Builder (<code>APP_PASSWORD</code>).</p>
+    <p id="login-error" class="error hidden"></p>
+    <label for="admin-password">Password</label>
+    <input type="password" id="admin-password" autocomplete="current-password" />
+    <button type="button" id="btn-admin-login">Sign in</button>
+    <a class="back-link" href="/">← Back to home</a>
+  </div>
+
+  <div id="app-view" class="hidden">
+    <div id="react-admin-root"></div>
+    <header class="topbar">
+      <div class="brand">Maps &amp; Cards Admin</div>
+      <nav class="tabs" role="tablist">
+        <button type="button" class="tab active" data-tab="classes">Classes</button>
+        <button type="button" class="tab" data-tab="students">Students</button>
+        <button type="button" class="tab" data-tab="settings">Site settings</button>
+        <button type="button" class="tab" data-tab="submissions">Submissions</button>
+        <button type="button" class="tab" data-tab="legal">Legal pages</button>
+        <button type="button" class="tab" data-tab="myfiles">All files</button>
+        <button type="button" class="tab" data-tab="files">Common files</button>
+      </nav>
+      <div class="topbar-actions">
+        <a href="/Tools/scroll-map-builder.html">Builder</a>
+        <button type="button" id="btn-admin-logout">Sign out</button>
+      </div>
+    </header>
+
+    <main class="content">
+      <section id="tab-classes" class="tab-panel">
+        <div class="section-head">
+          <h2>Classes</h2>
+          <button type="button" id="btn-add-class">Add class</button>
+        </div>
+        <div id="classes-list" class="card-list"></div>
+        <form id="class-form" class="inline-form hidden">
+          <input type="hidden" id="class-id" />
+          <input type="text" id="class-name" placeholder="Class name" required />
+          <input type="text" id="class-description" placeholder="Description (optional)" />
+          <button type="submit">Save class</button>
+          <button type="button" id="class-form-cancel">Cancel</button>
+        </form>
+      </section>
+
+      <section id="tab-students" class="tab-panel hidden">
+        <div class="section-head">
+          <h2>Students</h2>
+          <label class="inline-label">Filter class
+            <select id="student-class-filter"><option value="">All classes</option></select>
+          </label>
+          <button type="button" id="btn-add-student">Add student</button>
+          <button type="button" id="btn-password-report">Password report</button>
+        </div>
+        <div id="students-list" class="card-list"></div>
+        <form id="student-form" class="inline-form hidden">
+          <select id="student-class-id" required></select>
+          <input type="text" id="student-display-name" placeholder="Display name" required />
+          <input type="text" id="student-password-optional" placeholder="Password (auto if blank)" />
+          <button type="submit">Add student</button>
+          <button type="button" id="student-form-cancel">Cancel</button>
+        </form>
+        <pre id="password-report" class="report hidden"></pre>
+      </section>
+
+      <section id="tab-settings" class="tab-panel hidden">
+        <h2>Site settings</h2>
+        <label>Home / login footer HTML
+          <textarea id="setting-footer" rows="4"></textarea>
+        </label>
+        <label>Export help text (Story panel — HTML allowed)
+          <textarea id="setting-export-help" rows="4" placeholder="Explain what students should do with their exported ZIP…"></textarea>
+        </label>
+        <label>Blocked file extensions (comma-separated)
+          <input type="text" id="setting-blocked" />
+        </label>
+        <label>Public guest templates (comma-separated slugs)
+          <input type="text" id="setting-templates" placeholder="earth" />
+        </label>
+        <button type="button" id="btn-save-settings">Save settings</button>
+        <p id="settings-status" class="status"></p>
+      </section>
+
+      <section id="tab-submissions" class="tab-panel hidden">
+        <div class="section-head">
+          <h2>Submissions</h2>
+          <label class="inline-label">Class
+            <select id="submission-class-filter"><option value="">All</option></select>
+          </label>
+        </div>
+        <div id="submissions-list" class="card-list"></div>
+      </section>
+
+      <section id="tab-legal" class="tab-panel hidden">
+        <h2>Legal / CMS</h2>
+        <label>Page
+          <select id="legal-page-select">
+            <option value="terms">Terms of Use</option>
+            <option value="privacy">Privacy Policy</option>
+            <option value="about">About</option>
+          </select>
+        </label>
+        <label>Title<input type="text" id="legal-title" /></label>
+        <label>Body HTML<textarea id="legal-body" rows="12"></textarea></label>
+        <button type="button" id="btn-save-legal">Save page</button>
+        <p id="legal-status" class="status"></p>
+      </section>
+
+      <section id="tab-myfiles" class="tab-panel hidden">
+        <div class="section-head">
+          <h2>Student files</h2>
+          <label class="inline-label">Student
+            <select id="admin-student-files-select"><option value="">Choose student…</option></select>
+          </label>
+        </div>
+        <div id="admin-student-files-list" class="card-list"></div>
+        <div id="admin-student-stories-list" class="card-list"></div>
+      </section>
+
+      <section id="tab-files" class="tab-panel hidden">
+        <div class="section-head">
+          <h2>Common assets</h2>
+          <label class="file-btn">
+            Upload file
+            <input type="file" id="common-file-input" accept="image/*,.geojson,.json,.csv" hidden />
+          </label>
+        </div>
+        <div id="common-files-list" class="card-list"></div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="/admin/admin.js"></script>
+  <!-- React admin shell (Phase 3): loads same platform API; vanilla panels above remain primary UI -->
+  <script type="module" src="/admin/main.jsx"></script>
+</body>
+</html>

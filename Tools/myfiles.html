@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>My files — Maps and Cards</title>
+  <link rel="stylesheet" href="/admin/admin.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">My files</div>
+    <div class="topbar-actions">
+      <a href="/Tools/scroll-map-builder.html">Builder</a>
+      <button type="button" id="btn-logout">Sign out</button>
+    </div>
+  </header>
+  <main class="content">
+    <p id="student-label" class="meta"></p>
+    <div class="section-head">
+      <label class="file-btn">Upload<input type="file" id="file-input" accept="image/*,.geojson,.json" hidden /></label>
+    </div>
+    <div id="files-list" class="card-list"></div>
+    <p id="error" class="error hidden"></p>
+  </main>
+  <script type="module">
+    import { platformApi } from "/Tools/platform-api.js";
+
+    const errEl = document.getElementById("error");
+    const list = document.getElementById("files-list");
+
+    async function load() {
+      const me = await platformApi.studentMe();
+      document.getElementById("student-label").textContent =
+        `${me.student.displayName} · ${me.student.className}`;
+      const { assets } = await platformApi.listStudentFiles();
+      list.innerHTML = assets.length
+        ? assets.map((a) => `<div class="card" data-id="${a.id}">
+            <strong>${a.filename}</strong>
+            <span class="meta">${a.category}</span>
+            <a href="${a.public_url}" target="_blank" rel="noopener">Open</a>
+            <button type="button" class="danger" data-del>Delete</button>
+          </div>`).join("")
+        : "<p class=\"meta\">No files yet.</p>";
+      list.querySelectorAll("[data-del]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          await platformApi.deleteStudentFile(btn.closest(".card").dataset.id);
+          load();
+        });
+      });
+    }
+
+    document.getElementById("file-input").addEventListener("change", async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const buf = await file.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      let binary = "";
+      for (let i = 0; i < bytes.length; i += 0x8000) {
+        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+      }
+      const dataBase64 = btoa(binary);
+      const category = file.type.startsWith("image/") ? "images" : file.name.endsWith(".geojson") ? "geojson" : "other";
+      await platformApi.uploadStudentFile(file.name, category, dataBase64);
+      e.target.value = "";
+      load();
+    });
+
+    document.getElementById("btn-logout").addEventListener("click", async () => {
+      await platformApi.studentLogout();
+      location.href = "/Tools/student-login.html";
+    });
+
+    load().catch((e) => {
+      errEl.textContent = e.message + " — sign in first.";
+      errEl.classList.remove("hidden");
+    });
+  </script>
+</body>
+</html>

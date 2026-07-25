@@ -5,6 +5,7 @@ dist/
 Exports/
 inspiring/
 Stories/
+uploads/
 Starter Templates/**/assets/
 .env
 .env.*

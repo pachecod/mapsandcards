@@ -172,6 +172,53 @@
     });
   }
 
+  function promptGuestSignInWarning() {
+    return new Promise(function (resolve) {
+      ensureStyles();
+      var overlay = document.createElement("div");
+      overlay.id = "guest-signin-warning-overlay";
+      overlay.className = "guest-agreement-overlay";
+      overlay.setAttribute("role", "dialog");
+      overlay.setAttribute("aria-modal", "true");
+      overlay.setAttribute("aria-labelledby", "guest-signin-warning-title");
+      overlay.innerHTML =
+        '<div class="guest-agreement-backdrop" data-action="cancel"></div>' +
+        '<div class="guest-agreement-dialog">' +
+        '<h2 id="guest-signin-warning-title" class="guest-agreement-title">Sign in?</h2>' +
+        '<div class="guest-agreement-content">' +
+        "<p>Signing in does <strong>not</strong> upload guest work automatically. After you sign in, you can <strong>import your current draft</strong> or use <strong>Export</strong> for a ZIP backup first.</p>" +
+        "</div>" +
+        '<div class="guest-agreement-actions">' +
+        '<button type="button" class="guest-agreement-btn guest-agreement-cancel" data-action="cancel">Cancel</button>' +
+        '<button type="button" class="guest-agreement-btn guest-agreement-agree" data-action="ok">OK</button>' +
+        "</div></div>";
+
+      var finish = function (proceed) {
+        overlay.remove();
+        document.body.classList.remove("guest-agreement-open");
+        document.removeEventListener("keydown", onKeyDown, true);
+        resolve(proceed);
+      };
+
+      var onKeyDown = function (event) {
+        if (event.key === "Escape") finish(false);
+      };
+
+      overlay.addEventListener("click", function (event) {
+        var actionEl = event.target.closest("[data-action]");
+        var action = actionEl ? actionEl.dataset.action : null;
+        if (action === "ok") finish(true);
+        if (action === "cancel") finish(false);
+      });
+
+      document.addEventListener("keydown", onKeyDown, true);
+      document.body.appendChild(overlay);
+      document.body.classList.add("guest-agreement-open");
+      var okBtn = overlay.querySelector('[data-action="ok"]');
+      if (okBtn) okBtn.focus();
+    });
+  }
+
   global.MapsAndCardsGuestAgreement = {
     STORAGE_KEY: STORAGE_KEY,
     hasAgreed: hasAgreed,
@@ -179,6 +226,7 @@
     promptGuestAgreementIfNeeded: promptGuestAgreementIfNeeded,
     showGuestAgreementOverlay: showGuestAgreementOverlay,
     goToGuestMode: goToGuestMode,
-    interceptGuestModeLinks: interceptGuestModeLinks
+    interceptGuestModeLinks: interceptGuestModeLinks,
+    promptGuestSignInWarning: promptGuestSignInWarning,
   };
 })(typeof window !== "undefined" ? window : globalThis);

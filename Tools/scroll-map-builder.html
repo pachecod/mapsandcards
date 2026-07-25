@@ -38,44 +38,350 @@
       min-height: 100dvh;
       overflow: hidden;
     }
+    .builder-app {
+      display: flex;
+      flex: 1 1 0;
+      min-height: 0;
+      min-width: 0;
+      overflow: hidden;
+    }
+    .builder-nav-rail {
+      flex: 0 0 48px;
+      width: 48px;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      background: #eef0f3;
+      border-right: 1px solid #d5d9e0;
+      z-index: 12;
+    }
+    .nav-rail-btn {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      color: #5f6368;
+      text-decoration: none;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .nav-rail-btn svg {
+      width: 20px;
+      height: 20px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.75;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .nav-rail-btn:hover,
+    .nav-rail-btn:focus-visible {
+      background: rgba(0, 0, 0, 0.06);
+      color: #1a1a1a;
+      outline: none;
+    }
+    .nav-rail-btn.active {
+      background: rgba(61, 139, 253, 0.14);
+      color: #2563eb;
+    }
+    .nav-rail-btn.disabled,
+    .nav-rail-btn[aria-disabled="true"] {
+      opacity: 0.38;
+      pointer-events: none;
+      cursor: default;
+    }
+    .nav-rail-btn.hidden {
+      display: none !important;
+    }
+    .nav-rail-btn::after {
+      content: attr(data-label);
+      position: absolute;
+      left: calc(100% + 6px);
+      top: 50%;
+      transform: translateY(-50%);
+      padding: 0.28rem 0.55rem;
+      border-radius: 6px;
+      background: #1a2332;
+      color: #e8eaed;
+      font-size: 0.72rem;
+      font-weight: 500;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.12s ease;
+      z-index: 20;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+    }
+    .nav-rail-btn:hover::after,
+    .nav-rail-btn:focus-visible::after {
+      opacity: 1;
+    }
+    .nav-rail-divider {
+      height: 1px;
+      margin: 0.35rem 0.45rem;
+      background: #d5d9e0;
+      flex-shrink: 0;
+    }
+    .nav-rail-spacer {
+      flex: 1 1 0;
+      min-height: 0;
+    }
+    .nav-story-panel,
+    .nav-flyout-panel {
+      flex: 0 0 15rem;
+      width: 15rem;
+      display: flex;
+      flex-direction: column;
+      background: #f7f8fa;
+      border-right: 1px solid #d5d9e0;
+      z-index: 11;
+      min-height: 0;
+    }
+    .nav-map-options-panel {
+      flex-basis: 18rem;
+      width: 18rem;
+    }
+    .nav-story-panel[hidden],
+    .nav-flyout-panel[hidden] {
+      display: none !important;
+    }
+    .nav-story-panel-head,
+    .nav-flyout-panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0.65rem 0.75rem;
+      border-bottom: 1px solid #d5d9e0;
+    }
+    .nav-story-panel-head h2,
+    .nav-flyout-panel-head h2 {
+      margin: 0;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+    .nav-panel-close {
+      width: 1.5rem;
+      height: 1.5rem;
+      border: 0;
+      border-radius: 4px;
+      background: transparent;
+      color: #5f6368;
+      font-size: 1.1rem;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .nav-panel-close:hover {
+      background: rgba(0, 0, 0, 0.06);
+      color: #1a1a1a;
+    }
+    .nav-story-panel-body,
+    .nav-flyout-panel-body {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      padding: 0.75rem;
+      overflow-y: auto;
+    }
+    .nav-map-options-body {
+      gap: 0.65rem;
+    }
+    .nav-flyout-field label,
+    .nav-story-panel-body label {
+      font-size: 0.68rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #6b7280;
+    }
+    .nav-flyout-field select,
+    .nav-flyout-field input[type="number"],
+    .nav-flyout-field textarea,
+    .nav-flyout-field input[type="color"],
+    .nav-story-panel-body select {
+      width: 100%;
+      padding: 0.4rem 0.45rem;
+      border-radius: 6px;
+      border: 1px solid #d5d9e0;
+      background: #fff;
+      color: #1a1a1a;
+      font: inherit;
+      font-size: 0.8rem;
+    }
+    .nav-flyout-field textarea {
+      min-height: 4.5rem;
+      resize: vertical;
+    }
+    .nav-flyout-field .check-label {
+      display: flex;
+      gap: 0.45rem;
+      align-items: flex-start;
+      font-size: 0.78rem;
+      font-weight: normal;
+      text-transform: none;
+      letter-spacing: normal;
+      color: #1a1a1a;
+      cursor: pointer;
+    }
+    .nav-flyout-field .check-label input {
+      margin-top: 0.12rem;
+    }
+    .nav-flyout-field .field-hint {
+      font-size: 0.68rem;
+      color: #6b7280;
+      margin: 0.25rem 0 0;
+      line-height: 1.35;
+    }
+    .nav-flyout-opacity-row {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+    .nav-flyout-opacity-row input[type="range"] {
+      flex: 1;
+    }
+    .nav-flyout-card-preview {
+      margin-top: 0.35rem;
+      padding: 0.55rem 0.65rem;
+      border-radius: 8px;
+      border: 1px solid #d5d9e0;
+      background: rgba(255, 255, 255, 0.86);
+      color: #111;
+      font-size: 0.78rem;
+    }
+    .nav-flyout-btn {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 0.45rem 0.55rem;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: #1a1a1a;
+      font: inherit;
+      font-size: 0.82rem;
+      cursor: pointer;
+    }
+    .nav-flyout-btn:hover {
+      background: rgba(0, 0, 0, 0.06);
+    }
+    .nav-flyout-btn.btn-danger {
+      color: #b42318;
+    }
+    .nav-flyout-btn.btn-danger:hover {
+      background: rgba(180, 35, 24, 0.08);
+    }
+    .nav-flyout-btn.hidden {
+      display: none !important;
+    }
+    .nav-export-help {
+      font-size: 0.72rem;
+      color: #4b5563;
+      line-height: 1.4;
+      margin: 0.15rem 0 0.35rem;
+      padding: 0.5rem 0.55rem;
+      border-radius: 6px;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+    }
+    .nav-export-help:empty {
+      display: none;
+    }
+    .nav-flyout-divider {
+      height: 1px;
+      margin: 0.35rem 0;
+      background: #d5d9e0;
+      flex-shrink: 0;
+    }
+    .nav-flyout-file-btn {
+      display: inline-block;
+      padding: 0.4rem 0.55rem;
+      border-radius: 6px;
+      background: #fff;
+      border: 1px solid #d5d9e0;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+    .nav-flyout-file-btn:hover {
+      background: #f3f4f6;
+    }
+    .nav-files-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+    .nav-file-item {
+      padding: 0.45rem 0.5rem;
+      border-radius: 6px;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      font-size: 0.75rem;
+    }
+    .nav-file-item strong {
+      display: block;
+      font-size: 0.78rem;
+      word-break: break-word;
+    }
+    .nav-file-item .nav-file-meta {
+      display: block;
+      color: #6b7280;
+      font-size: 0.68rem;
+      margin-top: 0.15rem;
+    }
+    .nav-file-item .nav-file-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.35rem;
+    }
+    .nav-file-item .nav-file-actions a,
+    .nav-file-item .nav-file-actions button {
+      font: inherit;
+      font-size: 0.72rem;
+      padding: 0;
+      border: 0;
+      background: none;
+      color: #2563eb;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .nav-file-item .nav-file-actions button.danger {
+      color: #b42318;
+    }
+    .nav-flyout-status {
+      font-size: 0.72rem;
+      color: #6b7280;
+      margin: 0;
+      min-height: 1rem;
+    }
+    .nav-flyout-status.error {
+      color: #b42318;
+    }
+    .nav-flyout-status.success {
+      color: #15803d;
+    }
+    .nav-submit-panel .nav-flyout-field textarea {
+      min-height: 3.5rem;
+    }
     .topbar {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 1rem;
       padding: 0.65rem 1rem;
-      padding-left: 9rem;
       border-bottom: 1px solid var(--border);
       background: var(--panel);
       flex-wrap: wrap;
       flex-shrink: 0;
       position: relative;
       z-index: 2;
-    }
-    @media (max-width: 640px) {
-      .topbar {
-        padding-left: 1rem;
-        padding-top: 2.65rem;
-      }
-    }
-    .back-home {
-      position: fixed;
-      top: 0.75rem;
-      left: 0.75rem;
-      z-index: 10;
-      font-size: 0.8rem;
-      padding: 0.4rem 0.7rem;
-      border-radius: 8px;
-      background: rgba(15, 20, 25, 0.82);
-      -webkit-backdrop-filter: blur(10px);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      color: var(--text);
-      text-decoration: none;
-    }
-    .back-home:hover {
-      color: #b8c9ff;
-      border-color: rgba(255, 255, 255, 0.24);
     }
     .topbar h1 { margin: 0; font-size: 1rem; font-weight: 600; }
     .builder-version {
@@ -90,25 +396,16 @@
       flex: 1 1 0;
       min-width: 0;
     }
-    .story-toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    .story-toolbar label {
-      font-size: 0.75rem;
+    .topbar-session-label {
+      margin: 0;
+      font-size: 0.72rem;
       color: var(--muted);
     }
-    .story-toolbar select {
-      min-width: 11rem;
-      max-width: 100%;
-      padding: 0.35rem 0.5rem;
-      border-radius: 6px;
-      border: 1px solid var(--border);
-      background: var(--bg);
-      color: var(--text);
-      font-size: 0.8rem;
+    .topbar-session-label.hidden {
+      display: none !important;
+    }
+    .topbar-session-label.guest-mode {
+      color: #8fd4a8;
     }
     .api-offline-hint {
       font-size: 0.7rem;
@@ -131,6 +428,7 @@
       display: flex;
       flex-direction: row;
       flex: 1 1 0;
+      min-width: 0;
       min-height: 0;
       overflow: hidden;
     }
@@ -161,6 +459,32 @@
       width: 100%;
       height: 100%;
       background: #111;
+    }
+    .map-basemap-fade-overlay {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+      z-index: 2;
+      opacity: 1;
+    }
+    .map-wrap.is-basemap-crossfade #map {
+      opacity: 0;
+      transition: opacity 500ms ease;
+      will-change: opacity;
+    }
+    .map-wrap.is-basemap-crossfade .map-basemap-fade-overlay {
+      opacity: 1;
+      transition: opacity 500ms ease;
+      will-change: opacity;
+    }
+    .map-wrap.is-basemap-crossfade.is-basemap-crossfade-active #map {
+      opacity: 1;
+    }
+    .map-wrap.is-basemap-crossfade.is-basemap-crossfade-active .map-basemap-fade-overlay {
+      opacity: 0;
     }
     /* Custom attribution (MapLibre's <details> control fights native toggle + our label CSS). */
     .map-wrap .credits-attrib {
@@ -399,7 +723,12 @@
       display: none !important;
     }
     .preferences-toggle-btn {
-      width: 100%;
+      flex-shrink: 0;
+    }
+    a.btn.disabled,
+    a.btn[aria-disabled="true"] {
+      opacity: 0.45;
+      pointer-events: none;
     }
     @media (max-width: 900px) {
       .build-panel {
@@ -438,6 +767,32 @@
     .step-list-row .step-location-btn.active {
       border-color: var(--accent);
       color: var(--accent);
+    }
+    .step-list-row .step-delete-btn {
+      flex: 0 0 auto;
+      width: 1.85rem;
+      height: 1.85rem;
+      padding: 0;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--muted);
+      font: inherit;
+      font-size: 1rem;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .step-list-row .step-delete-btn:hover:not(:disabled) {
+      border-color: #7f1d1d;
+      color: #f87171;
+      background: rgba(127, 29, 29, 0.15);
+    }
+    .step-list-row .step-delete-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+    .step-list-row--intro .step-location-btn {
+      font-weight: 600;
     }
     .step-list-row #btn-capture {
       flex: 0 0 auto;
@@ -518,6 +873,10 @@
       cursor: pointer;
       font-size: 0.8rem;
     }
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
     .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
     .btn.btn-danger { color: #f87171; border-color: #7f1d1d; }
     .btn.btn-danger:hover { background: #7f1d1d; color: #fff; }
@@ -541,22 +900,6 @@
     }
     .coords { font-size: 0.75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
     .hidden { display: none !important; }
-    .preview-story-link {
-      display: inline-flex;
-      align-items: center;
-      padding: 0.45rem 0.75rem;
-      border-radius: 6px;
-      border: 1px solid var(--accent);
-      background: transparent;
-      color: var(--accent);
-      font-size: 0.8rem;
-      text-decoration: none;
-      cursor: pointer;
-    }
-    .preview-story-link:hover {
-      background: rgba(61, 139, 253, 0.12);
-      color: #b8c9ff;
-    }
     .card-quill-wrap {
       border-radius: 6px;
       overflow: hidden;
@@ -746,12 +1089,6 @@
       box-sizing: border-box;
     }
     .text-prompt-actions { margin-top: 0.25rem; }
-    .export-info-modal .text-prompt-panel {
-      width: min(32rem, 100%);
-    }
-    .export-info-modal .text-prompt-message {
-      margin-bottom: 1rem;
-    }
     .new-story-modal .text-prompt-panel {
       width: min(32rem, 100%);
       max-height: min(90vh, 40rem);
@@ -822,17 +1159,11 @@
   </style>
 </head>
 <body>
-  <a href="/index.html" class="back-home">Home</a>
   <header class="topbar">
     <div class="topbar-left">
       <h1>Scroll map story — builder <span class="builder-version">v1.5</span> <span id="guest-mode-badge" class="builder-version hidden" style="color:var(--accent)">· Guest</span></h1>
-      <div class="story-toolbar">
-        <label for="story-select">Story</label>
-        <select id="story-select" aria-label="Current story"></select>
-        <button type="button" class="btn" id="btn-new-story">New story</button>
-        <a id="btn-view-story" class="btn hidden" href="#" target="_blank" rel="noopener noreferrer">View</a>
-        <button type="button" class="btn btn-danger" id="btn-delete-story">Delete</button>
-      </div>
+      <p id="builder-session-label" class="topbar-session-label hidden" role="status" aria-live="polite"></p>
+      <p id="student-session-bar" class="api-offline-hint hidden" role="status"></p>
       <p id="story-api-hint" class="api-offline-hint hidden" role="status">
         Saving into <code>Stories/</code> needs <code>npm run dev</code> (Vite).
       </p>
@@ -853,6 +1184,202 @@
     </p>
   </header>
 
+  <div class="builder-app">
+    <nav class="builder-nav-rail" aria-label="Builder navigation">
+      <a href="/index.html" class="nav-rail-btn" data-label="Home" title="Home">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-9.5z"/></svg>
+      </a>
+      <div class="nav-rail-divider" aria-hidden="true"></div>
+      <button
+        type="button"
+        class="nav-rail-btn"
+        id="nav-story-toggle"
+        data-label="Story"
+        title="Story"
+        aria-expanded="false"
+        aria-controls="nav-story-panel"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+      </button>
+      <button
+        type="button"
+        class="nav-rail-btn"
+        id="nav-map-options-toggle"
+        data-label="Map Options"
+        title="Map Options"
+        aria-expanded="false"
+        aria-controls="nav-map-options-panel"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="8" cy="6" r="2" fill="currentColor" stroke="none"/><circle cx="16" cy="12" r="2" fill="currentColor" stroke="none"/><circle cx="10" cy="18" r="2" fill="currentColor" stroke="none"/></svg>
+      </button>
+      <button
+        type="button"
+        class="nav-rail-btn hidden"
+        id="nav-submit-toggle"
+        data-label="Submit"
+        title="Submit to admin"
+        aria-expanded="false"
+        aria-controls="nav-submit-panel"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+      </button>
+      <button
+        type="button"
+        class="nav-rail-btn hidden"
+        id="nav-files-toggle"
+        data-label="My Files"
+        title="My Files"
+        aria-expanded="false"
+        aria-controls="nav-files-panel"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7z"/></svg>
+      </button>
+      <button
+        type="button"
+        class="nav-rail-btn hidden"
+        id="builder-session-signout"
+        data-label="Sign Out"
+        title="Account"
+        aria-label="Account — Sign out"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21a8 8 0 1 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
+      </button>
+      <button
+        type="button"
+        class="nav-rail-btn hidden"
+        id="builder-session-guest-signout"
+        data-label="Sign Out"
+        title="Account"
+        aria-label="Account — Sign out of guest mode"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21a8 8 0 1 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
+      </button>
+      <button
+        type="button"
+        class="nav-rail-btn hidden"
+        id="builder-session-guest-signin"
+        data-label="Sign in"
+        title="Sign in for full features"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>
+      </button>
+      <div class="nav-rail-spacer" aria-hidden="true"></div>
+    </nav>
+
+    <aside class="nav-flyout-panel nav-story-panel" id="nav-story-panel" hidden aria-label="Story">
+      <div class="nav-flyout-panel-head">
+        <h2>Story</h2>
+        <button type="button" class="nav-panel-close" id="nav-story-panel-close" aria-label="Close story panel">&times;</button>
+      </div>
+      <div class="nav-flyout-panel-body">
+        <label for="story-select">Current story</label>
+        <select id="story-select" aria-label="Current story"></select>
+        <button type="button" class="nav-flyout-btn" id="btn-new-story">New Story</button>
+        <button type="button" class="nav-flyout-btn hidden" id="btn-nav-preview">Preview</button>
+        <button type="button" class="nav-flyout-btn btn-danger" id="btn-delete-story">Delete</button>
+        <div class="nav-flyout-divider" aria-hidden="true"></div>
+        <div id="nav-export-help" class="nav-export-help" aria-live="polite"></div>
+        <button type="button" class="nav-flyout-btn" id="btn-nav-export" title="Export as standalone ZIP">Export</button>
+      </div>
+    </aside>
+
+    <aside class="nav-flyout-panel nav-submit-panel" id="nav-submit-panel" hidden aria-label="Submit story">
+      <div class="nav-flyout-panel-head">
+        <h2>Submit</h2>
+        <button type="button" class="nav-panel-close" id="nav-submit-panel-close" aria-label="Close submit panel">&times;</button>
+      </div>
+      <div class="nav-flyout-panel-body">
+        <p class="field-hint" style="margin:0">Send your saved story to your admin for review.</p>
+        <div class="nav-flyout-field">
+          <label for="submit-comment">Note for admin (optional)</label>
+          <textarea id="submit-comment" rows="3" placeholder="Any message for your teacher…"></textarea>
+        </div>
+        <button type="button" class="nav-flyout-btn" id="btn-submit-confirm">Submit to admin</button>
+        <p id="submit-status" class="nav-flyout-status" role="status" aria-live="polite"></p>
+      </div>
+    </aside>
+
+    <aside class="nav-flyout-panel nav-files-panel" id="nav-files-panel" hidden aria-label="My files">
+      <div class="nav-flyout-panel-head">
+        <h2>My Files</h2>
+        <button type="button" class="nav-panel-close" id="nav-files-panel-close" aria-label="Close files panel">&times;</button>
+      </div>
+      <div class="nav-flyout-panel-body">
+        <label class="nav-flyout-file-btn">Upload file<input type="file" id="nav-files-input" accept="image/*,.geojson,.json" hidden /></label>
+        <div id="nav-files-list" class="nav-files-list"></div>
+        <p id="nav-files-status" class="nav-flyout-status" role="status" aria-live="polite"></p>
+      </div>
+    </aside>
+
+    <aside class="nav-flyout-panel nav-map-options-panel" id="nav-map-options-panel" hidden aria-label="Map options">
+      <div class="nav-flyout-panel-head">
+        <h2>Map Options</h2>
+        <button type="button" class="nav-panel-close" id="nav-map-options-panel-close" aria-label="Close map options panel">&times;</button>
+      </div>
+      <div class="nav-flyout-panel-body nav-map-options-body">
+        <div class="nav-flyout-field">
+          <label for="base-map-select">Base map</label>
+          <select id="base-map-select" aria-label="Base map style"></select>
+        </div>
+        <div class="nav-flyout-field">
+          <label for="projection-select">Map projection</label>
+          <select id="projection-select" aria-label="Map projection">
+            <option value="mercator">Flat (Mercator)</option>
+            <option value="globe">Globe</option>
+          </select>
+          <p class="field-hint">Default for new stories is Globe.</p>
+        </div>
+        <div class="nav-flyout-field">
+          <label for="fly-duration-seconds">Seconds between locations</label>
+          <input type="number" id="fly-duration-seconds" min="1" max="30" step="1" value="3" aria-label="Seconds between locations" />
+          <p class="field-hint">How long the map takes to fly between story locations (1–30 seconds).</p>
+        </div>
+        <div class="nav-flyout-field">
+          <label for="fly-pullback-zoom">Fly pull-back (zoom level)</label>
+          <input type="number" id="fly-pullback-zoom" min="1" max="8" step="0.5" value="3" aria-label="Fly pull-back zoom level" />
+          <p class="field-hint">How far the map pulls back between locations. Basemap changes happen at this point.</p>
+        </div>
+        <div class="nav-flyout-field">
+          <label class="check-label" for="terrain-toggle">
+            <input type="checkbox" id="terrain-toggle" />
+            <span>3D terrain (MapLibre demo — free, no key)</span>
+          </label>
+        </div>
+        <div class="nav-flyout-field" id="satellite-labels-field">
+          <label class="check-label" for="satellite-labels-toggle">
+            <input type="checkbox" id="satellite-labels-toggle" />
+            <span>Show place names on satellite</span>
+          </label>
+        </div>
+        <div class="nav-flyout-field">
+          <label class="check-label" for="restart-at-end-toggle">
+            <input type="checkbox" id="restart-at-end-toggle" />
+            <span>Show “Return to beginning” at the end of the story</span>
+          </label>
+        </div>
+        <div class="nav-flyout-field">
+          <label class="check-label" for="step-nav-buttons-toggle">
+            <input type="checkbox" id="step-nav-buttons-toggle" />
+            <span>Show Previous / Next buttons in Story mode</span>
+          </label>
+        </div>
+        <div class="nav-flyout-field">
+          <label for="sources-text">Sources (HTML)</label>
+          <textarea id="sources-text" rows="3" placeholder="Credits and source links for the story viewer…"></textarea>
+        </div>
+        <div class="nav-flyout-field">
+          <label for="card-bg-color">Card background color</label>
+          <input type="color" id="card-bg-color" value="#ffffff" />
+          <label for="card-bg-opacity" style="margin-top:0.45rem;display:block">Card background opacity</label>
+          <div class="nav-flyout-opacity-row">
+            <input type="range" id="card-bg-opacity" min="0" max="100" step="1" value="86" />
+            <span class="field-hint" id="card-bg-opacity-value" style="margin:0;min-width:2.5rem">86%</span>
+          </div>
+          <div class="nav-flyout-card-preview" id="card-preview"><p>Card preview</p></div>
+        </div>
+      </div>
+    </aside>
+
   <div class="shell" id="shell">
     <div class="map-wrap" id="map-wrap">
       <div class="geo-search" id="geo-search">
@@ -866,8 +1393,9 @@
     <aside class="build-panel" id="build-panel" aria-label="Story builder">
       <div class="build-panel-main">
       <div class="row">
+        <button type="button" class="btn" id="btn-add-intro">[+] Intro</button>
         <button type="button" class="btn primary" id="btn-add-step">[+] Location</button>
-        <button type="button" class="btn" id="btn-remove-step">[-] Location</button>
+        <button type="button" class="btn" id="btn-remove-step" disabled title="Delete the selected card">Delete</button>
         <button type="button" class="btn" id="btn-move-up">Move up</button>
         <button type="button" class="btn" id="btn-move-down">Move down</button>
       </div>
@@ -903,6 +1431,13 @@
           <input type="checkbox" id="step-spin-toggle" style="margin-top:0.15rem" />
           <span>Spin globe while this card is active <span class="coords">(globe projection only)</span></span>
         </label>
+      </div>
+      <div class="field" style="margin:0.35rem 0 0">
+        <label for="step-fly-transition-select" style="font-size:0.78rem">Move to this location</label>
+        <select id="step-fly-transition-select" aria-label="Camera transition when moving to this location">
+          <option value="smooth">Smooth transition</option>
+          <option value="pullback">Zoom out and zoom in</option>
+        </select>
       </div>
       <div class="annotate-panel" id="annotate-panel" role="region" aria-label="Map annotation" hidden>
         <div class="field">
@@ -954,87 +1489,12 @@
       <div class="build-panel-footer">
       <div class="row">
         <button type="button" class="btn primary" id="btn-save">Save</button>
-        <button type="button" class="btn" id="btn-export" title="Export as standalone ZIP">Export</button>
-        <button type="button" class="btn hidden" id="btn-guest-preview" title="Open local preview (blob URL)">Preview</button>
-        <a
-          id="preview-story-link"
-          class="preview-story-link hidden"
-          href="#"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Open saved story preview in a new tab"
-          >Preview</a>
+        <button type="button" class="btn hidden" id="btn-preview">Preview</button>
+        <button type="button" class="btn" id="btn-export" title="Open export in Story panel">Export</button>
       </div>
-      <div class="preferences-panel" id="preferences-panel" role="region" aria-label="Global options" hidden>
-        <div class="field">
-          <label for="base-map-select">Base map</label>
-          <select id="base-map-select" aria-label="Base map style"></select>
-        </div>
-        <div class="field">
-          <label for="projection-select">Map projection</label>
-          <select id="projection-select" aria-label="Map projection">
-            <option value="mercator">Flat (Mercator)</option>
-            <option value="globe">Globe</option>
-          </select>
-          <p class="coords" style="margin:0.35rem 0 0">Default for new stories is Globe. Flat uses a Mercator map.</p>
-        </div>
-        <div class="field terrain-field">
-          <label style="display:flex;align-items:flex-start;gap:0.5rem;cursor:pointer;font-size:0.875rem">
-            <input type="checkbox" id="terrain-toggle" style="margin-top:0.2rem" />
-            <span>3D terrain (MapLibre demo — free, no key). Adds hills; works best with a tilted view (drag with right mouse or Ctrl).</span>
-          </label>
-        </div>
-        <div class="field" id="satellite-labels-field">
-          <label style="display:flex;align-items:flex-start;gap:0.5rem;cursor:pointer;font-size:0.875rem">
-            <input type="checkbox" id="satellite-labels-toggle" style="margin-top:0.2rem" />
-            <span>Show place names on satellite (Esri reference overlay — cities, borders; no extra key).</span>
-          </label>
-        </div>
-        <div class="field">
-          <label style="display:flex;align-items:flex-start;gap:0.5rem;cursor:pointer;font-size:0.875rem">
-            <input type="checkbox" id="restart-at-end-toggle" style="margin-top:0.2rem" />
-            <span>Show “Start from beginning” at the end of the story</span>
-          </label>
-        </div>
-        <div class="field">
-          <label for="sources-text">Sources (HTML)</label>
-          <textarea
-            id="sources-text"
-            rows="5"
-            placeholder="e.g. &lt;p&gt;Data from …&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://…&quot;&gt;Source&lt;/a&gt;&lt;/p&gt; — rendered under Map Credits in Credits and Sources."
-          ></textarea>
-        </div>
-        <div class="field">
-          <label for="card-bg-color">Card background color</label>
-          <input type="color" id="card-bg-color" value="#ffffff" />
-          <label for="card-bg-opacity">Card background opacity</label>
-          <div class="opacity-slider-row">
-            <input
-              type="range"
-              id="card-bg-opacity"
-              min="0"
-              max="100"
-              step="1"
-              value="86"
-              aria-valuemin="0"
-              aria-valuemax="100"
-            />
-            <span class="coords" id="card-bg-opacity-value">86%</span>
-          </div>
-          <div class="builder-card-preview"><p>Card preview</p></div>
-        </div>
-      </div>
-      <button
-        type="button"
-        class="btn preferences-toggle-btn"
-        id="btn-preferences-toggle"
-        aria-expanded="false"
-        aria-controls="preferences-panel"
-      >
-        Global Options
-      </button>
       </div>
     </aside>
+  </div>
   </div>
 
   <div id="text-prompt-modal" class="text-prompt-modal" hidden>
@@ -1082,7 +1542,7 @@
         </p>
       </div>
       <div id="ns-global-options">
-      <p class="ns-section-label">Global options</p>
+      <p class="ns-section-label">Map options</p>
       <div class="ns-field">
         <label for="ns-basemap">Base map</label>
         <select id="ns-basemap" aria-label="Base map style"></select>
@@ -1129,35 +1589,21 @@
     </div>
   </div>
 
-  <div id="export-info-modal" class="text-prompt-modal export-info-modal" hidden>
-    <div class="text-prompt-backdrop" aria-hidden="true"></div>
-    <div
-      class="text-prompt-panel"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="export-info-title"
-    >
-      <h2 id="export-info-title" class="text-prompt-title">Export Local Site</h2>
-      <p id="export-info-message" class="text-prompt-message">
-        This will give you a folder with all the HTML, Javascript, CSS and data that you need to host this anywhere. Note that the maps will not show up if you view locally on your computer by simply double-clicking the HTML file. It must be served from a secure server. An easy way to do this is to open it in Visual Studio Code, then use the Live Server plug-in to &ldquo;Open With Live Server.&rdquo;
-      </p>
-      <div class="text-prompt-actions row">
-        <button type="button" class="btn" id="export-info-cancel">Cancel</button>
-        <button type="button" class="btn primary" id="export-info-ok">OK</button>
-      </div>
-    </div>
-  </div>
-
   <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.min.js" crossorigin=""></script>
   <script src="https://cdn.jsdelivr.net/npm/@mapbox/mapbox-gl-draw@1.4.3/dist/mapbox-gl-draw.js" crossorigin=""></script>
   <script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js" crossorigin=""></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" crossorigin=""></script>
   <script src="/Tools/guest-playground.js"></script>
   <script src="/Tools/guest-agreement.js"></script>
+  <script src="/Tools/builder-auth-ui.js"></script>
   <script>
 (function () {
   var STORAGE_KEY = "scroll-map-story-config";
   var VIEWER_TEMPLATE_URL = "/Tools/scroll-map-story.html";
+  var DEFAULT_EXPORT_HELP_HTML =
+    "This gives you a folder with all the HTML, JavaScript, CSS, and data needed to host your story anywhere. " +
+    "Maps will not work if you open the HTML by double-clicking on your computer — the site must be served over HTTP. " +
+    "An easy option is Visual Studio Code with the Live Server extension: right-click the HTML file and choose &ldquo;Open with Live Server.&rdquo;";
 
   var BASE_MAPS = [
     {
@@ -1224,6 +1670,11 @@
     return style;
   }
 
+  var INTRO_DEFAULT_HTML =
+    "<h2>Welcome</h2>" +
+    "<p>Scroll down to explore this story. Each card moves the map to a new place.</p>" +
+    "<p>Use <strong>Story</strong> mode to follow along, or switch to <strong>Explore</strong> to jump between locations and pan or zoom freely.</p>";
+
   var DEFAULT_CONFIG = {
     version: 1,
     baseMap: "openfreemap-bright",
@@ -1237,31 +1688,74 @@
     initialMap: { lat: 43.0481, lng: -76.1474, zoom: 11 },
     steps: [
       {
+        id: "intro",
+        type: "intro",
+        lat: 43.0481,
+        lng: -76.1474,
+        zoom: 11,
+        html: INTRO_DEFAULT_HTML,
+        overlays: { geojson: { type: "FeatureCollection", features: [] } }
+      },
+      {
         id: "location-1",
         lat: 43.0481,
         lng: -76.1474,
         zoom: 11,
         html: "<p>Syracuse, NY</p>",
-        overlays: { geojson: { type: "FeatureCollection", features: [] } }
-      },
-      {
-        id: "location-2",
-        lat: 40.7128,
-        lng: -74.006,
-        zoom: 10,
-        html: "<p>New York City, NY</p>",
-        overlays: { geojson: { type: "FeatureCollection", features: [] } }
-      },
-      {
-        id: "location-3",
-        lat: 38.9072,
-        lng: -77.0369,
-        zoom: 11,
-        html: "<p>Washington, DC</p>",
+        flyTransition: "smooth",
         overlays: { geojson: { type: "FeatureCollection", features: [] } }
       }
     ]
   };
+
+  function isIntroStep(step) {
+    return !!(step && step.type === "intro");
+  }
+
+  function hasIntroStep() {
+    if (!config || !config.steps) return false;
+    for (var i = 0; i < config.steps.length; i++) {
+      if (isIntroStep(config.steps[i])) return true;
+    }
+    return false;
+  }
+
+  function countLocationSteps() {
+    if (!config || !config.steps) return 0;
+    var n = 0;
+    config.steps.forEach(function (s) {
+      if (!isIntroStep(s)) n++;
+    });
+    return n;
+  }
+
+  function getStepListLabel(step, index) {
+    if (isIntroStep(step)) return "Intro";
+    var locNum = 0;
+    for (var j = 0; j <= index; j++) {
+      if (!isIntroStep(config.steps[j])) locNum++;
+    }
+    return "Location " + locNum;
+  }
+
+  function pinIntroStepFirst(data) {
+    if (!data.steps || !data.steps.length) return;
+    var introIdx = -1;
+    for (var i = 0; i < data.steps.length; i++) {
+      if (data.steps[i] && data.steps[i].type === "intro") {
+        if (introIdx >= 0) delete data.steps[i].type;
+        else introIdx = i;
+      }
+    }
+    if (introIdx < 0) return;
+    if (introIdx > 0) {
+      var intro = data.steps.splice(introIdx, 1)[0];
+      data.steps.unshift(intro);
+    }
+    var introStep = data.steps[0];
+    introStep.type = "intro";
+    if (!introStep.id) introStep.id = "intro";
+  }
 
   var config;
   var map;
@@ -1273,7 +1767,6 @@
   var guestMode = false;
   var guestViewerTemplate = null;
   var guestViewerTemplatePromise = null;
-  var guestPreviewBlobUrl = null;
   var currentSlug = null;
   var drawControl = null;
   var drawCreateWired = false;
@@ -1285,6 +1778,37 @@
 
   /** After a successful save, remember so Preview stays visible if the dev server reloads the page. */
   var PREVIEW_SESSION_KEY = "mapsandcards-builder-preview-slug";
+  var PREVIEW_RETURN_KEY = "mapsandcards-builder-return-url";
+
+  function builderReturnUrl() {
+    if (guestMode) return guestBuilderUrl(currentSlug);
+    var q = new URLSearchParams();
+    if (currentSlug) q.set("story", currentSlug);
+    var current = new URLSearchParams(window.location.search);
+    if (current.get("handoff")) q.set("handoff", current.get("handoff"));
+    var qs = q.toString();
+    return "/Tools/scroll-map-builder.html" + (qs ? "?" + qs : "");
+  }
+
+  function previewUrlForStory(slug) {
+    if (!slug) return null;
+    if (guestMode) {
+      return (
+        "/story-viewer.html?story=" +
+        encodeURIComponent(slug) +
+        "&guest=1"
+      );
+    }
+    return "/story-viewer.html?story=" + encodeURIComponent(slug);
+  }
+
+  function navigateToPreview(url) {
+    if (!url) return;
+    try {
+      sessionStorage.setItem(PREVIEW_RETURN_KEY, builderReturnUrl());
+    } catch (e) {}
+    window.location.href = url;
+  }
 
   function isGuestModeFromUrl() {
     var p = new URLSearchParams(window.location.search);
@@ -1356,16 +1880,7 @@
       });
   }
 
-  function revokeGuestPreviewBlob() {
-    if (guestPreviewBlobUrl) {
-      try {
-        URL.revokeObjectURL(guestPreviewBlobUrl);
-      } catch (e) {}
-      guestPreviewBlobUrl = null;
-    }
-  }
-
-  function openGuestPreviewTab() {
+  function openGuestPreview() {
     if (!currentSlug || !window.MapsAndCardsGuest) return;
     return persistGuestProject({ quiet: true }).then(function () {
       var project = window.MapsAndCardsGuest.loadProject(currentSlug);
@@ -1373,78 +1888,61 @@
         alert("Nothing to preview yet.");
         return;
       }
-      revokeGuestPreviewBlob();
       var indexFile = window.MapsAndCardsGuest.findFile(project, "index.html");
       if (!indexFile || !indexFile.content) {
         alert("Preview HTML missing.");
         return;
       }
-      var blob = new Blob([indexFile.content], { type: "text/html" });
-      guestPreviewBlobUrl = URL.createObjectURL(blob);
-      window.open(guestPreviewBlobUrl, "_blank", "noopener,noreferrer");
+      navigateToPreview(previewUrlForStory(currentSlug));
     });
   }
 
   function showGuestPreviewControls() {
-    var guestBtn = el("btn-guest-preview");
-    var preview = el("preview-story-link");
-    var viewBtn = el("btn-view-story");
-    if (guestBtn) guestBtn.classList.remove("hidden");
-    if (preview) preview.classList.add("hidden");
-    if (viewBtn) {
-      viewBtn.href = "#";
-      viewBtn.classList.remove("hidden");
-      viewBtn.onclick = function (e) {
-        e.preventDefault();
-        openGuestPreviewTab();
-      };
-    }
+    updateNavPreviewButton(currentSlug);
   }
 
   function applyGuestModeUi() {
     var apiHint = el("story-api-hint");
     var guestHint = el("guest-mode-hint");
-    var exportBtn = el("btn-export");
+    var exportBtn = el("btn-nav-export");
+    var footerExportBtn = el("btn-export");
     var saveBtn = el("btn-save");
-    var guestBtn = el("btn-guest-preview");
     var badge = el("guest-mode-badge");
     if (apiHint) apiHint.classList.add("hidden");
     if (guestHint) guestHint.classList.remove("hidden");
     if (badge) badge.classList.remove("hidden");
-    if (exportBtn) {
-      exportBtn.textContent = "Export Local Site";
-      exportBtn.title = "Download ZIP (WebxRide Public Playground style)";
-    }
+    [exportBtn, footerExportBtn].forEach(function (btn) {
+      if (!btn) return;
+      btn.textContent = "Export Local Site";
+      btn.title = "Open export in Story panel";
+    });
     if (saveBtn) saveBtn.title = "Save draft in this browser (localStorage)";
-    if (guestBtn) guestBtn.classList.remove("hidden");
     document.body.classList.add("guest-mode");
     showGuestPreviewControls();
   }
 
-  function updateViewButton(slug) {
-    var viewBtn = el("btn-view-story");
-    if (!viewBtn) return;
-    if (guestMode) {
-      if (slug) {
-        viewBtn.href = "#";
-        viewBtn.classList.remove("hidden");
-        viewBtn.onclick = function (e) {
-          e.preventDefault();
-          openGuestPreviewTab();
-        };
-      } else {
-        viewBtn.classList.add("hidden");
-        viewBtn.onclick = null;
-      }
+  function updateNavPreviewButton(slug) {
+    var show = !!(slug || currentSlug);
+    [el("btn-nav-preview"), el("btn-preview")].forEach(function (btn) {
+      if (!btn) return;
+      btn.classList.toggle("hidden", !show);
+    });
+  }
+
+  function openNavPreview() {
+    if (!currentSlug) {
+      alert("Select or create a story first.");
       return;
     }
-    viewBtn.onclick = null;
-    if (slug) {
-      viewBtn.href = "/Stories/" + encodeURIComponent(slug) + "/scroll-map-story.html";
-      viewBtn.classList.remove("hidden");
-    } else {
-      viewBtn.classList.add("hidden");
+    if (guestMode) {
+      openGuestPreview();
+      return;
     }
+    if (!storyApiOk) {
+      alert("Save your story first to preview.");
+      return;
+    }
+    navigateToPreview(previewUrlForStory(currentSlug));
   }
 
   function showPreviewLinkForStory(slug) {
@@ -1452,11 +1950,7 @@
       showGuestPreviewControls();
       return;
     }
-    var preview = el("preview-story-link");
-    if (!preview || !slug) return;
-    preview.href = "/story-viewer.html?story=" + encodeURIComponent(slug);
-    preview.classList.remove("hidden");
-    updateViewButton(slug);
+    updateNavPreviewButton(slug);
     try {
       sessionStorage.setItem(PREVIEW_SESSION_KEY, slug);
     } catch (e) {}
@@ -1467,14 +1961,12 @@
       showGuestPreviewControls();
       return;
     }
-    var preview = el("preview-story-link");
-    if (!preview || !currentSlug) return;
-    updateViewButton(currentSlug);
+    if (!currentSlug) return;
+    updateNavPreviewButton(currentSlug);
     try {
       var saved = sessionStorage.getItem(PREVIEW_SESSION_KEY);
       if (saved === currentSlug) {
-        preview.href = "/story-viewer.html?story=" + encodeURIComponent(currentSlug);
-        preview.classList.remove("hidden");
+        updateNavPreviewButton(currentSlug);
       }
     } catch (e) {}
   }
@@ -1708,6 +2200,27 @@
     cb.checked = !!(s && s.spin === true);
   }
 
+  function syncStepFlyTransitionUi() {
+    var sel = el("step-fly-transition-select");
+    if (!sel || !config) return;
+    var s = config.steps[selectedIndex];
+    sel.value = s && s.flyTransition === "smooth" ? "smooth" : "pullback";
+  }
+
+  function stepUsesSmoothFly(s) {
+    return !!(s && s.flyTransition === "smooth");
+  }
+
+  function currentMapCamera() {
+    if (!map) return { center: [0, 0], zoom: 2, pitch: 0 };
+    var c = map.getCenter();
+    return {
+      center: [c.lng, c.lat],
+      zoom: map.getZoom(),
+      pitch: map.getPitch(),
+    };
+  }
+
   function syncProjectionSelect() {
     var sel = el("projection-select");
     if (!sel || !config) return;
@@ -1724,6 +2237,66 @@
     var c = el("restart-at-end-toggle");
     if (!c || !config) return;
     c.checked = config.restartAtEnd === true;
+  }
+
+  function syncStepNavButtonsToggle() {
+    var c = el("step-nav-buttons-toggle");
+    if (!c || !config) return;
+    c.checked = config.stepNavButtons !== false;
+  }
+
+  function syncFlyDurationField() {
+    var inp = el("fly-duration-seconds");
+    if (!inp || !config) return;
+    inp.value = String(normalizeFlyDurationSeconds(config.flyDurationSeconds));
+  }
+
+  function syncFlyPullbackField() {
+    var inp = el("fly-pullback-zoom");
+    if (!inp || !config) return;
+    inp.value = String(normalizeFlyPullBackZoom(config.flyPullBackZoom));
+  }
+
+  function updateMapOptionsCardPreview() {
+    var preview = el("card-preview");
+    if (!preview || !config) return;
+    preview.style.background = getCardBackgroundRgbaString();
+  }
+
+  function syncMapOptionsFlyoutFields() {
+    syncBaseMapSelect();
+    syncProjectionSelect();
+    syncFlyDurationField();
+    syncFlyPullbackField();
+    syncTerrainToggle();
+    syncSatelliteLabelsUi();
+    syncRestartAtEndToggle();
+    syncStepNavButtonsToggle();
+    syncSourcesField();
+    syncCardBackgroundFields();
+    updateMapOptionsCardPreview();
+  }
+
+  function applyGlobalBaseMapInBuilder() {
+    if (!map || !config) return;
+    var s = config.steps[selectedIndex];
+    var targetBase = (s && s.baseMap) ? s.baseMap : (config.baseMap || "openfreemap-bright");
+    if (targetBase === currentBuilderBaseMap) return;
+    currentBuilderBaseMap = targetBase;
+    getBaseMapStylePromise(targetBase)
+      .then(function (style) {
+        map.once("idle", function () {
+          applyEnglishLabels(map);
+          applyProjectionIfNeeded();
+          applyTerrainIfNeeded();
+          map.resize();
+          applyStepOverlays(selectedIndex);
+        });
+        map.setStyle(style);
+      })
+      .catch(function (err) {
+        console.error("Basemap switch failed:", err);
+      });
   }
 
   function syncSatelliteLabelsUi() {
@@ -1829,6 +2402,23 @@
     };
   }
 
+  var DEFAULT_FLY_DURATION_SECONDS = 3;
+  var DEFAULT_FLY_PULLBACK_ZOOM = 3;
+
+  function normalizeFlyDurationSeconds(v) {
+    if (typeof v === "number" && !isNaN(v)) {
+      return Math.max(1, Math.min(30, Math.round(v)));
+    }
+    return DEFAULT_FLY_DURATION_SECONDS;
+  }
+
+  function normalizeFlyPullBackZoom(v) {
+    if (typeof v === "number" && !isNaN(v)) {
+      return Math.max(1, Math.min(8, Math.round(v * 2) / 2));
+    }
+    return DEFAULT_FLY_PULLBACK_ZOOM;
+  }
+
   function normalizeConfig(data) {
     if (!data.steps || !Array.isArray(data.steps)) {
       throw new Error('Invalid JSON: need a "steps" array of locations.');
@@ -1852,11 +2442,29 @@
     }
     if (data.restartAtEnd === true) data.restartAtEnd = true;
     else delete data.restartAtEnd;
+    if (data.stepNavButtons === false) data.stepNavButtons = false;
+    else delete data.stepNavButtons;
+    if (data.flySpeed === "slow") data.flyDurationSeconds = 8;
+    else if (data.flySpeed === "fast") data.flyDurationSeconds = 3;
+    delete data.flySpeed;
+    if (typeof data.flyDurationSeconds === "number" && !isNaN(data.flyDurationSeconds)) {
+      data.flyDurationSeconds = normalizeFlyDurationSeconds(data.flyDurationSeconds);
+      if (data.flyDurationSeconds === DEFAULT_FLY_DURATION_SECONDS) delete data.flyDurationSeconds;
+    } else {
+      delete data.flyDurationSeconds;
+    }
+    if (typeof data.flyPullBackZoom === "number" && !isNaN(data.flyPullBackZoom)) {
+      data.flyPullBackZoom = normalizeFlyPullBackZoom(data.flyPullBackZoom);
+      if (data.flyPullBackZoom === DEFAULT_FLY_PULLBACK_ZOOM) delete data.flyPullBackZoom;
+    } else {
+      delete data.flyPullBackZoom;
+    }
     if (typeof data.sources !== "string") {
       data.sources = "";
     }
     data.cardBackgroundOpacity = normalizeCardBackgroundOpacity(data.cardBackgroundOpacity);
     data.cardBackgroundColor = normalizeCardBackgroundColor(data.cardBackgroundColor);
+    pinIntroStepFirst(data);
     if (data.steps[0]) {
       var s0 = data.steps[0];
       data.initialMap = {
@@ -1875,8 +2483,16 @@
 
   function normalizeStepOverlays(step) {
     if (!step || typeof step !== "object") return;
+    if (step.type === "intro") {
+      step.type = "intro";
+      delete step.spin;
+      delete step.flyTransition;
+      delete step.baseMap;
+    }
     if (step.spin === true) step.spin = true;
     else delete step.spin;
+    if (step.flyTransition === "smooth") step.flyTransition = "smooth";
+    else delete step.flyTransition;
     if (!step.overlays || typeof step.overlays !== "object") {
       step.overlays = { geojson: { type: "FeatureCollection", features: [] } };
       return;
@@ -3166,6 +3782,7 @@
     rng.value = String(Math.round(a * 100));
     if (lab) lab.textContent = Math.round(a * 100) + "%";
     applyCardBackgroundOpacity();
+    updateMapOptionsCardPreview();
   }
 
   function syncCardBackgroundFields() {
@@ -3259,15 +3876,11 @@
         config = loadConfigFromStorage();
         selectedIndex = 0;
       }
-      syncBaseMapSelect();
-      syncTerrainToggle();
-      syncRestartAtEndToggle();
-      syncProjectionSelect();
-      syncSatelliteLabelsUi();
+      syncMapOptionsFlyoutFields();
       syncStorySelectValue();
       applyGuestModeUi();
       restorePreviewLinkAfterLoad();
-      updateViewButton(currentSlug);
+      updateNavPreviewButton(currentSlug);
       then();
       if (!currentSlug) {
         window.setTimeout(function () {
@@ -3332,15 +3945,11 @@
         selectedIndex = 0;
       })
       .then(function () {
-        syncBaseMapSelect();
-        syncTerrainToggle();
-        syncRestartAtEndToggle();
-        syncProjectionSelect();
-        syncSatelliteLabelsUi();
+        syncMapOptionsFlyoutFields();
         syncStorySelectValue();
         showStoryApiHint();
         restorePreviewLinkAfterLoad();
-        updateViewButton(currentSlug);
+        updateNavPreviewButton(currentSlug);
         then();
       });
   }
@@ -3699,55 +4308,407 @@
 
   var _flyGen = 0;
 
-  function applyCameraForStep(s, animate) {
-    if (!map || !s) return;
-    var z = typeof s.zoom === "number" ? s.zoom : 6;
-    var pitch = config.terrain ? 42 : 0;
+  function haversineKm(lng1, lat1, lng2, lat2) {
+    var R = 6371;
+    var dLat = ((lat2 - lat1) * Math.PI) / 180;
+    var dLng = ((lng2 - lng1) * Math.PI) / 180;
+    var a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  function flyDurationMs() {
+    return normalizeFlyDurationSeconds(config && config.flyDurationSeconds) * 1000;
+  }
+
+  function getFlyPullBackZoom() {
+    return normalizeFlyPullBackZoom(config && config.flyPullBackZoom);
+  }
+
+  function peakCameraForStep(s) {
+    var from = map.getCenter();
+    var destZoom = typeof s.zoom === "number" ? s.zoom : 6;
+    return {
+      center: [
+        from.lng + (s.lng - from.lng) * 0.5,
+        from.lat + (s.lat - from.lat) * 0.5,
+      ],
+      zoom: Math.min(getFlyPullBackZoom(), map.getZoom(), destZoom),
+      pitch: stepPitch(),
+    };
+  }
+
+  function buildDirectFlyMove(lng, lat, zoom, pitch, duration) {
+    return {
+      type: "fly",
+      options: {
+        center: [lng, lat],
+        zoom: zoom,
+        pitch: pitch,
+        duration: duration,
+        curve: 1.42,
+        essential: true,
+      },
+    };
+  }
+
+  function scheduleGlobeSpinAfterCameraMove(stepIndex, gen, animate) {
+    if (!map) return;
     if (animate === false) {
-      map.jumpTo({ center: [s.lng, s.lat], zoom: z, pitch: pitch });
-    } else {
-      map.flyTo({ center: [s.lng, s.lat], zoom: z, duration: 1200, pitch: pitch });
+      if (gen === _flyGen) syncGlobeSpinForStep(stepIndex);
+      return;
     }
+    map.once("moveend", function () {
+      if (gen !== _flyGen) return;
+      syncGlobeSpinForStep(stepIndex);
+    });
+  }
+
+  function waitForMoveEnd(gen, cb) {
+    if (!map) return;
+    map.once("moveend", function wait() {
+      if (gen !== _flyGen) return;
+      if (typeof map.isMoving === "function" && map.isMoving()) {
+        map.once("moveend", wait);
+        return;
+      }
+      cb();
+    });
+  }
+
+  function stepPitch() {
+    return config.terrain ? 42 : config.projection === "globe" ? 28 : 0;
+  }
+
+  function effectiveBaseForStep(s) {
+    return s.baseMap ? s.baseMap : (config.baseMap || "openfreemap-bright");
+  }
+
+  function buildCameraMoveTo(lng, lat, zoom, pitch, animate, durationOverride) {
+    if (!map) return null;
+    var target = { center: [lng, lat], zoom: zoom, pitch: pitch, bearing: 0 };
+
+    if (animate === false) {
+      return { type: "jump", options: target };
+    }
+
+    var from = map.getCenter();
+    var fromZoom = map.getZoom();
+    var distKm = haversineKm(from.lng, from.lat, lng, lat);
+    var duration = durationOverride != null ? durationOverride : flyDurationMs();
+    var maxZoom;
+    if (distKm < 8) {
+      maxZoom = Math.max(fromZoom, zoom) + 0.45;
+    } else if (distKm < 120) {
+      maxZoom = Math.max(4.5, Math.min(fromZoom, zoom) + 0.8);
+    } else {
+      maxZoom = Math.max(
+        3.2,
+        Math.min(fromZoom, zoom) - Math.min(4.2, distKm / 220)
+      );
+    }
+
+    return {
+      type: "fly",
+      options: {
+        center: target.center,
+        zoom: zoom,
+        pitch: pitch,
+        duration: duration,
+        curve: 1.9,
+        maxZoom: maxZoom,
+        essential: true,
+      },
+    };
+  }
+
+  function buildCameraMove(s, animate, durationOverride) {
+    if (!map || !s) return null;
+    var z = typeof s.zoom === "number" ? s.zoom : 6;
+    return buildCameraMoveTo(s.lng, s.lat, z, stepPitch(), animate, durationOverride);
+  }
+
+  function applyCameraMove(move) {
+    if (!map || !move) return;
+    if (move.type === "jump") {
+      map.jumpTo(move.options);
+    } else {
+      if (map.getBearing() !== 0) map.jumpTo({ bearing: 0 });
+      map.flyTo(move.options);
+    }
+  }
+
+  function applyCameraForStep(s, animate, durationOverride) {
+    applyCameraMove(buildCameraMove(s, animate, durationOverride));
+  }
+
+  var BASEMAP_FADE_MS = 500;
+  var _basemapFadeOverlay = null;
+
+  function clearBasemapFadeOverlay() {
+    if (_basemapFadeOverlay && _basemapFadeOverlay.parentNode) {
+      _basemapFadeOverlay.parentNode.removeChild(_basemapFadeOverlay);
+    }
+    _basemapFadeOverlay = null;
+  }
+
+  function isGlobeProjectionActive() {
+    if (!map || !config || config.projection !== "globe") return false;
+    try {
+      var cur = map.getProjection && map.getProjection();
+      return !!(cur && cur.type === "globe");
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function captureBasemapFadeOverlay() {
+    clearBasemapFadeOverlay();
+    if (!map) return null;
+    var wrap = el("map-wrap");
+    if (!wrap) return null;
+    var canvas = map.getCanvas && map.getCanvas();
+    if (!canvas || !canvas.toDataURL) return null;
+    try {
+      var img = document.createElement("img");
+      img.className = "map-basemap-fade-overlay";
+      img.src = canvas.toDataURL("image/png");
+      img.alt = "";
+      img.setAttribute("aria-hidden", "true");
+      wrap.appendChild(img);
+      _basemapFadeOverlay = img;
+      return img;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function crossfadeBasemapReveal(cb) {
+    var overlay = _basemapFadeOverlay;
+    _basemapFadeOverlay = null;
+    var wrap = el("map-wrap");
+    var mapEl = el("map");
+    if (!overlay || !wrap || !mapEl) {
+      clearBasemapFadeOverlay();
+      if (wrap) wrap.classList.remove("is-basemap-crossfade", "is-basemap-crossfade-active");
+      if (cb) cb();
+      return;
+    }
+    var done = false;
+    function finish() {
+      if (done) return;
+      done = true;
+      wrap.classList.remove("is-basemap-crossfade", "is-basemap-crossfade-active");
+      if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+      mapEl.style.opacity = "";
+      if (cb) cb();
+    }
+    overlay.addEventListener(
+      "transitionend",
+      function (e) {
+        if (e.propertyName === "opacity") finish();
+      },
+      { once: true }
+    );
+    window.setTimeout(finish, BASEMAP_FADE_MS + 100);
+    wrap.classList.add("is-basemap-crossfade");
+    void wrap.offsetWidth;
+    requestAnimationFrame(function () {
+      wrap.classList.add("is-basemap-crossfade-active");
+    });
+  }
+
+  function waitForBasemapReadyThenFade(gen, onReady) {
+    function abortFade() {
+      clearBasemapFadeOverlay();
+      var wrap = el("map-wrap");
+      if (wrap) wrap.classList.remove("is-basemap-crossfade", "is-basemap-crossfade-active");
+      var mapEl = el("map");
+      if (mapEl) mapEl.style.opacity = "";
+    }
+    function startFade() {
+      if (gen !== _flyGen) {
+        abortFade();
+        return;
+      }
+      crossfadeBasemapReveal(onReady);
+    }
+    function afterGlobePaint() {
+      requestAnimationFrame(function () {
+        requestAnimationFrame(startFade);
+      });
+    }
+    function waitForGlobeReady(attemptsLeft) {
+      if (gen !== _flyGen) {
+        abortFade();
+        return;
+      }
+      if (!isGlobeProjectionActive()) applyProjectionIfNeeded();
+      map.once("idle", function () {
+        if (gen !== _flyGen) {
+          abortFade();
+          return;
+        }
+        if (!isGlobeProjectionActive() && attemptsLeft > 0) {
+          waitForGlobeReady(attemptsLeft - 1);
+          return;
+        }
+        afterGlobePaint();
+      });
+      if (typeof map.triggerRepaint === "function") map.triggerRepaint();
+    }
+
+    if (config.projection === "globe") {
+      waitForGlobeReady(3);
+    } else {
+      map.once("idle", function () {
+        if (gen !== _flyGen) {
+          abortFade();
+          return;
+        }
+        startFade();
+      });
+    }
+  }
+
+  function switchBasemapAtCamera(i, gen, camera, onReady) {
+    var s = config.steps[i];
+    if (!s || !map || gen !== _flyGen) return;
+    var targetBase = effectiveBaseForStep(s);
+    if (targetBase === currentBuilderBaseMap) {
+      if (onReady) onReady();
+      return;
+    }
+    currentBuilderBaseMap = targetBase;
+    captureBasemapFadeOverlay();
+
+    getBaseMapStylePromise(targetBase)
+      .then(function (style) {
+        if (gen !== _flyGen) {
+          clearBasemapFadeOverlay();
+          return;
+        }
+        map.once("style.load", function () {
+          if (gen !== _flyGen) return;
+          applyProjectionIfNeeded();
+        });
+        map.once("idle", function () {
+          if (gen !== _flyGen) {
+            clearBasemapFadeOverlay();
+            return;
+          }
+          applyEnglishLabels(map);
+          applyProjectionIfNeeded();
+          applyTerrainIfNeeded();
+          ensureOverlaySources();
+          map.resize();
+          map.jumpTo({
+            center: camera.center,
+            zoom: camera.zoom,
+            pitch: camera.pitch,
+            bearing: 0,
+          });
+          waitForBasemapReadyThenFade(gen, onReady);
+        });
+        map.setStyle(style);
+      })
+      .catch(function (err) {
+        clearBasemapFadeOverlay();
+        console.error("Step basemap switch failed:", err);
+      });
+  }
+
+  function switchBasemapForStep(i, gen) {
+    var s = config.steps[i];
+    if (!s) return;
+    var z = typeof s.zoom === "number" ? s.zoom : 6;
+    switchBasemapAtCamera(
+      i,
+      gen,
+      { center: [s.lng, s.lat], zoom: z, pitch: stepPitch() },
+      function () {
+        applyStepOverlays(i);
+        scheduleGlobeSpinAfterCameraMove(i, gen, false);
+      }
+    );
+  }
+
+  function flySmoothToStep(i, gen, s, needSwitch) {
+    if (map.getBearing() !== 0) map.jumpTo({ bearing: 0 });
+
+    function flyInbound() {
+      if (gen !== _flyGen) return;
+      applyCameraMove(buildCameraMove(s, true));
+      waitForMoveEnd(gen, function () {
+        applyStepOverlays(i);
+        scheduleGlobeSpinAfterCameraMove(i, gen, false);
+      });
+    }
+
+    if (needSwitch) {
+      switchBasemapAtCamera(i, gen, currentMapCamera(), flyInbound);
+    } else {
+      flyInbound();
+    }
+  }
+
+  function flyViaPullbackPeak(i, gen, s, switchBasemapAtPeak) {
+    if (map.getBearing() !== 0) map.jumpTo({ bearing: 0 });
+    var halfDuration = Math.max(600, Math.round(flyDurationMs() / 2));
+    var peak = peakCameraForStep(s);
+
+    function flyInbound() {
+      if (gen !== _flyGen) return;
+      applyCameraMove(buildCameraMove(s, true, halfDuration));
+      waitForMoveEnd(gen, function () {
+        applyStepOverlays(i);
+        scheduleGlobeSpinAfterCameraMove(i, gen, false);
+      });
+    }
+
+    function continueFromPeak() {
+      if (switchBasemapAtPeak) {
+        switchBasemapAtCamera(i, gen, peak, flyInbound);
+      } else {
+        flyInbound();
+      }
+    }
+
+    applyCameraMove(
+      buildDirectFlyMove(peak.center[0], peak.center[1], peak.zoom, peak.pitch, halfDuration)
+    );
+    waitForMoveEnd(gen, continueFromPeak);
   }
 
   function flyToStep(i, animate) {
     var s = config.steps[i];
     if (!s || !map) return;
+    var gen = ++_flyGen;
     stopGlobeSpin();
-    var targetBase = s.baseMap ? s.baseMap : (config.baseMap || "openfreemap-bright");
+    var targetBase = effectiveBaseForStep(s);
     var needSwitch = targetBase !== currentBuilderBaseMap;
 
-    if (needSwitch) {
-      var gen = ++_flyGen;
-      currentBuilderBaseMap = targetBase;
-      getBaseMapStylePromise(targetBase)
-        .then(function (style) {
-          if (gen !== _flyGen) return;
-          map.once("idle", function () {
-            if (gen !== _flyGen) return;
-            applyEnglishLabels(map);
-            applyProjectionIfNeeded();
-            applyTerrainIfNeeded();
-            ensureOverlaySources();
-            applyStepOverlays(selectedIndex);
-            map.resize();
-            /* setStyle resets the camera — restore this step's center/zoom. */
-            var step = config.steps[selectedIndex];
-            if (step) applyCameraForStep(step, false);
-            syncGlobeSpinForStep(selectedIndex);
-          });
-          map.setStyle(style);
-        })
-        .catch(function (err) {
-          console.error("Step basemap switch failed:", err);
-        });
-      applyStepOverlays(i);
+    if (animate !== false) {
+      if (stepUsesSmoothFly(s)) {
+        flySmoothToStep(i, gen, s, needSwitch);
+      } else {
+        flyViaPullbackPeak(i, gen, s, needSwitch);
+      }
       return;
     }
 
-    applyCameraForStep(s, animate);
+    if (needSwitch) {
+      switchBasemapForStep(i, gen);
+      return;
+    }
+
+    applyCameraForStep(s, false);
     applyStepOverlays(i);
-    syncGlobeSpinForStep(i);
+    scheduleGlobeSpinAfterCameraMove(i, gen, false);
   }
 
   function mapViewMatchesStoredLocation() {
@@ -3807,6 +4768,94 @@
     return captureButtonEl;
   }
 
+  function syncRemoveStepControls() {
+    var removeBtn = el("btn-remove-step");
+    if (!removeBtn || !config || !config.steps) return;
+    var s = config.steps[selectedIndex];
+    var intro = isIntroStep(s);
+    var canRemove = intro
+      ? config.steps.length > 1
+      : countLocationSteps() > 1;
+    removeBtn.disabled = !canRemove;
+    removeBtn.textContent = intro ? "Delete intro" : "Delete location";
+    removeBtn.title = intro ? "Delete the intro card" : "Delete the selected location";
+  }
+
+  function syncAddIntroButton() {
+    var btn = el("btn-add-intro");
+    if (btn) btn.hidden = hasIntroStep();
+  }
+
+  function syncMoveStepControls() {
+    var upBtn = el("btn-move-up");
+    var downBtn = el("btn-move-down");
+    if (!config || !config.steps) return;
+    var s = config.steps[selectedIndex];
+    var intro = isIntroStep(s);
+    var introFirst = config.steps.length && isIntroStep(config.steps[0]);
+    if (upBtn) {
+      upBtn.disabled =
+        selectedIndex <= 0 ||
+        (introFirst && selectedIndex === 1);
+    }
+    if (downBtn) {
+      downBtn.disabled =
+        selectedIndex >= config.steps.length - 1 ||
+        intro;
+    }
+  }
+
+  function syncStepTypeUi() {
+    var s = config.steps[selectedIndex];
+    var intro = isIntroStep(s);
+    var cap = captureButtonEl;
+    if (cap) cap.textContent = intro ? "Set initial map view" : "Set Map Location";
+    var spinField = el("step-spin-field");
+    var flySelect = el("step-fly-transition-select");
+    var flyField = flySelect ? flySelect.closest(".field") : null;
+    var basemapRow = el("step-basemap-select")
+      ? el("step-basemap-select").closest(".row")
+      : null;
+    var annotateBtn = el("btn-annotate-toggle");
+    if (spinField) spinField.hidden = intro;
+    if (flyField) flyField.hidden = intro;
+    if (basemapRow) basemapRow.hidden = intro;
+    if (annotateBtn) annotateBtn.hidden = intro;
+    syncMoveStepControls();
+    syncAddIntroButton();
+    syncRemoveStepControls();
+  }
+
+  function removeStepAt(index) {
+    if (!config || !config.steps || !config.steps.length) return false;
+    var step = config.steps[index];
+    if (isIntroStep(step)) {
+      if (config.steps.length <= 1) {
+        alert("A story needs at least one card.");
+        return false;
+      }
+    } else if (countLocationSteps() <= 1) {
+      alert("A story needs at least one location.");
+      return false;
+    }
+    if (index < 0 || index >= config.steps.length) return false;
+    var label = getStepListLabel(step, index);
+    if (!confirm("Delete " + label + "?\n\nThis cannot be undone.")) return false;
+    setMarkerPlacementMode(false);
+    ensureDrawSimpleSelect();
+    config.steps.splice(index, 1);
+    if (selectedIndex > index) selectedIndex--;
+    else if (selectedIndex >= config.steps.length) {
+      selectedIndex = config.steps.length - 1;
+    }
+    saveNow();
+    renderStepList();
+    syncEditorFromStep();
+    flyToStep(selectedIndex, false);
+    syncRemoveStepControls();
+    return true;
+  }
+
   function renderStepList() {
     var list = el("step-list");
     if (!list) return;
@@ -3816,10 +4865,11 @@
     config.steps.forEach(function (s, i) {
       var row = document.createElement("div");
       row.className = "step-list-row";
+      if (isIntroStep(s)) row.classList.add("step-list-row--intro");
       var b = document.createElement("button");
       b.type = "button";
       b.className = "step-location-btn";
-      b.textContent = "Location " + (i + 1);
+      b.textContent = getStepListLabel(s, i);
       if (s.id) b.title = s.id;
       if (i === selectedIndex) b.classList.add("active");
       b.addEventListener("click", function () {
@@ -3831,6 +4881,20 @@
         flyToStep(i, true);
       });
       row.appendChild(b);
+      var del = document.createElement("button");
+      del.type = "button";
+      del.className = "step-delete-btn";
+      del.setAttribute("aria-label", "Delete " + getStepListLabel(s, i));
+      del.title = "Delete " + getStepListLabel(s, i);
+      del.textContent = "×";
+      del.disabled = isIntroStep(s)
+        ? config.steps.length <= 1
+        : countLocationSteps() <= 1;
+      del.addEventListener("click", function (e) {
+        e.stopPropagation();
+        removeStepAt(i);
+      });
+      row.appendChild(del);
       if (i === selectedIndex) row.appendChild(cap);
       list.appendChild(row);
     });
@@ -3840,6 +4904,9 @@
       emptyRow.appendChild(cap);
       list.appendChild(emptyRow);
     }
+    syncRemoveStepControls();
+    syncAddIntroButton();
+    syncMoveStepControls();
   }
 
   function initCardQuill() {
@@ -3922,19 +4989,22 @@
     if (cardQuill) {
       cardQuill.root.innerHTML = html.replace(/^\s+|\s+$/g, "") ? html : "<p><br></p>";
     }
-    el("step-coords").textContent =
-      "lat " + s.lat.toFixed(5) + ", lng " + s.lng.toFixed(5) + ", zoom " + s.zoom;
+    el("step-coords").textContent = isIntroStep(s)
+      ? "Initial map view — lat " + s.lat.toFixed(5) + ", lng " + s.lng.toFixed(5) + ", zoom " + s.zoom
+      : "lat " + s.lat.toFixed(5) + ", lng " + s.lng.toFixed(5) + ", zoom " + s.zoom;
     syncOverlayFieldsFromStep();
     renderOverlayFeatureList();
     updateMapLocationButtonState();
     syncStepBasemapSelect();
     syncStepSpinUi();
+    syncStepFlyTransitionUi();
+    syncStepTypeUi();
     var panel = el("annotate-panel");
     var btn = el("btn-annotate-toggle");
-    var hasAnnotations = s.overlays && s.overlays.geojson &&
+    var hasAnnotations = !isIntroStep(s) && s.overlays && s.overlays.geojson &&
       s.overlays.geojson.features && s.overlays.geojson.features.length > 0;
     if (panel && btn) {
-      panel.hidden = !hasAnnotations;
+      panel.hidden = isIntroStep(s) || !hasAnnotations;
       btn.setAttribute("aria-expanded", hasAnnotations ? "true" : "false");
     }
   }
@@ -3966,85 +5036,44 @@
     });
   }
 
-  el("card-bg-color").addEventListener("input", function () {
-    config.cardBackgroundColor = normalizeCardBackgroundColor(el("card-bg-color").value);
-    applyCardBackgroundOpacity();
-  });
-
-  el("card-bg-opacity").addEventListener("input", function () {
-    var v = parseInt(el("card-bg-opacity").value, 10);
-    if (isNaN(v)) v = 86;
-    v = Math.max(0, Math.min(100, v));
-    config.cardBackgroundOpacity = v / 100;
-    el("card-bg-opacity-value").textContent = v + "%";
-    applyCardBackgroundOpacity();
-  });
-
-  el("sources-text").addEventListener("input", function () {
-    config.sources = el("sources-text").value;
-    if (creditsPanelControl && typeof creditsPanelControl.refreshPanel === "function") {
-      creditsPanelControl.refreshPanel();
+  el("btn-add-intro").addEventListener("click", function () {
+    if (hasIntroStep()) {
+      alert("This story already has an intro card.");
+      return;
     }
+    setMarkerPlacementMode(false);
+    ensureDrawSimpleSelect();
+    var c = map.getCenter();
+    var z = map.getZoom();
+    config.steps.unshift({
+      id: "intro",
+      type: "intro",
+      lat: c.lat,
+      lng: c.lng,
+      zoom: z,
+      html: INTRO_DEFAULT_HTML,
+      overlays: { geojson: { type: "FeatureCollection", features: [] } }
+    });
+    selectedIndex = 0;
+    saveNow();
+    renderStepList();
+    syncEditorFromStep();
+    flyToStep(0, false);
   });
-
-  /* Any Global Options control change persists to disk. */
-  (function wireGlobalOptionsAutosave() {
-    var panel = el("preferences-panel");
-    if (!panel) return;
-    var continuous = { "card-bg-opacity": true, "sources-text": true, "card-bg-color": true };
-
-    function syncFromControl(t) {
-      if (!t || !t.id || !config) return;
-      if (t.id === "base-map-select") config.baseMap = t.value;
-      else if (t.id === "projection-select") config.projection = t.value === "globe" ? "globe" : "mercator";
-      else if (t.id === "terrain-toggle") config.terrain = !!t.checked;
-      else if (t.id === "satellite-labels-toggle") config.satelliteLabels = !!t.checked;
-      else if (t.id === "restart-at-end-toggle") {
-        if (t.checked) config.restartAtEnd = true;
-        else delete config.restartAtEnd;
-      }
-      else if (t.id === "sources-text") config.sources = t.value;
-      else if (t.id === "card-bg-color") {
-        config.cardBackgroundColor = normalizeCardBackgroundColor(t.value);
-        applyCardBackgroundOpacity();
-      } else if (t.id === "card-bg-opacity") {
-        var v = parseInt(t.value, 10);
-        if (isNaN(v)) v = 86;
-        v = Math.max(0, Math.min(100, v));
-        config.cardBackgroundOpacity = v / 100;
-        var lab = el("card-bg-opacity-value");
-        if (lab) lab.textContent = v + "%";
-        applyCardBackgroundOpacity();
-      }
-    }
-
-    panel.addEventListener("input", function (ev) {
-      var t = ev.target;
-      if (!t || !continuous[t.id]) return;
-      syncFromControl(t);
-      saveSoon();
-    });
-
-    panel.addEventListener("change", function (ev) {
-      var t = ev.target;
-      if (!t || !t.id) return;
-      syncFromControl(t);
-      saveNow();
-    });
-  })();
 
   el("btn-add-step").addEventListener("click", function () {
     setMarkerPlacementMode(false);
     ensureDrawSimpleSelect();
     var c = map.getCenter();
     var z = map.getZoom();
-    var n = config.steps.length + 1;
+    var n = countLocationSteps() + 1;
     config.steps.push({
       id: "location-" + n,
       lat: c.lat,
       lng: c.lng,
       zoom: z,
       html: "<p>New location.</p>",
+      flyTransition: "smooth",
       overlays: { geojson: { type: "FeatureCollection", features: [] } }
     });
     selectedIndex = config.steps.length - 1;
@@ -4054,20 +5083,14 @@
   });
 
   el("btn-remove-step").addEventListener("click", function () {
-    setMarkerPlacementMode(false);
-    ensureDrawSimpleSelect();
-    if (config.steps.length <= 1) return;
-    config.steps.splice(selectedIndex, 1);
-    selectedIndex = Math.min(selectedIndex, config.steps.length - 1);
-    saveNow();
-    renderStepList();
-    syncEditorFromStep();
+    removeStepAt(selectedIndex);
   });
 
   el("btn-move-up").addEventListener("click", function () {
     setMarkerPlacementMode(false);
     ensureDrawSimpleSelect();
     if (selectedIndex <= 0) return;
+    if (config.steps[0] && isIntroStep(config.steps[0]) && selectedIndex === 1) return;
     var t = config.steps[selectedIndex - 1];
     config.steps[selectedIndex - 1] = config.steps[selectedIndex];
     config.steps[selectedIndex] = t;
@@ -4081,6 +5104,7 @@
     setMarkerPlacementMode(false);
     ensureDrawSimpleSelect();
     if (selectedIndex >= config.steps.length - 1) return;
+    if (isIntroStep(config.steps[selectedIndex])) return;
     var t = config.steps[selectedIndex + 1];
     config.steps[selectedIndex + 1] = config.steps[selectedIndex];
     config.steps[selectedIndex] = t;
@@ -4128,56 +5152,42 @@
 
   el("btn-save").addEventListener("click", saveStoryToFolder);
 
-  function promptExportInfoModal() {
-    return new Promise(function (resolve) {
-      var modal = el("export-info-modal");
-      var okBtn = el("export-info-ok");
-      var cancelBtn = el("export-info-cancel");
-      var backdrop = modal ? modal.querySelector(".text-prompt-backdrop") : null;
-      if (!modal || !okBtn || !cancelBtn) {
-        resolve(true);
-        return;
-      }
+  function applyExportHelpText(html) {
+    var trimmed = String(html || "").trim();
+    var content = trimmed || DEFAULT_EXPORT_HELP_HTML;
+    var helpEl = el("nav-export-help");
+    if (helpEl) helpEl.innerHTML = content;
+  }
 
-      modal.removeAttribute("hidden");
+  function loadExportHelpFromSettings() {
+    fetch("/api/platform/v1/settings/public", { credentials: "include" })
+      .then(function (r) {
+        if (!r.ok) throw new Error();
+        return r.json();
+      })
+      .then(function (data) {
+        applyExportHelpText(data.export_help_html);
+      })
+      .catch(function () {
+        applyExportHelpText("");
+      });
+  }
 
-      function cleanup() {
-        okBtn.removeEventListener("click", onOk);
-        cancelBtn.removeEventListener("click", onCancel);
-        if (backdrop) backdrop.removeEventListener("click", onCancel);
-        document.removeEventListener("keydown", onDocKey, true);
-        modal.setAttribute("hidden", "");
-      }
-      function onOk() {
-        cleanup();
-        resolve(true);
-      }
-      function onCancel() {
-        cleanup();
-        resolve(false);
-      }
-      function onDocKey(ev) {
-        if (ev.key === "Escape") {
-          ev.preventDefault();
-          onCancel();
-        } else if (ev.key === "Enter") {
-          ev.preventDefault();
-          onOk();
-        }
-      }
-
-      okBtn.addEventListener("click", onOk);
-      cancelBtn.addEventListener("click", onCancel);
-      if (backdrop) backdrop.addEventListener("click", onCancel);
-      document.addEventListener("keydown", onDocKey, true);
-      window.setTimeout(function () {
-        okBtn.focus();
-      }, 0);
-    });
+  function triggerExportFlow() {
+    if (!currentSlug) {
+      alert("Select or create a story first.");
+      return;
+    }
+    if (!guestMode && !storyApiOk) {
+      alert("Export requires the dev server. Run \"npm run dev\" first.");
+      return;
+    }
+    runExportDownload();
   }
 
   function runExportDownload() {
-    var btn = el("btn-export");
+    var btn = el("btn-nav-export");
+    if (!btn) return;
     btn.disabled = true;
 
     if (guestMode) {
@@ -4255,39 +5265,27 @@
       });
   }
 
-  el("btn-export").addEventListener("click", function () {
-    if (!currentSlug) {
-      alert("Select or create a story first.");
-      return;
-    }
-    if (!guestMode && !storyApiOk) {
-      alert("Export requires the dev server. Run \"npm run dev\" first.");
-      return;
-    }
-    promptExportInfoModal().then(function (ok) {
-      if (ok) runExportDownload();
-    });
-  });
-
-  var guestPreviewBtn = el("btn-guest-preview");
-  if (guestPreviewBtn) {
-    guestPreviewBtn.addEventListener("click", function () {
-      openGuestPreviewTab();
-    });
+  var navExportBtn = el("btn-nav-export");
+  if (navExportBtn) {
+    navExportBtn.addEventListener("click", triggerExportFlow);
   }
 
-  (function initPreferencesToggle() {
-    var panel = el("preferences-panel");
-    var btn = el("btn-preferences-toggle");
-    if (!panel || !btn) return;
-    btn.addEventListener("click", function () {
-      var open = panel.hidden;
-      panel.hidden = !open;
-      btn.setAttribute("aria-expanded", open ? "true" : "false");
-      /* Closing the panel: flush any pending Global Options edits. */
-      if (!open) saveNow();
+  var footerPreviewBtn = el("btn-preview");
+  if (footerPreviewBtn) {
+    footerPreviewBtn.addEventListener("click", openNavPreview);
+  }
+
+  var footerExportBtn = el("btn-export");
+  if (footerExportBtn) {
+    footerExportBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      setStoryPanelOpen(true);
+      window.setTimeout(function () {
+        var sidebarExport = el("btn-nav-export");
+        if (sidebarExport) sidebarExport.focus();
+      }, 0);
     });
-  })();
+  }
 
   (function initAnnotateToggle() {
     var panel = el("annotate-panel");
@@ -4362,7 +5360,6 @@
       }
       try { localStorage.removeItem(storageKeyForDraft()); } catch (e) {}
       if (window.MapsAndCardsGuest) window.MapsAndCardsGuest.removeProject(currentSlug);
-      revokeGuestPreviewBlob();
       window.location.href = guestBuilderUrl(null);
       return;
     }
@@ -4426,40 +5423,6 @@
       });
   });
 
-  el("base-map-select").addEventListener("change", function () {
-    config.baseMap = el("base-map-select").value;
-    syncSatelliteLabelsUi();
-    if (!map) return;
-    getBaseMapStylePromise(config.baseMap)
-      .then(function (style) {
-        map.once("idle", function () {
-          applyEnglishLabels(map);
-          applyProjectionIfNeeded();
-          applyTerrainIfNeeded();
-          map.resize();
-          applyStepOverlays(selectedIndex);
-        });
-        map.setStyle(style);
-      })
-      .catch(function (err) {
-        console.error(err);
-        showMapLoadError();
-      });
-  });
-
-  el("terrain-toggle").addEventListener("change", function () {
-    config.terrain = el("terrain-toggle").checked;
-    applyTerrainIfNeeded();
-  });
-
-  el("projection-select").addEventListener("change", function () {
-    config.projection = el("projection-select").value === "globe" ? "globe" : "mercator";
-    applyProjectionIfNeeded();
-    syncStepSpinUi();
-    syncGlobeSpinForStep(selectedIndex);
-    saveSoon();
-  });
-
   el("step-spin-toggle").addEventListener("change", function () {
     var s = config.steps[selectedIndex];
     if (!s) return;
@@ -4472,24 +5435,27 @@
     syncGlobeSpinForStep(selectedIndex);
   });
 
-  el("satellite-labels-toggle").addEventListener("change", function () {
-    config.satelliteLabels = el("satellite-labels-toggle").checked;
-    if (!map || config.baseMap !== "esri-satellite") return;
-    getBaseMapStylePromise(config.baseMap)
-      .then(function (style) {
-        map.once("idle", function () {
-          applyEnglishLabels(map);
-          applyProjectionIfNeeded();
-          applyTerrainIfNeeded();
-          map.resize();
-          applyStepOverlays(selectedIndex);
-        });
-        map.setStyle(style);
-      })
-      .catch(function (err) {
-        console.error(err);
-        showMapLoadError();
-      });
+  el("restart-at-end-toggle").addEventListener("change", function () {
+    if (el("restart-at-end-toggle").checked) config.restartAtEnd = true;
+    else delete config.restartAtEnd;
+    saveSoon();
+  });
+
+  el("step-nav-buttons-toggle").addEventListener("change", function () {
+    if (el("step-nav-buttons-toggle").checked) delete config.stepNavButtons;
+    else config.stepNavButtons = false;
+    saveSoon();
+  });
+
+  el("step-fly-transition-select").addEventListener("change", function () {
+    var s = config.steps[selectedIndex];
+    if (!s) return;
+    if (el("step-fly-transition-select").value === "smooth") {
+      s.flyTransition = "smooth";
+    } else {
+      delete s.flyTransition;
+    }
+    saveNow();
   });
 
   el("btn-apply-overlay-json").addEventListener("click", function () {
@@ -4686,8 +5652,453 @@
     });
   })();
 
+  function processStudentHandoff() {
+    var handoff = new URLSearchParams(window.location.search).get("handoff");
+    if (!handoff) return;
+    fetch("/api/platform/v1/auth/student/handoff", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: handoff }),
+    }).then(function () {
+      var params = new URLSearchParams(window.location.search);
+      params.delete("handoff");
+      var q = params.toString();
+      window.location.href = window.location.pathname + (q ? "?" + q : "") + window.location.hash;
+    });
+  }
+
+  function initBuilderSessionUi() {
+    var labelEl = el("builder-session-label");
+    var guestSignOut = el("builder-session-guest-signout");
+    var guestSignIn = el("builder-session-guest-signin");
+    var signOutEl = el("builder-session-signout");
+    var submitBtn = el("nav-submit-toggle");
+    var myFiles = el("nav-files-toggle");
+    var Auth = window.MapsAndCardsBuilderAuth;
+    if (!labelEl) return;
+
+    if (guestMode) {
+      labelEl.classList.remove("hidden");
+      labelEl.classList.add("guest-mode");
+      labelEl.textContent =
+        "Guest (local only) — export ZIP or sign in to save & submit.";
+      if (guestSignOut) guestSignOut.classList.remove("hidden");
+      if (guestSignIn) guestSignIn.classList.remove("hidden");
+      if (signOutEl) signOutEl.classList.add("hidden");
+      if (Auth && typeof Auth.bindGuestSessionBar === "function") {
+        Auth.bindGuestSessionBar({ getCurrentSlug: function () { return currentSlug; } });
+      }
+      return;
+    }
+
+    labelEl.classList.remove("guest-mode");
+    if (guestSignOut) guestSignOut.classList.add("hidden");
+    if (guestSignIn) guestSignIn.classList.add("hidden");
+
+    fetch("/api/platform/v1/auth/student/me", { credentials: "include" })
+      .then(function (r) {
+        if (!r.ok) throw new Error();
+        return r.json();
+      })
+      .then(function (data) {
+        if (!data.student) return;
+        labelEl.classList.remove("hidden");
+        labelEl.textContent =
+          "Signed in as " + data.student.displayName + " · " + data.student.className;
+        if (submitBtn) submitBtn.classList.remove("hidden");
+        if (myFiles) myFiles.classList.remove("hidden");
+        if (signOutEl) signOutEl.classList.remove("hidden");
+        if (Auth && typeof Auth.bindStudentSessionBar === "function") {
+          Auth.bindStudentSessionBar();
+        }
+      })
+      .catch(function () {});
+  }
+
+  var NAV_FLYOUTS = [
+    { panelId: "nav-story-panel", toggleId: "nav-story-toggle" },
+    { panelId: "nav-map-options-panel", toggleId: "nav-map-options-toggle", onOpen: syncMapOptionsFlyoutFields },
+    { panelId: "nav-submit-panel", toggleId: "nav-submit-toggle" },
+    { panelId: "nav-files-panel", toggleId: "nav-files-toggle", onOpen: loadNavFilesList },
+  ];
+
+  function closeNavFlyoutsExcept(exceptPanelId) {
+    NAV_FLYOUTS.forEach(function (entry) {
+      if (entry.panelId === exceptPanelId) return;
+      var panel = el(entry.panelId);
+      var toggle = el(entry.toggleId);
+      if (panel) panel.hidden = true;
+      if (toggle) {
+        toggle.classList.remove("active");
+        toggle.setAttribute("aria-expanded", "false");
+      }
+    });
+  }
+
+  function setNavFlyoutOpen(panelId, toggleId, open, onOpen) {
+    var panel = el(panelId);
+    var toggle = el(toggleId);
+    if (!panel || !toggle) return;
+    if (open) closeNavFlyoutsExcept(panelId);
+    panel.hidden = !open;
+    toggle.classList.toggle("active", open);
+    toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    if (open && onOpen) onOpen();
+  }
+
+  function setStoryPanelOpen(open) {
+    setNavFlyoutOpen("nav-story-panel", "nav-story-toggle", open);
+  }
+
+  function setMapOptionsPanelOpen(open) {
+    setNavFlyoutOpen("nav-map-options-panel", "nav-map-options-toggle", open, syncMapOptionsFlyoutFields);
+  }
+
+  function setSubmitPanelOpen(open) {
+    setNavFlyoutOpen("nav-submit-panel", "nav-submit-toggle", open);
+  }
+
+  function setFilesPanelOpen(open) {
+    setNavFlyoutOpen("nav-files-panel", "nav-files-toggle", open, loadNavFilesList);
+  }
+
+  function platformFetch(path, options) {
+    options = options || {};
+    var headers = { "Content-Type": "application/json" };
+    if (options.headers) {
+      Object.keys(options.headers).forEach(function (k) {
+        headers[k] = options.headers[k];
+      });
+    }
+    return fetch("/api/platform/v1" + path, {
+      credentials: "include",
+      headers: headers,
+      method: options.method || "GET",
+      body: options.body,
+    }).then(function (r) {
+      return r.json().then(function (data) {
+        if (!r.ok) throw new Error(data.error || "Request failed");
+        return data;
+      });
+    });
+  }
+
+  function setNavFilesStatus(message, kind) {
+    var statusEl = el("nav-files-status");
+    if (!statusEl) return;
+    statusEl.textContent = message || "";
+    statusEl.classList.remove("error", "success");
+    if (kind) statusEl.classList.add(kind);
+  }
+
+  function loadNavFilesList() {
+    var listEl = el("nav-files-list");
+    if (!listEl) return;
+    setNavFilesStatus("Loading…");
+    platformFetch("/files/student")
+      .then(function (data) {
+        var assets = data.assets || [];
+        if (!assets.length) {
+          listEl.innerHTML = "<p class=\"field-hint\" style=\"margin:0\">No files yet.</p>";
+        } else {
+          listEl.innerHTML = assets
+            .map(function (a) {
+              return (
+                "<div class=\"nav-file-item\" data-id=\"" +
+                a.id +
+                "\">" +
+                "<strong>" +
+                escapeHtml(a.filename) +
+                "</strong>" +
+                "<span class=\"nav-file-meta\">" +
+                escapeHtml(a.category || "") +
+                "</span>" +
+                "<div class=\"nav-file-actions\">" +
+                "<a href=\"" +
+                escapeHtml(a.public_url) +
+                "\" target=\"_blank\" rel=\"noopener\">Open</a>" +
+                "<button type=\"button\" class=\"danger\" data-del>Delete</button>" +
+                "</div></div>"
+              );
+            })
+            .join("");
+          listEl.querySelectorAll("[data-del]").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+              var card = btn.closest(".nav-file-item");
+              if (!card) return;
+              btn.disabled = true;
+              platformFetch("/files/student/" + encodeURIComponent(card.dataset.id), { method: "DELETE" })
+                .then(function () {
+                  loadNavFilesList();
+                })
+                .catch(function (e) {
+                  setNavFilesStatus(e.message || "Delete failed", "error");
+                  btn.disabled = false;
+                });
+            });
+          });
+        }
+        setNavFilesStatus("");
+      })
+      .catch(function (e) {
+        listEl.innerHTML = "";
+        setNavFilesStatus(e.message || "Could not load files", "error");
+      });
+  }
+
+  function escapeHtml(text) {
+    return String(text || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function initNavFilesPanel() {
+    var input = el("nav-files-input");
+    if (!input || input.dataset.wired) return;
+    input.dataset.wired = "1";
+    input.addEventListener("change", function (e) {
+      var file = e.target.files && e.target.files[0];
+      if (!file) return;
+      setNavFilesStatus("Uploading…");
+      file
+        .arrayBuffer()
+        .then(function (buf) {
+          var bytes = new Uint8Array(buf);
+          var binary = "";
+          for (var i = 0; i < bytes.length; i += 0x8000) {
+            binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+          }
+          var dataBase64 = btoa(binary);
+          var category = file.type.indexOf("image/") === 0
+            ? "images"
+            : /\.geojson$/i.test(file.name)
+              ? "geojson"
+              : "other";
+          return platformFetch("/files/student", {
+            method: "POST",
+            body: JSON.stringify({ filename: file.name, category: category, dataBase64: dataBase64 }),
+          });
+        })
+        .then(function () {
+          e.target.value = "";
+          setNavFilesStatus("Uploaded.", "success");
+          loadNavFilesList();
+        })
+        .catch(function (err) {
+          e.target.value = "";
+          setNavFilesStatus(err.message || "Upload failed", "error");
+        });
+    });
+  }
+
+  function initNavRail() {
+    var storyToggle = el("nav-story-toggle");
+    var storyPanel = el("nav-story-panel");
+    var storyClose = el("nav-story-panel-close");
+    var mapOptionsToggle = el("nav-map-options-toggle");
+    var mapOptionsPanel = el("nav-map-options-panel");
+    var mapOptionsClose = el("nav-map-options-panel-close");
+    var submitToggle = el("nav-submit-toggle");
+    var submitPanel = el("nav-submit-panel");
+    var submitClose = el("nav-submit-panel-close");
+    var filesToggle = el("nav-files-toggle");
+    var filesPanel = el("nav-files-panel");
+    var filesClose = el("nav-files-panel-close");
+    var navPreview = el("btn-nav-preview");
+
+    if (storyToggle && storyPanel) {
+      storyToggle.addEventListener("click", function (e) {
+        e.stopPropagation();
+        setStoryPanelOpen(storyPanel.hidden);
+      });
+    }
+    if (storyClose) {
+      storyClose.addEventListener("click", function () {
+        setStoryPanelOpen(false);
+      });
+    }
+    if (mapOptionsToggle && mapOptionsPanel) {
+      mapOptionsToggle.addEventListener("click", function (e) {
+        e.stopPropagation();
+        setMapOptionsPanelOpen(mapOptionsPanel.hidden);
+      });
+    }
+    if (mapOptionsClose) {
+      mapOptionsClose.addEventListener("click", function () {
+        setMapOptionsPanelOpen(false);
+      });
+    }
+    if (submitToggle && submitPanel) {
+      submitToggle.addEventListener("click", function (e) {
+        e.stopPropagation();
+        setSubmitPanelOpen(submitPanel.hidden);
+      });
+    }
+    if (submitClose) {
+      submitClose.addEventListener("click", function () {
+        setSubmitPanelOpen(false);
+      });
+    }
+    if (filesToggle && filesPanel) {
+      filesToggle.addEventListener("click", function (e) {
+        e.stopPropagation();
+        setFilesPanelOpen(filesPanel.hidden);
+      });
+    }
+    if (filesClose) {
+      filesClose.addEventListener("click", function () {
+        setFilesPanelOpen(false);
+      });
+    }
+    document.addEventListener("click", function (e) {
+      NAV_FLYOUTS.forEach(function (entry) {
+        var panel = el(entry.panelId);
+        var toggle = el(entry.toggleId);
+        if (
+          panel &&
+          !panel.hidden &&
+          !e.target.closest("#" + entry.panelId) &&
+          !e.target.closest("#" + entry.toggleId) &&
+          !(entry.panelId === "nav-story-panel" && e.target.closest("#btn-export"))
+        ) {
+          if (entry.panelId === "nav-story-panel") setStoryPanelOpen(false);
+          else if (entry.panelId === "nav-map-options-panel") setMapOptionsPanelOpen(false);
+          else if (entry.panelId === "nav-submit-panel") setSubmitPanelOpen(false);
+          else if (entry.panelId === "nav-files-panel") setFilesPanelOpen(false);
+        }
+      });
+    });
+    if (navPreview) {
+      navPreview.addEventListener("click", function () {
+        openNavPreview();
+      });
+    }
+    initMapOptionsFlyoutControls();
+    initNavFilesPanel();
+  }
+
+  function initMapOptionsFlyoutControls() {
+    var baseSel = el("base-map-select");
+    if (baseSel && !baseSel.dataset.optionsWired) {
+      baseSel.dataset.optionsWired = "1";
+      baseSel.addEventListener("change", function () {
+        if (!config) return;
+        config.baseMap = baseSel.value;
+        syncSatelliteLabelsUi();
+        saveSoon();
+        applyGlobalBaseMapInBuilder();
+      });
+    }
+
+    var projSel = el("projection-select");
+    if (projSel && !projSel.dataset.optionsWired) {
+      projSel.dataset.optionsWired = "1";
+      projSel.addEventListener("change", function () {
+        if (!config) return;
+        config.projection = projSel.value === "globe" ? "globe" : "mercator";
+        applyProjectionIfNeeded();
+        syncStepSpinUi();
+        saveSoon();
+      });
+    }
+
+    var flyDur = el("fly-duration-seconds");
+    if (flyDur && !flyDur.dataset.optionsWired) {
+      flyDur.dataset.optionsWired = "1";
+      flyDur.addEventListener("change", function () {
+        if (!config) return;
+        var n = normalizeFlyDurationSeconds(parseInt(flyDur.value, 10));
+        if (n === DEFAULT_FLY_DURATION_SECONDS) delete config.flyDurationSeconds;
+        else config.flyDurationSeconds = n;
+        syncFlyDurationField();
+        saveSoon();
+      });
+    }
+
+    var flyPull = el("fly-pullback-zoom");
+    if (flyPull && !flyPull.dataset.optionsWired) {
+      flyPull.dataset.optionsWired = "1";
+      flyPull.addEventListener("change", function () {
+        if (!config) return;
+        var n = normalizeFlyPullBackZoom(parseFloat(flyPull.value));
+        if (n === DEFAULT_FLY_PULLBACK_ZOOM) delete config.flyPullBackZoom;
+        else config.flyPullBackZoom = n;
+        syncFlyPullbackField();
+        saveSoon();
+      });
+    }
+
+    var terrainCb = el("terrain-toggle");
+    if (terrainCb && !terrainCb.dataset.optionsWired) {
+      terrainCb.dataset.optionsWired = "1";
+      terrainCb.addEventListener("change", function () {
+        if (!config) return;
+        config.terrain = terrainCb.checked;
+        applyTerrainIfNeeded();
+        saveSoon();
+      });
+    }
+
+    var satCb = el("satellite-labels-toggle");
+    if (satCb && !satCb.dataset.optionsWired) {
+      satCb.dataset.optionsWired = "1";
+      satCb.addEventListener("change", function () {
+        if (!config) return;
+        config.satelliteLabels = satCb.checked;
+        saveSoon();
+        if (config.baseMap === "esri-satellite") applyGlobalBaseMapInBuilder();
+      });
+    }
+
+    var sourcesTa = el("sources-text");
+    if (sourcesTa && !sourcesTa.dataset.optionsWired) {
+      sourcesTa.dataset.optionsWired = "1";
+      sourcesTa.addEventListener("input", function () {
+        if (!config) return;
+        config.sources = sourcesTa.value;
+        saveSoon();
+        if (creditsPanelControl && typeof creditsPanelControl.syncPanel === "function") {
+          creditsPanelControl.syncPanel();
+        }
+      });
+    }
+
+    var cardColor = el("card-bg-color");
+    if (cardColor && !cardColor.dataset.optionsWired) {
+      cardColor.dataset.optionsWired = "1";
+      cardColor.addEventListener("input", function () {
+        if (!config) return;
+        config.cardBackgroundColor = normalizeCardBackgroundColor(cardColor.value);
+        applyCardBackgroundOpacity();
+        updateMapOptionsCardPreview();
+        saveSoon();
+      });
+    }
+
+    var cardOpacity = el("card-bg-opacity");
+    if (cardOpacity && !cardOpacity.dataset.optionsWired) {
+      cardOpacity.dataset.optionsWired = "1";
+      cardOpacity.addEventListener("input", function () {
+        if (!config) return;
+        var v = parseInt(cardOpacity.value, 10);
+        if (isNaN(v)) v = 86;
+        config.cardBackgroundOpacity = Math.max(0, Math.min(100, v)) / 100;
+        syncCardOpacitySlider();
+        saveSoon();
+      });
+    }
+  }
+
   function startBuilder() {
+    processStudentHandoff();
+    applyExportHelpText("");
+    loadExportHelpFromSettings();
+    initNavRail();
     loadConfigThen(function () {
+      initBuilderSessionUi();
       initCardQuill();
       initMap(function () {
         /* set initial tracker so the first flyToStep knows not to switch styles unnecessarily */
@@ -4696,19 +6107,64 @@
           ? firstStep.baseMap
           : (config.baseMap || "openfreemap-bright");
         renderStepList();
-        syncBaseMapSelect();
-        syncTerrainToggle();
-        syncRestartAtEndToggle();
-        syncProjectionSelect();
-        syncSatelliteLabelsUi();
-        syncSourcesField();
-        syncCardBackgroundFields();
+        syncMapOptionsFlyoutFields();
         syncEditorFromStep();
         flyToStep(selectedIndex, false);
         updateMapLocationButtonState();
       });
     });
   }
+
+  (function initSubmitStoryPanel() {
+    var confirmBtn = el("btn-submit-confirm");
+    var statusEl = el("submit-status");
+    if (!confirmBtn) return;
+    confirmBtn.addEventListener("click", function () {
+      if (!currentSlug || !storyApiOk) {
+        if (statusEl) {
+          statusEl.textContent = "Save your story first.";
+          statusEl.classList.add("error");
+        } else {
+          alert("Save your story first.");
+        }
+        return;
+      }
+      var commentEl = el("submit-comment");
+      var comment = commentEl ? commentEl.value.trim() : "";
+      if (statusEl) {
+        statusEl.textContent = "Submitting…";
+        statusEl.classList.remove("error", "success");
+      }
+      confirmBtn.disabled = true;
+      fetch("/__story-api/submit", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug: currentSlug, comment: comment }),
+      })
+        .then(function (r) {
+          return r.json().then(function (d) {
+            if (!r.ok) throw new Error(d.error || "Submit failed");
+            if (commentEl) commentEl.value = "";
+            if (statusEl) {
+              statusEl.textContent = "Submitted to your admin.";
+              statusEl.classList.add("success");
+            }
+          });
+        })
+        .catch(function (e) {
+          if (statusEl) {
+            statusEl.textContent = e.message || "Submit failed";
+            statusEl.classList.add("error");
+          } else {
+            alert(e.message || "Submit failed");
+          }
+        })
+        .finally(function () {
+          confirmBtn.disabled = false;
+        });
+    });
+  })();
 
   if (isGuestModeFromUrl() && window.MapsAndCardsGuestAgreement) {
     window.MapsAndCardsGuestAgreement.promptGuestAgreementIfNeeded().then(function (ok) {

@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Map options — Maps and Cards</title>
+  <script src="/__analytics.js" defer></script>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a2332;
+      --text: #e8eaed;
+      --muted: #9aa7b2;
+      --accent: #3d8bfd;
+      --border: #2a3544;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .page {
+      max-width: 40rem;
+      margin: 0 auto;
+      padding: 1.5rem 1rem 2.5rem;
+    }
+    .back-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+    .back-link {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.85rem;
+    }
+    .back-link:hover { color: var(--accent); }
+    h1 { margin: 0 0 0.35rem; font-size: 1.35rem; }
+    .hint { margin: 0 0 1.25rem; color: var(--muted); font-size: 0.85rem; line-height: 1.45; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    label { display: block; font-size: 0.85rem; margin-bottom: 0.35rem; }
+    select, textarea, input[type="color"] {
+      width: 100%;
+      padding: 0.5rem 0.65rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font: inherit;
+    }
+    textarea { min-height: 6rem; resize: vertical; }
+    .check-label {
+      display: flex;
+      gap: 0.5rem;
+      align-items: flex-start;
+      font-size: 0.875rem;
+      cursor: pointer;
+    }
+    .check-label input { margin-top: 0.15rem; }
+    .coords { font-size: 0.75rem; color: var(--muted); margin: 0.35rem 0 0; }
+    .opacity-row { display: flex; align-items: center; gap: 0.5rem; }
+    .opacity-row input[type="range"] { flex: 1; }
+    .card-preview {
+      margin-top: 0.5rem;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.86);
+      color: #111;
+    }
+    .actions {
+      display: flex;
+      gap: 0.65rem;
+      margin-top: 1.25rem;
+    }
+    .btn {
+      padding: 0.55rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font: inherit;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.primary:hover { opacity: 0.92; color: #fff; }
+    .error { color: #dc3545; font-size: 0.85rem; margin: 0 0 0.75rem; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="back-row">
+      <a id="back-editor" class="back-link" href="/Tools/scroll-map-builder.html">← Back to editor</a>
+      <span id="story-label" class="coords"></span>
+    </div>
+    <h1>Map options</h1>
+    <p class="hint">Story-wide map and card settings. Click <strong>Save</strong> to apply and return to the editor.</p>
+    <p id="page-error" class="error hidden"></p>
+
+    <form id="options-form" class="panel">
+      <div>
+        <label for="base-map-select">Base map</label>
+        <select id="base-map-select" aria-label="Base map style"></select>
+      </div>
+      <div>
+        <label for="projection-select">Map projection</label>
+        <select id="projection-select" aria-label="Map projection">
+          <option value="mercator">Flat (Mercator)</option>
+          <option value="globe">Globe</option>
+        </select>
+        <p class="coords">Default for new stories is Globe. Flat uses a Mercator map.</p>
+      </div>
+      <div>
+        <label for="fly-duration-seconds">Seconds between locations</label>
+        <input
+          type="number"
+          id="fly-duration-seconds"
+          min="1"
+          max="30"
+          step="1"
+          value="3"
+          aria-label="Seconds between locations"
+        />
+        <p class="coords">How long the map takes to fly when you move between story locations (1–30 seconds).</p>
+      </div>
+      <div>
+        <label for="fly-pullback-zoom">Fly pull-back (zoom level)</label>
+        <input
+          type="number"
+          id="fly-pullback-zoom"
+          min="1"
+          max="8"
+          step="0.5"
+          value="3"
+          aria-label="Fly pull-back zoom level"
+        />
+        <p class="coords">
+          How far the map pulls back between locations. Lower zoom = further from the globe.
+          Basemap changes happen at this furthest point.
+        </p>
+      </div>
+      <div>
+        <label class="check-label">
+          <input type="checkbox" id="terrain-toggle" />
+          <span>3D terrain (MapLibre demo — free, no key). Adds hills; works best with a tilted view.</span>
+        </label>
+      </div>
+      <div id="satellite-labels-field">
+        <label class="check-label">
+          <input type="checkbox" id="satellite-labels-toggle" />
+          <span>Show place names on satellite (Esri reference overlay).</span>
+        </label>
+      </div>
+      <div>
+        <label class="check-label">
+          <input type="checkbox" id="restart-at-end-toggle" />
+          <span>Show “Return to beginning” at the end of the story</span>
+        </label>
+      </div>
+      <div>
+        <label class="check-label">
+          <input type="checkbox" id="step-nav-buttons-toggle" />
+          <span>Show Previous / Next buttons in Story mode (alternative to scrolling)</span>
+        </label>
+      </div>
+      <div>
+        <label for="sources-text">Sources (HTML)</label>
+        <textarea id="sources-text" placeholder="Credits and source links for the story viewer…"></textarea>
+      </div>
+      <div>
+        <label for="card-bg-color">Card background color</label>
+        <input type="color" id="card-bg-color" value="#ffffff" />
+        <label for="card-bg-opacity" style="margin-top:0.75rem">Card background opacity</label>
+        <div class="opacity-row">
+          <input type="range" id="card-bg-opacity" min="0" max="100" step="1" value="86" />
+          <span class="coords" id="card-bg-opacity-value">86%</span>
+        </div>
+        <div class="card-preview" id="card-preview"><p>Card preview</p></div>
+      </div>
+      <div class="actions">
+        <button type="submit" class="btn primary" id="btn-save">Save</button>
+        <a class="btn" id="btn-cancel" href="/Tools/scroll-map-builder.html">Cancel</a>
+      </div>
+    </form>
+  </div>
+
+  <script src="/Tools/guest-playground.js"></script>
+  <script>
+(function () {
+  var BASE_MAPS = [
+    { id: "openfreemap-bright", label: "OpenFreeMap — bright" },
+    { id: "carto-voyager", label: "Carto — Voyager" },
+    { id: "esri-satellite", label: "Satellite (Esri — free, attribution)" }
+  ];
+
+  var params = new URLSearchParams(location.search);
+  var slug = (params.get("story") || "").trim().toLowerCase().replace(/[^a-z0-9-]/g, "");
+  var guestMode = params.get("guest") === "1" || params.get("mode") === "guest";
+  var config = null;
+
+  var errEl = document.getElementById("page-error");
+  var form = document.getElementById("options-form");
+  var backEditor = document.getElementById("back-editor");
+  var cancelBtn = document.getElementById("btn-cancel");
+  var storyLabel = document.getElementById("story-label");
+
+  function builderUrl() {
+    if (!slug) return "/Tools/scroll-map-builder.html";
+    var q = "?story=" + encodeURIComponent(slug);
+    if (guestMode) q += "&guest=1";
+    return "/Tools/scroll-map-builder.html" + q;
+  }
+
+  backEditor.href = builderUrl();
+  cancelBtn.href = builderUrl();
+  if (slug) storyLabel.textContent = "Story: " + slug;
+
+  function showError(msg) {
+    errEl.textContent = msg;
+    errEl.classList.remove("hidden");
+  }
+
+  function normalizeCardBackgroundColor(v) {
+    if (typeof v !== "string") return "#ffffff";
+    var s = v.trim();
+    if (/^#[0-9a-fA-F]{6}$/.test(s)) return s.toLowerCase();
+    return "#ffffff";
+  }
+
+  function normalizeCardBackgroundOpacity(v) {
+    if (typeof v === "number" && !isNaN(v)) return Math.max(0, Math.min(1, v));
+    return 0.86;
+  }
+
+  var DEFAULT_FLY_DURATION_SECONDS = 3;
+  var DEFAULT_FLY_PULLBACK_ZOOM = 3;
+
+  function normalizeFlyDurationSeconds(v) {
+    if (typeof v === "number" && !isNaN(v)) {
+      return Math.max(1, Math.min(30, Math.round(v)));
+    }
+    return DEFAULT_FLY_DURATION_SECONDS;
+  }
+
+  function normalizeFlyPullBackZoom(v) {
+    if (typeof v === "number" && !isNaN(v)) {
+      return Math.max(1, Math.min(8, Math.round(v * 2) / 2));
+    }
+    return DEFAULT_FLY_PULLBACK_ZOOM;
+  }
+
+  function hexToRgb(hex) {
+    var h = normalizeCardBackgroundColor(hex).slice(1);
+    return {
+      r: parseInt(h.slice(0, 2), 16),
+      g: parseInt(h.slice(2, 4), 16),
+      b: parseInt(h.slice(4, 6), 16)
+    };
+  }
+
+  function updateCardPreview() {
+    var rgb = hexToRgb(document.getElementById("card-bg-color").value);
+    var a = parseInt(document.getElementById("card-bg-opacity").value, 10) / 100;
+    document.getElementById("card-preview").style.background =
+      "rgba(" + rgb.r + "," + rgb.g + "," + rgb.b + "," + a + ")";
+  }
+
+  function populateBaseMaps() {
+    var sel = document.getElementById("base-map-select");
+    sel.innerHTML = "";
+    BASE_MAPS.forEach(function (b) {
+      var o = document.createElement("option");
+      o.value = b.id;
+      o.textContent = b.label;
+      sel.appendChild(o);
+    });
+  }
+
+  function syncSatelliteLabelsUi() {
+    var wrap = document.getElementById("satellite-labels-field");
+    var cb = document.getElementById("satellite-labels-toggle");
+    var onSat = document.getElementById("base-map-select").value === "esri-satellite";
+    wrap.style.display = onSat ? "" : "none";
+    cb.disabled = !onSat;
+  }
+
+  function fillFormFromConfig() {
+    document.getElementById("base-map-select").value = config.baseMap || "openfreemap-bright";
+    document.getElementById("projection-select").value =
+      config.projection === "globe" ? "globe" : "mercator";
+    document.getElementById("fly-duration-seconds").value = String(
+      normalizeFlyDurationSeconds(config.flyDurationSeconds)
+    );
+    document.getElementById("fly-pullback-zoom").value = String(
+      normalizeFlyPullBackZoom(config.flyPullBackZoom)
+    );
+    document.getElementById("terrain-toggle").checked = config.terrain === true;
+    document.getElementById("satellite-labels-toggle").checked = config.satelliteLabels !== false;
+    document.getElementById("restart-at-end-toggle").checked = config.restartAtEnd === true;
+    document.getElementById("step-nav-buttons-toggle").checked = config.stepNavButtons !== false;
+    document.getElementById("sources-text").value = config.sources || "";
+    document.getElementById("card-bg-color").value = normalizeCardBackgroundColor(
+      config.cardBackgroundColor
+    );
+    var pct = Math.round(normalizeCardBackgroundOpacity(config.cardBackgroundOpacity) * 100);
+    document.getElementById("card-bg-opacity").value = String(pct);
+    document.getElementById("card-bg-opacity-value").textContent = pct + "%";
+    syncSatelliteLabelsUi();
+    updateCardPreview();
+  }
+
+  function readFormIntoConfig() {
+    config.baseMap = document.getElementById("base-map-select").value;
+    config.projection =
+      document.getElementById("projection-select").value === "globe" ? "globe" : "mercator";
+    var flyDurationSeconds = normalizeFlyDurationSeconds(
+      parseInt(document.getElementById("fly-duration-seconds").value, 10)
+    );
+    if (flyDurationSeconds === DEFAULT_FLY_DURATION_SECONDS) delete config.flyDurationSeconds;
+    else config.flyDurationSeconds = flyDurationSeconds;
+    var flyPullBackZoom = normalizeFlyPullBackZoom(
+      parseFloat(document.getElementById("fly-pullback-zoom").value)
+    );
+    if (flyPullBackZoom === DEFAULT_FLY_PULLBACK_ZOOM) delete config.flyPullBackZoom;
+    else config.flyPullBackZoom = flyPullBackZoom;
+    config.terrain = document.getElementById("terrain-toggle").checked;
+    config.satelliteLabels = document.getElementById("satellite-labels-toggle").checked;
+    if (document.getElementById("restart-at-end-toggle").checked) config.restartAtEnd = true;
+    else delete config.restartAtEnd;
+    if (document.getElementById("step-nav-buttons-toggle").checked) delete config.stepNavButtons;
+    else config.stepNavButtons = false;
+    config.sources = document.getElementById("sources-text").value;
+    config.cardBackgroundColor = normalizeCardBackgroundColor(
+      document.getElementById("card-bg-color").value
+    );
+    config.cardBackgroundOpacity =
+      parseInt(document.getElementById("card-bg-opacity").value, 10) / 100;
+  }
+
+  function loadConfig() {
+    if (!slug) {
+      showError("No story selected. Open Map options from the editor.");
+      form.classList.add("hidden");
+      return Promise.resolve();
+    }
+    if (guestMode) {
+      var Guest = window.MapsAndCardsGuest;
+      if (!Guest) {
+        showError("Guest mode helpers not loaded.");
+        return Promise.resolve();
+      }
+      var project = Guest.loadProject(slug);
+      config = project ? Guest.configFromProject(project) : null;
+      if (!config) {
+        showError("Guest story not found in this browser.");
+        form.classList.add("hidden");
+        return Promise.resolve();
+      }
+      fillFormFromConfig();
+      return Promise.resolve();
+    }
+    return fetch("/__story-api/story-data/" + encodeURIComponent(slug) + "/scroll-map-story.json", {
+      credentials: "include",
+      cache: "no-store"
+    })
+      .then(function (r) {
+        if (!r.ok) throw new Error("Could not load story.");
+        return r.json();
+      })
+      .then(function (data) {
+        config = data;
+        fillFormFromConfig();
+      })
+      .catch(function (e) {
+        showError(e.message || "Could not load story.");
+        form.classList.add("hidden");
+      });
+  }
+
+  var guestViewerTemplate = null;
+  function ensureGuestViewerTemplate() {
+    if (guestViewerTemplate) return Promise.resolve(guestViewerTemplate);
+    return fetch("/Tools/scroll-map-story.html", { cache: "no-store" })
+      .then(function (r) {
+        if (!r.ok) throw new Error("Could not load viewer template");
+        return r.text();
+      })
+      .then(function (html) {
+        guestViewerTemplate = html;
+        return html;
+      });
+  }
+
+  function buildGuestProject(storySlug, storyConfig) {
+    return window.MapsAndCardsGuest.projectFromStoryConfig(
+      storySlug,
+      storyConfig,
+      guestViewerTemplate
+    );
+  }
+
+  function saveGuestConfig() {
+    return ensureGuestViewerTemplate().then(function () {
+      var project = buildGuestProject(slug, config);
+      if (!window.MapsAndCardsGuest.saveProject(slug, project)) {
+        throw new Error("Could not save guest story.");
+      }
+    });
+  }
+
+  function saveAll() {
+    readFormIntoConfig();
+    if (guestMode) return saveGuestConfig();
+    return fetch("/__story-api/save", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug: slug, json: config })
+    }).then(function (r) {
+      return r.json().then(function (d) {
+        if (!r.ok) throw new Error(d.error || "Save failed");
+      });
+    });
+  }
+
+  document.getElementById("base-map-select").addEventListener("change", syncSatelliteLabelsUi);
+  document.getElementById("card-bg-color").addEventListener("input", updateCardPreview);
+  document.getElementById("card-bg-opacity").addEventListener("input", function () {
+    document.getElementById("card-bg-opacity-value").textContent =
+      document.getElementById("card-bg-opacity").value + "%";
+    updateCardPreview();
+  });
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    errEl.classList.add("hidden");
+    var btn = document.getElementById("btn-save");
+    btn.disabled = true;
+    btn.textContent = "Saving…";
+    saveAll()
+      .then(function () {
+        location.href = builderUrl();
+      })
+      .catch(function (err) {
+        btn.disabled = false;
+        btn.textContent = "Save";
+        showError(err.message || "Save failed");
+      });
+  });
+
+  populateBaseMaps();
+  loadConfig();
+})();
+  </script>
+</body>
+</html>

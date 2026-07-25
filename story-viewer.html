@@ -85,29 +85,89 @@
 </head>
 <body>
   <header class="viewer-nav">
-    <a href="/index.html" class="back-home">Home</a>
+    <a href="/index.html" class="back-home" id="viewer-back-link">Home</a>
     <span class="viewer-hint">Navigation is only in this shell; the framed page is publishable by itself.</span>
   </header>
   <iframe id="story-frame" title="Story" hidden></iframe>
   <p id="viewer-error" hidden></p>
 
+  <script src="/Tools/guest-playground.js"></script>
   <script>
 (function () {
+  var PREVIEW_RETURN_KEY = "mapsandcards-builder-return-url";
   var frame = document.getElementById("story-frame");
   var err = document.getElementById("viewer-error");
-  var q = new URLSearchParams(window.location.search).get("story");
+  var backLink = document.getElementById("viewer-back-link");
+  var params = new URLSearchParams(window.location.search);
+  var q = params.get("story");
+  var isGuest = params.get("guest") === "1";
   var slugRe = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+  var guestBlobUrl = null;
 
-  if (!q || !slugRe.test(q)) {
-    err.textContent =
-      "Add a story slug, e.g. ?story=earth — open from Scroll Map Builder home or /story-viewer.html?story=your-story";
+  function showError(message) {
+    err.textContent = message;
     err.hidden = false;
     document.title = "Story preview — error";
+  }
+
+  function configureBackLink() {
+    if (!backLink) return;
+    var returnUrl = null;
+    try {
+      returnUrl = sessionStorage.getItem(PREVIEW_RETURN_KEY);
+    } catch (e) {}
+    if (returnUrl) {
+      backLink.textContent = "Return to Editor";
+      backLink.href = returnUrl;
+    }
+  }
+
+  configureBackLink();
+
+  if (!q || !slugRe.test(q)) {
+    showError(
+      "Add a story slug, e.g. ?story=earth — open from Scroll Map Builder or /story-viewer.html?story=your-story"
+    );
     return;
   }
 
   document.title = q + " — preview";
   frame.title = "Story: " + q;
+
+  if (isGuest) {
+    var Guest = window.MapsAndCardsGuest;
+    if (!Guest) {
+      showError("Guest preview helpers did not load.");
+      return;
+    }
+    var project = Guest.loadProject(q);
+    if (!project) {
+      showError(
+        "Guest story \"" + q + "\" was not found in this browser. Open it from the editor and save a draft first."
+      );
+      return;
+    }
+    var indexFile = Guest.findFile(project, "index.html");
+    if (!indexFile || !indexFile.content) {
+      showError("Guest preview HTML is missing for \"" + q + "\".");
+      return;
+    }
+    guestBlobUrl = URL.createObjectURL(
+      new Blob([indexFile.content], { type: "text/html" })
+    );
+    frame.src = guestBlobUrl;
+    frame.hidden = false;
+    window.addEventListener("pagehide", function () {
+      if (guestBlobUrl) {
+        try {
+          URL.revokeObjectURL(guestBlobUrl);
+        } catch (e) {}
+        guestBlobUrl = null;
+      }
+    });
+    return;
+  }
+
   frame.src = "/Stories/" + encodeURIComponent(q) + "/scroll-map-story.html";
   frame.hidden = false;
 })();

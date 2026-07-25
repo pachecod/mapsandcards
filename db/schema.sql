@@ -13,6 +13,11 @@ CREATE TABLE IF NOT EXISTS stories (
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Upgrade stories table on installs that predates platform columns (CREATE TABLE IF NOT EXISTS skips alters).
+ALTER TABLE stories ADD COLUMN IF NOT EXISTS owner_student_id UUID;
+ALTER TABLE stories ADD COLUMN IF NOT EXISTS class_id UUID;
+ALTER TABLE stories ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'draft';
+
 CREATE INDEX IF NOT EXISTS idx_stories_slug ON stories (slug);
 CREATE INDEX IF NOT EXISTS idx_stories_published ON stories (published) WHERE published = true;
 CREATE INDEX IF NOT EXISTS idx_stories_owner ON stories (owner_student_id);
@@ -114,10 +119,6 @@ CREATE TABLE IF NOT EXISTS file_tags (
 
 CREATE INDEX IF NOT EXISTS idx_file_tags_asset ON file_tags (asset_type, asset_id);
 CREATE INDEX IF NOT EXISTS idx_file_tags_tag ON file_tags (tag);
-
-ALTER TABLE stories ADD COLUMN IF NOT EXISTS owner_student_id UUID;
-ALTER TABLE stories ADD COLUMN IF NOT EXISTS class_id UUID;
-ALTER TABLE stories ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'draft';
 
 DO $$
 BEGIN

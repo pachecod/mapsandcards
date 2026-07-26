@@ -12,7 +12,7 @@ const DEFAULT_SITE = {
   main_footer_html: "",
   export_help_html: "",
   blocked_extensions: ["exe", "bat", "sh", "cmd", "com", "heic", "heif"],
-  public_template_slugs: ["earth"],
+  public_template_slugs: ["earth", "syracuse"],
 };
 
 export async function getSiteSettings() {

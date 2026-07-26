@@ -118,6 +118,7 @@
     var pending = false;
     var settleTimer = 0;
     var resizeObserver = null;
+    var lastScrubScrollY = -1;
 
     function refreshAnchors() {
       anchors = computeAnchors(panel, anchorRatio);
@@ -132,7 +133,10 @@
       var stepCount = getStepCount();
       refreshAnchors();
       var seg = segmentForScrollY(anchors, scrollY, stepCount);
-      if (onScrub) onScrub(seg, scrollY);
+      if (scrollY !== lastScrubScrollY) {
+        lastScrubScrollY = scrollY;
+        if (onScrub) onScrub(seg, scrollY);
+      }
 
       window.clearTimeout(settleTimer);
       settleTimer = window.setTimeout(function () {

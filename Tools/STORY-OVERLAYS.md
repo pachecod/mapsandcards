@@ -1,4 +1,4 @@
-# Step map overlays and camera (v1.8)
+# Step map overlays and camera (v1.85)
 
 ## Schema
 
@@ -57,12 +57,14 @@ Coordinates are **longitude, latitude** per GeoJSON.
 
 ## Reader (scroll-map-story.html)
 
-- **Story mode:** Overlays update when the active step changes (same timing as the map camera for that step).
+- **Story mode (scroll scrub):** While scrolling between cards, the map camera is driven by scroll progress — not independent timed `flyTo` animations. Camera position is interpolated between step anchors (card center at ~42% viewport height) using each step’s smooth or pullback transition path. Releasing scroll at any point leaves the map at the matching camera.
+- **Story mode (reduced motion):** When the OS prefers reduced motion, Story mode falls back to discrete `flyTo` flights on step change.
+- **Story mode:** Overlays update when the active step changes (at the midpoint between cards during scroll, or when settled on a step).
 - **Explore mode:** Overlays from **all locations** are shown at once, each at its own coordinates on the map/globe. Returning to Story mode shows only the active step’s overlays again.
-- **Pitch & bearing:** Applied when flying to each step if set on that step.
+- **Pitch & bearing:** Interpolated while scrolling between steps; applied directly when settled on a step.
 - **3D buildings:** Shown on supported vector basemaps from zoom 13+ when enabled globally or for the active step.
 - **Globe stars:** Procedural starfield behind the globe when globe projection and stars are enabled.
-- **Globe spin:** A step may set `"spin": true`. While that card is active and the story uses **globe** projection, the globe slowly rotates. Spin stops when you leave the card, switch to Explore, interact with the map, or zoom in past ~5.
+- **Globe spin:** A step may set `"spin": true`. Spin starts only when scroll settles on that step (not mid-transition). Spin stops when you leave the card, switch to Explore, interact with the map, or zoom in past ~5.
 - **Restart:** If the story sets `"restartAtEnd": true`, a final card offers **Start from beginning** (scrolls to the top and returns the map to the first location).
 
 ## Builder

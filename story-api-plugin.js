@@ -183,7 +183,8 @@ function rewriteCdnToLocal(html) {
     )
     .replace(/src="\/Tools\/globe-daynight\.js"/, 'src="assets/globe-daynight.js"')
     .replace(/src="\/Tools\/globe-stars\.js"/, 'src="assets/globe-stars.js"')
-    .replace(/src="\/Tools\/globe-3d-buildings\.js"/, 'src="assets/globe-3d-buildings.js"');
+    .replace(/src="\/Tools\/globe-3d-buildings\.js"/, 'src="assets/globe-3d-buildings.js"')
+    .replace(/src="\/Tools\/scroll-camera-scrub\.js"/, 'src="assets/scroll-camera-scrub.js"');
 }
 
 function markStandaloneExport(html) {
@@ -361,6 +362,7 @@ function storyApiMiddleware(rootDir) {
         const globeDayNightJs = await fs.readFile(path.join(toolsDir, "globe-daynight.js"));
         const globeStarsJs = await fs.readFile(path.join(toolsDir, "globe-stars.js"));
         const globe3dBuildingsJs = await fs.readFile(path.join(toolsDir, "globe-3d-buildings.js"));
+        const scrollCameraScrubJs = await fs.readFile(path.join(toolsDir, "scroll-camera-scrub.js"));
 
         const zipBuf = buildZip([
           { name: "index.html", data: Buffer.from(html, "utf8") },
@@ -371,6 +373,7 @@ function storyApiMiddleware(rootDir) {
           { name: "assets/globe-daynight.js", data: globeDayNightJs },
           { name: "assets/globe-stars.js", data: globeStarsJs },
           { name: "assets/globe-3d-buildings.js", data: globe3dBuildingsJs },
+          { name: "assets/scroll-camera-scrub.js", data: scrollCameraScrubJs },
         ]);
 
         res.statusCode = 200;

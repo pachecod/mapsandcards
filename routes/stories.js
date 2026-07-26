@@ -181,6 +181,7 @@ const CDN_ASSETS = [
 const GLOBE_DAYNIGHT_PATH = join(ROOT, "Tools", "globe-daynight.js");
 const GLOBE_STARS_PATH = join(ROOT, "Tools", "globe-stars.js");
 const GLOBE_3D_BUILDINGS_PATH = join(ROOT, "Tools", "globe-3d-buildings.js");
+const SCROLL_CAMERA_SCRUB_PATH = join(ROOT, "Tools", "scroll-camera-scrub.js");
 
 const assetCache = new Map();
 
@@ -209,7 +210,8 @@ function rewriteCdnToLocal(html) {
     )
     .replace(/src="\/Tools\/globe-daynight\.js"/, 'src="assets/globe-daynight.js"')
     .replace(/src="\/Tools\/globe-stars\.js"/, 'src="assets/globe-stars.js"')
-    .replace(/src="\/Tools\/globe-3d-buildings\.js"/, 'src="assets/globe-3d-buildings.js"');
+    .replace(/src="\/Tools\/globe-3d-buildings\.js"/, 'src="assets/globe-3d-buildings.js"')
+    .replace(/src="\/Tools\/scroll-camera-scrub\.js"/, 'src="assets/scroll-camera-scrub.js"');
 }
 
 function markStandaloneExport(html) {
@@ -424,6 +426,7 @@ router.post("/export", async (req, res) => {
   const globeDayNightJs = await readFile(GLOBE_DAYNIGHT_PATH);
   const globeStarsJs = await readFile(GLOBE_STARS_PATH);
   const globe3dBuildingsJs = await readFile(GLOBE_3D_BUILDINGS_PATH);
+  const scrollCameraScrubJs = await readFile(SCROLL_CAMERA_SCRUB_PATH);
 
   const zipBuf = buildZip([
     { name: "index.html", data: Buffer.from(html, "utf8") },
@@ -434,6 +437,7 @@ router.post("/export", async (req, res) => {
     { name: "assets/globe-daynight.js", data: globeDayNightJs },
     { name: "assets/globe-stars.js", data: globeStarsJs },
     { name: "assets/globe-3d-buildings.js", data: globe3dBuildingsJs },
+    { name: "assets/scroll-camera-scrub.js", data: scrollCameraScrubJs },
   ]);
 
   res.set("Content-Type", "application/zip");

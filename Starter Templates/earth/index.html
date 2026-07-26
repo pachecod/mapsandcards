@@ -849,7 +849,10 @@
   var scrollScrubController = null;
   var scrubLastOverlayIndex = -1;
   var scrubBasemapSegmentKey = "";
+  var scrubBasemapPreloadKey = "";
+  var scrubLastTransitionKey = "";
   var scrubBasemapSwitchInProgress = false;
+  var _stepNavFromIndex = -1;
   var prefersReducedMotion =
     typeof window.matchMedia === "function" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -2565,6 +2568,27 @@
     );
   }
 
+  function isSegmentSettledOnStep(seg) {
+    if (!seg) return false;
+    if (seg.fromIndex === seg.toIndex) return true;
+    return seg.t <= 0.05 || seg.t >= 0.95;
+  }
+
+  function maybeScrubBasemapPreload(seg) {
+    if (seg.fromIndex === seg.toIndex || seg.t < 0.45 || scrubBasemapSwitchInProgress) return;
+    var toStep = config.steps[seg.toIndex];
+    if (!toStep) return;
+    var preloadKey = seg.fromIndex + "->" + seg.toIndex + ":preload";
+    if (scrubBasemapPreloadKey === preloadKey) return;
+    var effectiveBase = effectiveBaseForStep(toStep);
+    if (effectiveBase === currentLoadedBaseMap) {
+      scrubBasemapPreloadKey = preloadKey;
+      return;
+    }
+    scrubBasemapPreloadKey = preloadKey;
+    getBaseMapStylePromise(effectiveBase).catch(function () {});
+  }
+
   function maybeScrubBasemapSwitch(seg, cam) {
     if (seg.fromIndex === seg.toIndex || seg.t < 0.5 || scrubBasemapSwitchInProgress) return;
     var toStep = config.steps[seg.toIndex];
@@ -2628,6 +2652,8 @@
     }
     scrubLastOverlayIndex = -1;
     scrubBasemapSegmentKey = "";
+    scrubBasemapPreloadKey = "";
+    scrubLastTransitionKey = "";
     scrubBasemapSwitchInProgress = false;
   }
 
@@ -2645,15 +2671,42 @@
       },
       onScrub: function (seg) {
         if (storyInteractionMode !== "scroll") return;
+        var transitionKey = seg.fromIndex + "->" + seg.toIndex;
+        if (transitionKey !== scrubLastTransitionKey) {
+          scrubLastTransitionKey = transitionKey;
+          scrubBasemapSegmentKey = "";
+          scrubBasemapPreloadKey = "";
+        }
         var cam = cameraForScrollSegment(seg);
         applyScrubCamera(cam, seg);
+        maybeScrubBasemapPreload(seg);
         maybeScrubBasemapSwitch(seg, cam);
       },
       onSettled: function (seg) {
         if (storyInteractionMode !== "scroll") return;
-        syncGlobeSpinForStep(seg.activeIndex);
-        nudgeGlobeRepaint();
+        if (isSegmentSettledOnStep(seg)) {
+          syncGlobeSpinForStep(seg.activeIndex);
+          nudgeGlobeRepaint();
+        }
         if (_stepNavInProgress) {
+          var fromStep =
+            _stepNavFromIndex >= 0 ? config.steps[_stepNavFromIndex] : null;
+          var toStep = config.steps[seg.activeIndex];
+          var longGlobeHop =
+            !!fromStep &&
+            !!toStep &&
+            isGlobeProjectionActive() &&
+            haversineKm(fromStep.lng, fromStep.lat, toStep.lng, toStep.lat) > 350;
+          if (longGlobeHop) {
+            var targetIndex = seg.activeIndex;
+            resetGlobeProjection().then(function () {
+              finishStoryStepNav(targetIndex);
+            });
+            window.setTimeout(function () {
+              if (_stepNavBusy) finishStoryStepNav(targetIndex);
+            }, 15000);
+            return;
+          }
           finishStoryStepNav(seg.activeIndex);
         }
       },
@@ -2714,10 +2767,13 @@
     if (i === fromIndex && i === lastFlownIndex) return;
 
     if (scrollScrubActive() && scrollScrubController) {
+      _stepNavFromIndex = fromIndex;
       _stepNavInProgress = true;
       _stepNavBusy = true;
       syncStoryStepNavButtons(i);
       scrubBasemapSegmentKey = "";
+      scrubBasemapPreloadKey = "";
+      scrubLastTransitionKey = "";
       scrollScrubController.scrollToStepIndex(i, true);
       window.setTimeout(function () {
         if (_stepNavBusy) finishStoryStepNav(i);

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Scroll map story — builder v1.5</title>
+  <title>Scroll map story — builder v1.8</title>
   <script src="/__analytics.js" defer></script>
   <link href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.css" rel="stylesheet" crossorigin="" />
   <link
@@ -722,6 +722,39 @@
     .annotate-panel[hidden] {
       display: none !important;
     }
+    .step-options {
+      margin-top: 0.15rem;
+      flex-shrink: 0;
+    }
+    .step-options > summary {
+      list-style: none;
+      cursor: pointer;
+      color: var(--accent);
+      font-size: 0.78rem;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      user-select: none;
+      width: fit-content;
+    }
+    .step-options > summary::-webkit-details-marker {
+      display: none;
+    }
+    .step-options > summary::after {
+      content: " \25BE";
+      font-size: 0.85em;
+      text-decoration: none;
+    }
+    .step-options[open] > summary::after {
+      content: " \25B4";
+    }
+    .step-options > summary:hover {
+      color: var(--text);
+    }
+    .step-options-panel-body {
+      display: flex;
+      flex-direction: column;
+      padding-top: 0.35rem;
+    }
     .preferences-toggle-btn {
       flex-shrink: 0;
     }
@@ -1106,6 +1139,7 @@
     .new-story-modal .ns-field select,
     .new-story-modal .ns-field textarea,
     .new-story-modal .ns-field input[type="text"],
+    .new-story-modal .ns-field input[type="search"],
     .new-story-modal .ns-field input[type="color"] {
       width: 100%;
       box-sizing: border-box;
@@ -1150,6 +1184,86 @@
       text-transform: uppercase;
       letter-spacing: 0.04em;
     }
+    .ns-location-results {
+      list-style: none;
+      margin: 0.35rem 0 0;
+      padding: 0;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      max-height: 11rem;
+      overflow-y: auto;
+      background: var(--bg);
+    }
+    .ns-location-results[hidden] {
+      display: none !important;
+    }
+    .ns-location-results li button {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 0.5rem 0.65rem;
+      border: none;
+      background: transparent;
+      color: var(--text);
+      font-size: 0.82rem;
+      line-height: 1.35;
+      cursor: pointer;
+    }
+    .ns-location-results li + li button {
+      border-top: 1px solid var(--border);
+    }
+    .ns-location-results li button:hover,
+    .ns-location-results li button:focus-visible {
+      background: rgba(61, 139, 253, 0.12);
+      outline: none;
+    }
+    .ns-location-selected {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      margin-top: 0.45rem;
+      padding: 0.5rem 0.65rem;
+      border-radius: 8px;
+      background: rgba(61, 139, 253, 0.1);
+      border: 1px solid rgba(61, 139, 253, 0.28);
+      font-size: 0.82rem;
+      line-height: 1.35;
+      color: var(--text);
+    }
+    .ns-location-selected[hidden] {
+      display: none !important;
+    }
+    .ns-location-selected-label {
+      flex: 1;
+      min-width: 0;
+    }
+    .ns-location-selected-label strong {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 0.15rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .ns-location-change {
+      flex-shrink: 0;
+      font-size: 0.75rem;
+      padding: 0.2rem 0.45rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      cursor: pointer;
+    }
+    .ns-location-status {
+      margin: 0.35rem 0 0;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .ns-location-status.is-error {
+      color: #f5a623;
+    }
     .map-load-error {
       margin: 0.35rem 0 0;
       font-size: 0.8rem;
@@ -1161,7 +1275,7 @@
 <body>
   <header class="topbar">
     <div class="topbar-left">
-      <h1>Scroll map story — builder <span class="builder-version">v1.5</span> <span id="guest-mode-badge" class="builder-version hidden" style="color:var(--accent)">· Guest</span></h1>
+      <h1>Scroll map story — builder <span class="builder-version">v1.8</span> <span id="guest-mode-badge" class="builder-version hidden" style="color:var(--accent)">· Guest</span></h1>
       <p id="builder-session-label" class="topbar-session-label hidden" role="status" aria-live="polite"></p>
       <p id="student-session-bar" class="api-offline-hint hidden" role="status"></p>
       <p id="story-api-hint" class="api-offline-hint hidden" role="status">
@@ -1350,12 +1464,19 @@
             <span id="daynight-opacity-value" class="coords">50%</span>
           </div>
         </div>
+        <div class="nav-flyout-field" id="globe-stars-field">
+          <label class="check-label" for="globe-stars-toggle">
+            <input type="checkbox" id="globe-stars-toggle" />
+            <span>Show stars behind globe</span>
+          </label>
+          <p class="field-hint">Dark starfield sky; works best zoomed out on Globe projection.</p>
+        </div>
         <div class="nav-flyout-field" id="show-3d-buildings-field">
           <label class="check-label" for="show-3d-buildings-toggle">
             <input type="checkbox" id="show-3d-buildings-toggle" />
-            <span>3D buildings (city zoom)</span>
+            <span>3D buildings</span>
           </label>
-          <p class="field-hint">Vector basemaps only. Best at zoom 15+.</p>
+          <p class="field-hint">Needs a vector basemap (not satellite) and zoom about 13+.</p>
         </div>
         <div class="nav-flyout-field hidden" id="buildings-color-preset-field">
           <label for="buildings-color-preset-select">Building color</label>
@@ -1447,7 +1568,7 @@
           Clear camera angle
         </button>
       </div>
-      <div class="row" style="align-items:flex-end">
+      <div class="row" id="step-basemap-row" style="align-items:flex-end;margin-top:0.35rem">
         <div class="field" style="flex:1;margin:0;min-width:0">
           <label for="step-basemap-select" style="font-size:0.78rem">Base map</label>
           <select id="step-basemap-select" aria-label="Base map override for this location">
@@ -1465,19 +1586,42 @@
           Annotate
         </button>
       </div>
-      <div class="field" id="step-spin-field" style="margin:0.35rem 0 0">
-        <label for="step-spin-toggle" style="display:flex;gap:0.5rem;align-items:flex-start;font-size:0.78rem;font-weight:normal;cursor:pointer">
-          <input type="checkbox" id="step-spin-toggle" style="margin-top:0.15rem" />
-          <span>Spin globe while this card is active <span class="coords">(globe projection only)</span></span>
-        </label>
-      </div>
-      <div class="field" style="margin:0.35rem 0 0">
-        <label for="step-fly-transition-select" style="font-size:0.78rem">Move to this location</label>
-        <select id="step-fly-transition-select" aria-label="Camera transition when moving to this location">
-          <option value="smooth">Smooth transition</option>
-          <option value="pullback">Zoom out and zoom in</option>
-        </select>
-      </div>
+      <details class="step-options" id="step-options">
+        <summary>Options</summary>
+        <div class="step-options-panel-body">
+          <div class="row" id="step-map-overrides-row" style="align-items:flex-end;margin-top:0">
+            <div class="field" style="flex:1;margin:0;min-width:0">
+              <label for="step-stars-select" style="font-size:0.78rem">Stars</label>
+              <select id="step-stars-select" aria-label="Stars override for this location">
+                <option value="">— Default —</option>
+                <option value="on">On</option>
+                <option value="off">Off</option>
+              </select>
+            </div>
+            <div class="field" style="flex:1;margin:0;min-width:0">
+              <label for="step-3d-buildings-select" style="font-size:0.78rem">3D buildings</label>
+              <select id="step-3d-buildings-select" aria-label="3D buildings override for this location">
+                <option value="">— Default —</option>
+                <option value="on">On</option>
+                <option value="off">Off</option>
+              </select>
+            </div>
+          </div>
+          <div class="field" id="step-spin-field" style="margin:0.35rem 0 0">
+            <label for="step-spin-toggle" style="display:flex;gap:0.5rem;align-items:flex-start;font-size:0.78rem;font-weight:normal;cursor:pointer">
+              <input type="checkbox" id="step-spin-toggle" style="margin-top:0.15rem" />
+              <span>Spin globe while this card is active <span class="coords">(globe projection only)</span></span>
+            </label>
+          </div>
+          <div class="field" style="margin:0.35rem 0 0">
+            <label for="step-fly-transition-select" id="step-fly-transition-label" style="font-size:0.78rem">Move to this location</label>
+            <select id="step-fly-transition-select" aria-label="Camera transition when moving to this location">
+              <option value="smooth">Smooth transition</option>
+              <option value="pullback">Zoom out and zoom in</option>
+            </select>
+          </div>
+        </div>
+      </details>
       <div class="annotate-panel" id="annotate-panel" role="region" aria-label="Map annotation" hidden>
         <div class="field">
           <div class="row" style="align-items:center;margin-bottom:0.35rem">
@@ -1571,6 +1715,26 @@
         <label for="ns-slug">Story name</label>
         <input type="text" id="ns-slug" placeholder="my-road-trip" autocomplete="off" spellcheck="false" />
       </div>
+      <div class="ns-field" id="ns-location-field">
+        <label for="ns-location-search">Starting location</label>
+        <input
+          type="search"
+          id="ns-location-search"
+          placeholder="Search city, country, or address…"
+          autocomplete="off"
+          spellcheck="false"
+          aria-describedby="ns-location-status"
+        />
+        <p class="ns-location-status" id="ns-location-status">Search and pick where your story begins.</p>
+        <ul class="ns-location-results" id="ns-location-results" hidden role="listbox" aria-label="Location search results"></ul>
+        <div class="ns-location-selected" id="ns-location-selected" hidden>
+          <div class="ns-location-selected-label">
+            <strong>Starting location</strong>
+            <span id="ns-location-selected-text"></span>
+          </div>
+          <button type="button" class="ns-location-change" id="ns-location-change">Change</button>
+        </div>
+      </div>
       <div class="ns-field" id="ns-template-field" hidden>
         <label for="ns-template">Start from</label>
         <select id="ns-template" aria-label="Start from blank or a default template">
@@ -1592,12 +1756,6 @@
           <option value="globe">Globe</option>
           <option value="mercator">Flat (Mercator)</option>
         </select>
-      </div>
-      <div class="ns-field">
-        <label class="ns-check">
-          <input type="checkbox" id="ns-terrain" />
-          <span>3D terrain (MapLibre demo — free, no key)</span>
-        </label>
       </div>
       <div class="ns-field" id="ns-satellite-labels-field">
         <label class="ns-check">
@@ -1623,7 +1781,7 @@
       </div>
       <div class="text-prompt-actions row">
         <button type="button" class="btn" id="ns-cancel">Cancel</button>
-        <button type="button" class="btn primary" id="ns-ok">OK</button>
+        <button type="button" class="btn primary" id="ns-ok" disabled>Create story</button>
       </div>
     </div>
   </div>
@@ -1631,6 +1789,7 @@
   <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.min.js" crossorigin=""></script>
   <script src="https://cdn.jsdelivr.net/npm/maplibre-gl-nightlayer@1.0.0-alpha.16/dist/nightlayer.min.js" crossorigin=""></script>
   <script src="/Tools/globe-daynight.js"></script>
+  <script src="/Tools/globe-stars.js"></script>
   <script src="/Tools/globe-3d-buildings.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mapbox/mapbox-gl-draw@1.4.3/dist/mapbox-gl-draw.js" crossorigin=""></script>
   <script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js" crossorigin=""></script>
@@ -1769,8 +1928,10 @@
     baseMap: "openfreemap-bright",
     terrain: false,
     projection: "globe",
+    globeStars: true,
+    show3dBuildings: true,
     satelliteLabels: true,
-    restartAtEnd: false,
+    restartAtEnd: true,
     sources: "",
     cardBackgroundColor: "#ffffff",
     cardBackgroundOpacity: 0.86,
@@ -1945,6 +2106,7 @@
     opts = opts || {};
     var quiet = opts.quiet !== false;
     if (!guestMode || !currentSlug || !window.MapsAndCardsGuest) return Promise.resolve();
+    captureMapOptionsFromUi();
     config = normalizeConfig(config);
     if (quiet) setSaveButtonLabel("Saving…", false);
     /* Always refresh viewer HTML so Preview picks up latest flyTo/spin fixes. */
@@ -1966,22 +2128,110 @@
           setSaveButtonLabel("Save", false);
           alert("Save failed: " + (e.message || e));
         }
+        throw e;
+      });
+  }
+
+  /** Read map-options + current step overrides from UI into config before save/preview. */
+  function captureMapOptionsFromUi() {
+    if (!config) return;
+    var baseSel = el("base-map-select");
+    /* Prefer the basemap actually loaded in the builder — the flyout select can
+       lag behind when the map was switched via per-step overrides. */
+    if (currentBuilderBaseMap) {
+      config.baseMap = currentBuilderBaseMap;
+    } else if (baseSel && baseSel.value) {
+      config.baseMap = baseSel.value;
+    }
+    var projSel = el("projection-select");
+    if (projSel) config.projection = projSel.value === "globe" ? "globe" : "mercator";
+    var buildingsToggle = el("show-3d-buildings-toggle");
+    if (buildingsToggle) {
+      if (buildingsToggle.checked) config.show3dBuildings = true;
+      else delete config.show3dBuildings;
+    }
+    var buildingsPreset = el("buildings-color-preset-select");
+    if (buildingsPreset && buildingsPreset.value) {
+      config.buildingsColorPreset = buildingsPreset.value;
+    }
+    var starsToggle = el("globe-stars-toggle");
+    if (starsToggle) {
+      if (starsToggle.checked) config.globeStars = true;
+      else delete config.globeStars;
+    }
+    var s = config.steps && config.steps[selectedIndex];
+    if (s) {
+      var stepBasemap = el("step-basemap-select");
+      if (stepBasemap) {
+        if (isIntroStep(s)) {
+          delete s.baseMap;
+        } else if (stepBasemap.value) {
+          s.baseMap = stepBasemap.value;
+        } else {
+          delete s.baseMap;
+        }
+      }
+      var stepBuildings = el("step-3d-buildings-select");
+      if (stepBuildings) {
+        if (stepBuildings.value === "on") s.show3dBuildings = true;
+        else if (stepBuildings.value === "off") s.show3dBuildings = false;
+        else delete s.show3dBuildings;
+      }
+      var stepStars = el("step-stars-select");
+      if (stepStars) {
+        if (stepStars.value === "on") s.globeStars = true;
+        else if (stepStars.value === "off") s.globeStars = false;
+        else delete s.globeStars;
+      }
+    }
+    if (window.GlobeDayNight) GlobeDayNight.normalizeDayNightConfig(config);
+    if (window.GlobeStars) GlobeStars.normalizeGlobeStarsConfig(config);
+    if (window.Globe3dBuildings) {
+      Globe3dBuildings.normalize3dBuildingsConfig(config);
+      if (s) Globe3dBuildings.normalizeStep3dBuildings(s);
+    }
+  }
+
+  function flushBeforePreview() {
+    if (_persistTimer) {
+      window.clearTimeout(_persistTimer);
+      _persistTimer = null;
+    }
+    captureMapOptionsFromUi();
+    config = normalizeConfig(config);
+    saveConfig();
+    if (!currentSlug) {
+      return Promise.reject(new Error("Select or create a story first."));
+    }
+    if (guestMode) {
+      return persistGuestProject({ quiet: true });
+    }
+    if (!storyApiOk) {
+      return Promise.reject(new Error("Save your story first to preview."));
+    }
+    setSaveButtonLabel("Saving…", false);
+    return fetch("/__story-api/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug: currentSlug, json: config }),
+    })
+      .then(function (r) {
+        return r.json().then(function (j) {
+          return { ok: r.ok, j: j };
+        });
+      })
+      .then(function (o) {
+        if (!o.ok) throw new Error((o.j && o.j.error) || "Save failed");
+        setSaveButtonLabel("Saved", true);
+      })
+      .catch(function (e) {
+        setSaveButtonLabel("Save failed", true);
+        throw e;
       });
   }
 
   function openGuestPreview() {
-    if (!currentSlug || !window.MapsAndCardsGuest) return;
-    return persistGuestProject({ quiet: true }).then(function () {
-      var project = window.MapsAndCardsGuest.loadProject(currentSlug);
-      if (!project) {
-        alert("Nothing to preview yet.");
-        return;
-      }
-      var indexFile = window.MapsAndCardsGuest.findFile(project, "index.html");
-      if (!indexFile || !indexFile.content) {
-        alert("Preview HTML missing.");
-        return;
-      }
+    return flushBeforePreview().then(function () {
       navigateToPreview(previewUrlForStory(currentSlug));
     });
   }
@@ -2023,15 +2273,15 @@
       alert("Select or create a story first.");
       return;
     }
-    if (guestMode) {
-      openGuestPreview();
-      return;
-    }
-    if (!storyApiOk) {
-      alert("Save your story first to preview.");
-      return;
-    }
-    navigateToPreview(previewUrlForStory(currentSlug));
+    flushBeforePreview()
+      .then(function () {
+        var url = previewUrlForStory(currentSlug);
+        url += (url.indexOf("?") >= 0 ? "&" : "?") + "t=" + Date.now();
+        navigateToPreview(url);
+      })
+      .catch(function (e) {
+        alert(e.message || String(e));
+      });
   }
 
   function showPreviewLinkForStory(slug) {
@@ -2152,22 +2402,36 @@
     }
   }
 
+  function applyGlobeOverlaysAfterProjection(type) {
+    applyGlobeDayNightIfNeeded();
+    if (type === "globe") refreshGlobeStarsIfNeeded();
+    else applyGlobeStarsIfNeeded();
+    applyGlobe3dBuildingsIfNeeded();
+  }
+
   function applyProjectionIfNeeded() {
     if (!map || typeof map.setProjection !== "function") return;
     var type = config.projection === "globe" ? "globe" : "mercator";
     try {
       var cur = map.getProjection && map.getProjection();
       if (cur && cur.type === type) {
-        applyGlobeDayNightIfNeeded();
-        applyGlobe3dBuildingsIfNeeded();
+        applyGlobeOverlaysAfterProjection(type);
         return;
       }
       map.setProjection({ type: type });
     } catch (e) {
       console.warn("Projection:", e);
     }
-    applyGlobeDayNightIfNeeded();
-    applyGlobe3dBuildingsIfNeeded();
+    /* setProjection finishes asynchronously and clears sky/atmosphere after the
+       current turn — wait for two idles before (re)building stars. */
+    function afterSettled() {
+      applyGlobeOverlaysAfterProjection(type);
+    }
+    map.once("idle", function () {
+      map.once("idle", afterSettled);
+      if (typeof map.triggerRepaint === "function") map.triggerRepaint();
+    });
+    if (typeof map.triggerRepaint === "function") map.triggerRepaint();
   }
 
   function applyGlobeDayNightIfNeeded() {
@@ -2182,20 +2446,48 @@
     }
   }
 
-  function applyGlobe3dBuildingsIfNeeded(baseMapId) {
-    if (window.Globe3dBuildings && map && config) {
-      var s = config.steps[selectedIndex];
-      var base = baseMapId || effectiveBaseForStep(s);
-      Globe3dBuildings.apply(map, config, base);
+  function applyGlobeStarsIfNeeded(step) {
+    if (window.GlobeStars && map && config) {
+      var s = step != null ? step : config.steps[selectedIndex];
+      GlobeStars.apply(map, config, s);
     }
   }
 
-  function applyGlobe3dBuildingsAfterStyle(baseMapId) {
-    if (window.Globe3dBuildings && map && config) {
-      var s = config.steps[selectedIndex];
-      var base = baseMapId || effectiveBaseForStep(s);
-      Globe3dBuildings.syncAfterStyleLoad(map, config, base);
+  function refreshGlobeStarsIfNeeded(step) {
+    if (window.GlobeStars && map && config) {
+      var s = step != null ? step : config.steps[selectedIndex];
+      GlobeStars.refresh(map, config, s);
     }
+  }
+
+  function applyGlobeStarsAfterStyle(step) {
+    if (window.GlobeStars && map && config) {
+      var s = step != null ? step : config.steps[selectedIndex];
+      GlobeStars.syncAfterStyleLoad(map, config, s);
+    }
+  }
+
+  function applyGlobe3dBuildingsIfNeeded(baseMapId, step) {
+    if (window.Globe3dBuildings && map && config) {
+      var s = step != null ? step : config.steps[selectedIndex];
+      var base = baseMapId || effectiveBaseForStep(s);
+      Globe3dBuildings.apply(map, config, base, s);
+    }
+  }
+
+  function applyGlobe3dBuildingsAfterStyle(baseMapId, step) {
+    if (window.Globe3dBuildings && map && config) {
+      var s = step != null ? step : config.steps[selectedIndex];
+      var base = baseMapId || effectiveBaseForStep(s);
+      Globe3dBuildings.syncAfterStyleLoad(map, config, base, s);
+    }
+  }
+
+  function applyStepMapLayers(step, baseMapId) {
+    var s = step != null ? step : config.steps[selectedIndex];
+    var base = baseMapId || effectiveBaseForStep(s);
+    applyGlobeStarsIfNeeded(s);
+    applyGlobe3dBuildingsIfNeeded(base, s);
   }
 
   function apply3dBuildingsZoomPitch() {
@@ -2203,11 +2495,11 @@
     var s = config.steps[selectedIndex];
     if (s && stepHasCustomCamera(s)) return;
     var base = effectiveBaseForStep(s);
-    if (!Globe3dBuildings.wants3dBuildings(config, base) && !config.terrain && config.projection !== "globe") {
+    if (!Globe3dBuildings.wants3dBuildings(config, base, s) && !config.terrain && config.projection !== "globe") {
       return;
     }
     var zoom = map.getZoom();
-    var targetPitch = Globe3dBuildings.buildingPitchForZoom(config, zoom, base);
+    var targetPitch = Globe3dBuildings.buildingPitchForZoom(config, zoom, base, s);
     var currentPitch = map.getPitch();
     var autoPitch = stepPitch(zoom, s);
     /* Don't snap pitch while the user is manually tilting the map in the builder. */
@@ -2231,10 +2523,8 @@
     if (canvas) canvas.addEventListener("contextmenu", blockContextMenu);
     function releaseStuckInteraction() {
       if (!map) return;
-      if (globeSpinDesired && globeSpinUserInteracting) {
-        globeSpinUserInteracting = false;
-        clearGlobeSpinResumeTimer();
-      }
+      /* Only re-enable handlers — do not clear globeSpinUserInteracting here or
+         spin can resume via moveend while the resume timer should still own that. */
       try {
         if (map.dragPan && map.dragPan.enable) map.dragPan.enable();
         if (map.dragRotate && map.dragRotate.enable) map.dragRotate.enable();
@@ -2265,16 +2555,22 @@
 
   function pauseGlobeSpinForInteraction(ev) {
     if (!globeSpinDesired) return;
+    var alreadyPaused = globeSpinUserInteracting;
     globeSpinUserInteracting = true;
     clearGlobeSpinResumeTimer();
-    if (map && ev && ev.originalEvent && ev.originalEvent.button === 2) {
-      /* Right-drag for pitch/bearing — don't map.stop(); it can leave rotate stuck. */
-      return;
-    }
-    if (map) {
+    /* pitchstart/rotatestart fire after mousedown; a second map.stop() mid-drag
+       leaves dragRotate stuck so right-click pitch feels broken while spinning. */
+    if (alreadyPaused) return;
+    if (!map) return;
+    var isRightButton =
+      !!(ev && ev.originalEvent && Number(ev.originalEvent.button) === 2);
+    try {
+      map.stop();
+    } catch (e) {}
+    if (isRightButton) {
       try {
-        map.stop();
-      } catch (e) {}
+        if (map.dragRotate && map.dragRotate.enable) map.dragRotate.enable();
+      } catch (e2) {}
     }
   }
 
@@ -2312,6 +2608,7 @@
   function spinGlobeFrame() {
     if (!map || !globeSpinDesired || globeSpinUserInteracting || !config) return;
     if (config.projection !== "globe") return;
+    if (!isGlobeProjectionActive()) applyProjectionIfNeeded();
     var zoom = map.getZoom();
     if (zoom >= GLOBE_SPIN_MAX_ZOOM) return;
     var distancePerSecond = 360 / GLOBE_SPIN_SECONDS_PER_REV;
@@ -2378,11 +2675,33 @@
     cb.checked = !!(s && s.spin === true);
   }
 
+  function flyTransitionStepIndex() {
+    if (!config || !config.steps || !config.steps.length) return selectedIndex;
+    var s = config.steps[selectedIndex];
+    if (isIntroStep(s) && config.steps.length > 1) return 1;
+    return selectedIndex;
+  }
+
+  function flyTransitionTargetStep() {
+    if (!config || !config.steps) return null;
+    var i = flyTransitionStepIndex();
+    return config.steps[i] || null;
+  }
+
   function syncStepFlyTransitionUi() {
     var sel = el("step-fly-transition-select");
+    var label = el("step-fly-transition-label");
     if (!sel || !config) return;
-    var s = config.steps[selectedIndex];
-    sel.value = s && s.flyTransition === "smooth" ? "smooth" : "pullback";
+    var current = config.steps[selectedIndex];
+    var target = flyTransitionTargetStep();
+    sel.disabled = !target;
+    sel.value = target && target.flyTransition === "smooth" ? "smooth" : "pullback";
+    if (label) {
+      label.textContent =
+        current && isIntroStep(current) && config.steps.length > 1
+          ? "Move to next location"
+          : "Move to this location";
+    }
   }
 
   function stepUsesSmoothFly(s) {
@@ -2454,6 +2773,7 @@
     syncSourcesField();
     syncCardBackgroundFields();
     syncGlobeDayNightUi();
+    syncGlobeStarsUi();
     sync3dBuildingsUi();
     updateMapOptionsCardPreview();
   }
@@ -2528,6 +2848,17 @@
     if (opacityVal) opacityVal.textContent = Math.round(op * 100) + "%";
   }
 
+  function syncGlobeStarsUi() {
+    var field = el("globe-stars-field");
+    var toggle = el("globe-stars-toggle");
+    if (!toggle || !config) return;
+    var globe = config.projection === "globe";
+    var enabled = globe && config.globeStars === true;
+    if (field) field.style.opacity = globe ? "1" : "0.55";
+    toggle.disabled = !globe;
+    toggle.checked = enabled;
+  }
+
   function sync3dBuildingsUi() {
     var field = el("show-3d-buildings-field");
     var toggle = el("show-3d-buildings-toggle");
@@ -2565,12 +2896,16 @@
     currentBuilderBaseMap = targetBase;
     getBaseMapStylePromise(targetBase)
       .then(function (style) {
+        map.once("style.load", function () {
+          applyProjectionIfNeeded();
+        });
         map.once("idle", function () {
           applyEnglishLabels(map);
           applyProjectionIfNeeded();
           applyTerrainIfNeeded();
           applyGlobeDayNightAfterStyle();
-          applyGlobe3dBuildingsAfterStyle(targetBase);
+          applyGlobeStarsAfterStyle(config.steps[selectedIndex]);
+          applyGlobe3dBuildingsAfterStyle(targetBase, config.steps[selectedIndex]);
           map.resize();
           applyStepOverlays(selectedIndex);
         });
@@ -2630,6 +2965,40 @@
     sel.value = (s && s.baseMap) ? s.baseMap : "";
   }
 
+  function triStateSelectValue(flag) {
+    if (flag === true) return "on";
+    if (flag === false) return "off";
+    return "";
+  }
+
+  function syncStepMapOverridesUi() {
+    var starsSel = el("step-stars-select");
+    var buildingsSel = el("step-3d-buildings-select");
+    var row = el("step-map-overrides-row");
+    if (!config) return;
+    var s = config.steps[selectedIndex];
+    var globe = config.projection === "globe";
+    if (row) row.style.opacity = globe ? "1" : "0.55";
+    if (starsSel) {
+      starsSel.disabled = !globe;
+      starsSel.value = s ? triStateSelectValue(s.globeStars) : "";
+    }
+    if (buildingsSel && s) {
+      var base = effectiveBaseForStep(s);
+      var supported =
+        window.Globe3dBuildings && Globe3dBuildings.baseMapSupports3dBuildings(base);
+      buildingsSel.disabled = !supported;
+      buildingsSel.value = triStateSelectValue(s.show3dBuildings);
+      buildingsSel.title = supported
+        ? "Shows extruded buildings around zoom 13+ on vector basemaps."
+        : "3D buildings need a vector basemap (not satellite/topo) for this card.";
+    } else if (buildingsSel) {
+      buildingsSel.disabled = true;
+      buildingsSel.value = "";
+      buildingsSel.title = "";
+    }
+  }
+
   /**
    * Apply the effective basemap for the currently selected step in the builder.
    * If the step has no override, use config.baseMap (global default).
@@ -2643,12 +3012,16 @@
     currentBuilderBaseMap = targetBaseMap;
     getBaseMapStylePromise(targetBaseMap)
       .then(function (style) {
+        map.once("style.load", function () {
+          applyProjectionIfNeeded();
+        });
         map.once("idle", function () {
           applyEnglishLabels(map);
           applyProjectionIfNeeded();
           applyTerrainIfNeeded();
           applyGlobeDayNightAfterStyle();
-          applyGlobe3dBuildingsAfterStyle(targetBaseMap);
+          applyGlobeStarsAfterStyle(config.steps[stepIndex]);
+          applyGlobe3dBuildingsAfterStyle(targetBaseMap, config.steps[stepIndex]);
           map.resize();
           applyStepOverlays(stepIndex);
         });
@@ -2722,6 +3095,7 @@
       data.projection = "mercator";
     }
     if (window.GlobeDayNight) GlobeDayNight.normalizeDayNightConfig(data);
+    if (window.GlobeStars) GlobeStars.normalizeGlobeStarsConfig(data);
     if (window.Globe3dBuildings) Globe3dBuildings.normalize3dBuildingsConfig(data);
     if (typeof data.satelliteLabels !== "boolean") {
       data.satelliteLabels = true;
@@ -2804,6 +3178,8 @@
     if (step.flyTransition === "smooth") step.flyTransition = "smooth";
     else delete step.flyTransition;
     normalizeStepCamera(step);
+    if (window.GlobeStars) GlobeStars.normalizeStepGlobeStars(step);
+    if (window.Globe3dBuildings) Globe3dBuildings.normalizeStep3dBuildings(step);
     if (!step.overlays || typeof step.overlays !== "object") {
       step.overlays = { geojson: { type: "FeatureCollection", features: [] } };
       return;
@@ -3175,21 +3551,93 @@
     });
   }
 
+  function zoomFromBoundingBox(bbox) {
+    if (!bbox || bbox.length < 4) return 11;
+    var latSpan = Math.abs(parseFloat(bbox[1]) - parseFloat(bbox[0]));
+    var lngSpan = Math.abs(parseFloat(bbox[3]) - parseFloat(bbox[2]));
+    var span = Math.max(latSpan, lngSpan);
+    if (span > 40) return 3;
+    if (span > 15) return 5;
+    if (span > 5) return 7;
+    if (span > 1) return 9;
+    if (span > 0.2) return 11;
+    if (span > 0.05) return 13;
+    return 15;
+  }
+
+  function applyStartLocationToConfig(data, startLocation) {
+    if (!data || !startLocation) return;
+    var lat = startLocation.lat;
+    var lng = startLocation.lng;
+    if (typeof lat !== "number" || typeof lng !== "number" || isNaN(lat) || isNaN(lng)) return;
+    var zoom =
+      typeof startLocation.zoom === "number" && !isNaN(startLocation.zoom)
+        ? startLocation.zoom
+        : 11;
+    data.initialMap = { lat: lat, lng: lng, zoom: zoom };
+    pinIntroStepFirst(data);
+    if (data.steps && data.steps.length) {
+      var intro = data.steps[0];
+      if (intro && intro.type === "intro") {
+        intro.lat = lat;
+        intro.lng = lng;
+        intro.zoom = zoom;
+      }
+    }
+  }
+
+  function searchStartLocations(query) {
+    var q = String(query || "").trim();
+    if (q.length < 2) return Promise.resolve([]);
+    var url =
+      "https://nominatim.openstreetmap.org/search?q=" +
+      encodeURIComponent(q) +
+      "&format=json&limit=6&addressdetails=0";
+    return fetch(url, {
+      headers: { Accept: "application/json" },
+    })
+      .then(function (r) {
+        if (!r.ok) throw new Error("Location search failed");
+        return r.json();
+      })
+      .then(function (rows) {
+        if (!Array.isArray(rows)) return [];
+        return rows
+          .map(function (row) {
+            var lat = parseFloat(row.lat);
+            var lng = parseFloat(row.lon);
+            if (isNaN(lat) || isNaN(lng)) return null;
+            return {
+              lat: lat,
+              lng: lng,
+              zoom: zoomFromBoundingBox(row.boundingbox),
+              label: row.display_name || q,
+            };
+          })
+          .filter(Boolean);
+      });
+  }
+
   /**
-   * New story dialog: folder name + global options.
-   * Resolves with { slug, defaults, templateSlug } or null if cancelled.
+   * New story dialog: folder name + starting location + global options.
+   * Resolves with { slug, defaults, templateSlug, startLocation } or null if cancelled.
    * templateSlug is set when Guest Mode starts from a bundled default template.
    */
   function promptNewStoryModal() {
     return new Promise(function (resolve) {
       var modal = el("new-story-modal");
       var slugInput = el("ns-slug");
+      var locationSearch = el("ns-location-search");
+      var locationResults = el("ns-location-results");
+      var locationStatus = el("ns-location-status");
+      var locationSelected = el("ns-location-selected");
+      var locationSelectedText = el("ns-location-selected-text");
+      var locationChangeBtn = el("ns-location-change");
       var templateField = el("ns-template-field");
       var templateSel = el("ns-template");
       var globalOpts = el("ns-global-options");
       var basemapSel = el("ns-basemap");
       var projectionSel = el("ns-projection");
-      var terrainCb = el("ns-terrain");
       var satField = el("ns-satellite-labels-field");
       var satCb = el("ns-satellite-labels");
       var sourcesTa = el("ns-sources");
@@ -3199,9 +3647,103 @@
       var okBtn = el("ns-ok");
       var cancelBtn = el("ns-cancel");
       var backdrop = modal ? modal.querySelector(".text-prompt-backdrop") : null;
-      if (!modal || !slugInput || !okBtn || !cancelBtn) {
+      if (!modal || !slugInput || !okBtn || !cancelBtn || !locationSearch) {
         resolve(null);
         return;
+      }
+
+      var selectedStartLocation = null;
+      var searchTimer = null;
+      var searchRequestId = 0;
+
+      function setLocationStatus(message, isError) {
+        if (!locationStatus) return;
+        locationStatus.textContent = message || "";
+        locationStatus.classList.toggle("is-error", !!isError);
+      }
+
+      function updateOkState() {
+        okBtn.disabled = !selectedStartLocation;
+      }
+
+      function clearLocationResults() {
+        if (locationResults) {
+          locationResults.innerHTML = "";
+          locationResults.hidden = true;
+        }
+      }
+
+      function showSelectedLocation(loc) {
+        selectedStartLocation = loc;
+        if (locationSelected && locationSelectedText) {
+          locationSelectedText.textContent = loc.label;
+          locationSelected.hidden = false;
+        }
+        if (locationSearch) {
+          locationSearch.value = "";
+          locationSearch.hidden = true;
+        }
+        clearLocationResults();
+        setLocationStatus("");
+        updateOkState();
+      }
+
+      function resetLocationPicker() {
+        selectedStartLocation = null;
+        if (locationSelected) locationSelected.hidden = true;
+        if (locationSelectedText) locationSelectedText.textContent = "";
+        if (locationSearch) {
+          locationSearch.hidden = false;
+          locationSearch.value = "";
+        }
+        clearLocationResults();
+        setLocationStatus("Search and pick where your story begins.");
+        updateOkState();
+      }
+
+      function renderLocationResults(results) {
+        if (!locationResults) return;
+        locationResults.innerHTML = "";
+        if (!results.length) {
+          locationResults.hidden = true;
+          setLocationStatus("No matches — try a city, region, or country.", true);
+          return;
+        }
+        results.forEach(function (loc) {
+          var li = document.createElement("li");
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.textContent = loc.label;
+          btn.addEventListener("click", function () {
+            showSelectedLocation(loc);
+          });
+          li.appendChild(btn);
+          locationResults.appendChild(li);
+        });
+        locationResults.hidden = false;
+        setLocationStatus("Pick a result below.");
+      }
+
+      function runLocationSearch() {
+        var q = String(locationSearch.value || "").trim();
+        if (selectedStartLocation) return;
+        if (q.length < 2) {
+          clearLocationResults();
+          setLocationStatus("Type at least 2 characters to search.");
+          return;
+        }
+        var reqId = ++searchRequestId;
+        setLocationStatus("Searching…");
+        searchStartLocations(q)
+          .then(function (results) {
+            if (reqId !== searchRequestId) return;
+            renderLocationResults(results);
+          })
+          .catch(function () {
+            if (reqId !== searchRequestId) return;
+            clearLocationResults();
+            setLocationStatus("Search failed — check your connection and try again.", true);
+          });
       }
 
       if (basemapSel && !basemapSel.dataset.populated) {
@@ -3216,9 +3758,9 @@
       }
 
       slugInput.value = "";
+      resetLocationPicker();
       if (basemapSel) basemapSel.value = DEFAULT_CONFIG.baseMap || "openfreemap-bright";
       if (projectionSel) projectionSel.value = DEFAULT_CONFIG.projection === "mercator" ? "mercator" : "globe";
-      if (terrainCb) terrainCb.checked = DEFAULT_CONFIG.terrain === true;
       if (satCb) satCb.checked = DEFAULT_CONFIG.satelliteLabels !== false;
       if (sourcesTa) sourcesTa.value = typeof DEFAULT_CONFIG.sources === "string" ? DEFAULT_CONFIG.sources : "";
       if (colorInput) colorInput.value = normalizeCardBackgroundColor(DEFAULT_CONFIG.cardBackgroundColor || "#ffffff");
@@ -3259,6 +3801,19 @@
         }, 0);
       }
 
+      function onLocationInput() {
+        if (selectedStartLocation) return;
+        if (searchTimer) window.clearTimeout(searchTimer);
+        searchTimer = window.setTimeout(runLocationSearch, 350);
+      }
+
+      function onLocationChangeClick() {
+        resetLocationPicker();
+        window.setTimeout(function () {
+          locationSearch.focus();
+        }, 0);
+      }
+
       function populateTemplatesThenOpen(templates) {
         if (templateField && templateSel && guestMode && templates && templates.length) {
           templateSel.innerHTML = "";
@@ -3289,16 +3844,25 @@
       }
 
       function cleanup() {
+        if (searchTimer) {
+          window.clearTimeout(searchTimer);
+          searchTimer = null;
+        }
+        searchRequestId++;
         okBtn.removeEventListener("click", onOk);
         cancelBtn.removeEventListener("click", onCancel);
         if (backdrop) backdrop.removeEventListener("click", onCancel);
         slugInput.removeEventListener("keydown", onSlugKey);
+        if (locationSearch) locationSearch.removeEventListener("input", onLocationInput);
+        if (locationChangeBtn) locationChangeBtn.removeEventListener("click", onLocationChangeClick);
         if (basemapSel) basemapSel.removeEventListener("change", onBasemapChange);
         if (opacityRange) opacityRange.removeEventListener("input", onOpacityInput);
         if (templateSel) templateSel.removeEventListener("change", onTemplateChange);
         document.removeEventListener("keydown", onDocKey, true);
         modal.setAttribute("hidden", "");
         if (globalOpts) globalOpts.style.display = "";
+        okBtn.disabled = false;
+        resetLocationPicker();
       }
 
       function onOk() {
@@ -3309,6 +3873,11 @@
           slugInput.focus();
           return;
         }
+        if (!selectedStartLocation) {
+          alert("Pick a starting location before creating the story.");
+          locationSearch.focus();
+          return;
+        }
         var templateSlug =
           guestMode && templateSel && templateSel.value ? String(templateSel.value).trim() : "";
         var opacityPct = opacityRange ? parseInt(opacityRange.value, 10) : 86;
@@ -3317,7 +3886,6 @@
         var defaults = {
           baseMap: basemapSel ? basemapSel.value : DEFAULT_CONFIG.baseMap,
           projection: projectionSel && projectionSel.value === "mercator" ? "mercator" : "globe",
-          terrain: terrainCb ? !!terrainCb.checked : false,
           satelliteLabels: satCb ? !!satCb.checked : true,
           sources: sourcesTa ? sourcesTa.value : "",
           cardBackgroundColor: colorInput
@@ -3329,7 +3897,8 @@
         resolve({
           slug: slug,
           defaults: defaults,
-          templateSlug: templateSlug || null
+          templateSlug: templateSlug || null,
+          startLocation: selectedStartLocation,
         });
       }
 
@@ -3356,10 +3925,13 @@
       cancelBtn.addEventListener("click", onCancel);
       if (backdrop) backdrop.addEventListener("click", onCancel);
       slugInput.addEventListener("keydown", onSlugKey);
+      locationSearch.addEventListener("input", onLocationInput);
+      if (locationChangeBtn) locationChangeBtn.addEventListener("click", onLocationChangeClick);
       if (basemapSel) basemapSel.addEventListener("change", onBasemapChange);
       if (opacityRange) opacityRange.addEventListener("input", onOpacityInput);
       if (templateSel) templateSel.addEventListener("change", onTemplateChange);
       document.addEventListener("keydown", onDocKey, true);
+      updateOkState();
     });
   }
 
@@ -3998,6 +4570,7 @@
       }
       _persistInFlight = true;
       if (quiet) setSaveButtonLabel("Saving…", false);
+      captureMapOptionsFromUi();
       config = normalizeConfig(config);
       fetch("/__story-api/save", {
         method: "POST",
@@ -4197,7 +4770,7 @@
         window.setTimeout(function () {
           promptNewStoryModal().then(function (result) {
             if (!result) return;
-            createGuestStory(result.slug, result.defaults, result.templateSlug);
+            createGuestStory(result.slug, result.defaults, result.templateSlug, result.startLocation);
           });
         }, 0);
       }
@@ -4265,7 +4838,7 @@
       });
   }
 
-  function createGuestStory(slug, defaultsPatch, templateSlug) {
+  function createGuestStory(slug, defaultsPatch, templateSlug, startLocation) {
     var loadConfig = templateSlug
       ? fetchDefaultTemplateConfig(templateSlug).then(function (json) {
           return normalizeConfig(json);
@@ -4285,6 +4858,9 @@
     Promise.all([ensureGuestViewerTemplate({ refresh: true }), loadConfig])
       .then(function (pair) {
         var storyConfig = pair[1];
+        applyStartLocationToConfig(storyConfig, startLocation);
+        storyConfig.restartAtEnd = true;
+        storyConfig = normalizeConfig(storyConfig);
         if (window.MapsAndCardsGuest.loadProject(slug)) {
           if (!confirm('Guest draft "' + slug + '" already exists. Overwrite it?')) {
             return;
@@ -4597,14 +5173,20 @@
         map.on("zoomend", apply3dBuildingsZoomPitch);
         map.on("load", function () {
           applyEnglishLabels(map);
-          applyProjectionIfNeeded();
           applyTerrainIfNeeded();
-          applyGlobeDayNightIfNeeded();
-          applyGlobe3dBuildingsIfNeeded();
+          applyProjectionIfNeeded();
           initDrawControl();
           installMarkerPlacementClickCapture();
           wireBuilderMapCameraInteraction();
           applyStepOverlays(selectedIndex);
+          /* First idle after load/projection: force stars so the default-on
+             guest/new-story path does not lose them to the globe settle race. */
+          map.once("idle", function () {
+            applyTerrainIfNeeded();
+            applyGlobeOverlaysAfterProjection(
+              config.projection === "globe" ? "globe" : "mercator"
+            );
+          });
           function afterLayout() {
             map.resize();
             if (!mapResizeObserverAttached && typeof ResizeObserver !== "undefined") {
@@ -4717,7 +5299,8 @@
       return Globe3dBuildings.buildingPitchForZoom(
         config,
         typeof stepZoom === "number" ? stepZoom : 0,
-        base
+        base,
+        typeof stepOrBase === "string" ? null : stepOrBase
       );
     }
     return config.terrain ? 42 : config.projection === "globe" ? 28 : 0;
@@ -4974,7 +5557,8 @@
           applyProjectionIfNeeded();
           applyTerrainIfNeeded();
           applyGlobeDayNightAfterStyle();
-          applyGlobe3dBuildingsAfterStyle(effectiveBaseForStep(config.steps[i]));
+          applyGlobeStarsAfterStyle(config.steps[i]);
+          applyGlobe3dBuildingsAfterStyle(effectiveBaseForStep(config.steps[i]), config.steps[i]);
           ensureOverlaySources();
           map.resize();
           map.jumpTo({
@@ -5003,7 +5587,7 @@
       { center: [s.lng, s.lat], zoom: z, pitch: stepPitchForStep(s, z), bearing: stepBearingForStep(s) },
       function () {
         applyStepOverlays(i);
-        applyGlobe3dBuildingsIfNeeded(effectiveBaseForStep(s));
+        applyStepMapLayers(s, effectiveBaseForStep(s));
         scheduleGlobeSpinAfterCameraMove(i, gen, false);
       }
     );
@@ -5015,7 +5599,7 @@
       applyCameraMove(buildCameraMove(s, true));
       waitForMoveEnd(gen, function () {
         applyStepOverlays(i);
-        applyGlobe3dBuildingsIfNeeded(effectiveBaseForStep(s));
+        applyStepMapLayers(s, effectiveBaseForStep(s));
         scheduleGlobeSpinAfterCameraMove(i, gen, false);
       });
     }
@@ -5036,7 +5620,7 @@
       applyCameraMove(buildCameraMove(s, true, halfDuration));
       waitForMoveEnd(gen, function () {
         applyStepOverlays(i);
-        applyGlobe3dBuildingsIfNeeded(effectiveBaseForStep(s));
+        applyStepMapLayers(s, effectiveBaseForStep(s));
         scheduleGlobeSpinAfterCameraMove(i, gen, false);
       });
     }
@@ -5086,7 +5670,7 @@
 
     applyCameraForStep(s, false);
     applyStepOverlays(i);
-    applyGlobe3dBuildingsIfNeeded(effectiveBaseForStep(s));
+    applyStepMapLayers(s, effectiveBaseForStep(s));
     scheduleGlobeSpinAfterCameraMove(i, gen, false);
   }
 
@@ -5129,6 +5713,46 @@
     btn.setAttribute("aria-pressed", match ? "true" : "false");
   }
 
+  function syncGlobalMapOptionsFromBuilderMap() {
+    if (!map || !config) return;
+    if (currentBuilderBaseMap) {
+      config.baseMap = currentBuilderBaseMap;
+    }
+    try {
+      var proj = map.getProjection && map.getProjection();
+      if (proj && (proj.type === "globe" || proj.type === "mercator")) {
+        config.projection = proj.type;
+      }
+    } catch (e) {}
+    if (window.GlobeStars) {
+      if (map.getLayer && map.getLayer(GlobeStars.LAYER_ID)) config.globeStars = true;
+      else delete config.globeStars;
+      GlobeStars.normalizeGlobeStarsConfig(config);
+    }
+    if (window.GlobeDayNight) {
+      if (map.getLayer && map.getLayer("nightlayer")) config.globeDayNight = true;
+      GlobeDayNight.normalizeDayNightConfig(config);
+    }
+    if (window.Globe3dBuildings) {
+      Globe3dBuildings.normalize3dBuildingsConfig(config);
+    }
+  }
+
+  function ensureBuilderMapOptionsApplied() {
+    if (!map || !config) return;
+    var s = config.steps[selectedIndex];
+    var targetBase = effectiveBaseForStep(s);
+    if (targetBase !== currentBuilderBaseMap) {
+      applyGlobalBaseMapInBuilder();
+      return;
+    }
+    applyProjectionIfNeeded();
+    applyTerrainIfNeeded();
+    applyGlobeDayNightIfNeeded();
+    applyGlobeStarsIfNeeded(s);
+    applyGlobe3dBuildingsIfNeeded(targetBase, s);
+  }
+
   function onCaptureClick() {
     var c = map.getCenter();
     var z = map.getZoom();
@@ -5139,13 +5763,23 @@
     s.lat = c.lat;
     s.lng = c.lng;
     s.zoom = z;
-    var autoPitch = stepPitch(z, s);
+    var autoPitch = stepPitchForStep(s, z);
     if (Math.abs(p - autoPitch) > 0.5) s.pitch = Math.round(p * 10) / 10;
     else delete s.pitch;
     if (Math.abs(b) > 0.5) s.bearing = Math.round(b * 10) / 10;
     else delete s.bearing;
     normalizeStepCamera(s);
+    if (isIntroStep(s)) {
+      syncGlobalMapOptionsFromBuilderMap();
+      config.initialMap = {
+        lat: s.lat,
+        lng: s.lng,
+        zoom: typeof s.zoom === "number" ? s.zoom : 6
+      };
+    }
+    syncMapOptionsFlyoutFields();
     saveNow();
+    ensureBuilderMapOptionsApplied();
     syncEditorFromStep();
   }
 
@@ -5209,13 +5843,13 @@
     if (cap) cap.textContent = intro ? "Set initial map view" : "Set Map Location";
     var flySelect = el("step-fly-transition-select");
     var flyField = flySelect ? flySelect.closest(".field") : null;
-    var basemapRow = el("step-basemap-select")
-      ? el("step-basemap-select").closest(".row")
-      : null;
+    var basemapRow = el("step-basemap-row");
     var annotateBtn = el("btn-annotate-toggle");
-    if (flyField) flyField.hidden = intro;
+    var showFlyField = !intro || config.steps.length > 1;
+    if (flyField) flyField.hidden = !showFlyField;
     if (basemapRow) basemapRow.hidden = intro;
     if (annotateBtn) annotateBtn.hidden = intro;
+    syncStepFlyTransitionUi();
     syncMoveStepControls();
     syncAddIntroButton();
     syncRemoveStepControls();
@@ -5410,6 +6044,7 @@
     renderOverlayFeatureList();
     updateMapLocationButtonState();
     syncStepBasemapSelect();
+    syncStepMapOverridesUi();
     syncStepSpinUi();
     syncStepFlyTransitionUi();
     syncStepTypeUi();
@@ -5701,6 +6336,18 @@
     });
   }
 
+  (function initStepOptionsToggle() {
+    var details = el("step-options");
+    if (!details) return;
+    details.addEventListener("toggle", function () {
+      if (!details.open) return;
+      requestAnimationFrame(function () {
+        details.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        if (map) map.resize();
+      });
+    });
+  })();
+
   (function initAnnotateToggle() {
     var panel = el("annotate-panel");
     var btn = el("btn-annotate-toggle");
@@ -5736,13 +6383,15 @@
       if (!result) return;
       var slug = result.slug;
       if (guestMode) {
-        createGuestStory(slug, result.defaults, result.templateSlug);
+        createGuestStory(slug, result.defaults, result.templateSlug, result.startLocation);
         return;
       }
       var defaults = clone(DEFAULT_CONFIG);
       Object.keys(result.defaults).forEach(function (k) {
         defaults[k] = result.defaults[k];
       });
+      applyStartLocationToConfig(defaults, result.startLocation);
+      defaults = normalizeConfig(defaults);
       fetch("/__story-api/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -5811,24 +6460,36 @@
     var s = config.steps[selectedIndex];
     if (!s) return;
     var val = el("step-basemap-select").value;
-    if (val) {
+    if (isIntroStep(s)) {
+      if (val) config.baseMap = val;
+      delete s.baseMap;
+    } else if (val) {
       s.baseMap = val;
     } else {
       delete s.baseMap;
     }
     saveNow();
+    syncStepMapOverridesUi();
+    syncBaseMapSelect();
     /* switch the builder map to reflect this step's effective basemap */
     var targetBase = val || config.baseMap || "openfreemap-bright";
-    if (targetBase === currentBuilderBaseMap) return;
+    if (targetBase === currentBuilderBaseMap) {
+      applyStepMapLayers(s, targetBase);
+      return;
+    }
     currentBuilderBaseMap = targetBase;
     getBaseMapStylePromise(targetBase)
       .then(function (style) {
+        map.once("style.load", function () {
+          applyProjectionIfNeeded();
+        });
         map.once("idle", function () {
           applyEnglishLabels(map);
           applyProjectionIfNeeded();
           applyTerrainIfNeeded();
           applyGlobeDayNightAfterStyle();
-          applyGlobe3dBuildingsAfterStyle(targetBase);
+          applyGlobeStarsAfterStyle(config.steps[selectedIndex]);
+          applyGlobe3dBuildingsAfterStyle(targetBase, config.steps[selectedIndex]);
           map.resize();
           applyStepOverlays(selectedIndex);
         });
@@ -5837,6 +6498,33 @@
       .catch(function (err) {
         console.error("Step basemap switch failed:", err);
       });
+  });
+
+  el("step-stars-select").addEventListener("change", function () {
+    var s = config.steps[selectedIndex];
+    if (!s) return;
+    var val = el("step-stars-select").value;
+    if (val === "on") s.globeStars = true;
+    else if (val === "off") s.globeStars = false;
+    else delete s.globeStars;
+    if (window.GlobeStars) GlobeStars.normalizeStepGlobeStars(s);
+    saveNow();
+    syncStepMapOverridesUi();
+    applyGlobeStarsIfNeeded(s);
+  });
+
+  el("step-3d-buildings-select").addEventListener("change", function () {
+    var s = config.steps[selectedIndex];
+    if (!s) return;
+    var val = el("step-3d-buildings-select").value;
+    if (val === "on") s.show3dBuildings = true;
+    else if (val === "off") s.show3dBuildings = false;
+    else delete s.show3dBuildings;
+    if (window.Globe3dBuildings) Globe3dBuildings.normalizeStep3dBuildings(s);
+    saveNow();
+    syncStepMapOverridesUi();
+    applyStepMapLayers(s, effectiveBaseForStep(s));
+    apply3dBuildingsZoomPitch();
   });
 
   el("step-spin-toggle").addEventListener("change", function () {
@@ -5875,14 +6563,16 @@
   });
 
   el("step-fly-transition-select").addEventListener("change", function () {
-    var s = config.steps[selectedIndex];
+    var s = flyTransitionTargetStep();
     if (!s) return;
     if (el("step-fly-transition-select").value === "smooth") {
       s.flyTransition = "smooth";
     } else {
       delete s.flyTransition;
     }
+    normalizeStepOverlays(s);
     saveNow();
+    syncStepFlyTransitionUi();
   });
 
   el("btn-apply-overlay-json").addEventListener("click", function () {
@@ -6428,9 +7118,12 @@
         if (!config) return;
         config.projection = projSel.value === "globe" ? "globe" : "mercator";
         if (window.GlobeDayNight) GlobeDayNight.normalizeDayNightConfig(config);
+        if (window.GlobeStars) GlobeStars.normalizeGlobeStarsConfig(config);
         applyProjectionIfNeeded();
         syncGlobeDayNightUi();
+        syncGlobeStarsUi();
         syncStepSpinUi();
+        syncStepMapOverridesUi();
         saveSoon();
       });
     }
@@ -6498,6 +7191,21 @@
       });
     }
 
+    var starsToggle = el("globe-stars-toggle");
+    if (starsToggle && !starsToggle.dataset.optionsWired) {
+      starsToggle.dataset.optionsWired = "1";
+      starsToggle.addEventListener("change", function () {
+        if (!config) return;
+        if (starsToggle.checked) config.globeStars = true;
+        else delete config.globeStars;
+        if (window.GlobeStars) GlobeStars.normalizeGlobeStarsConfig(config);
+        syncGlobeStarsUi();
+        if (starsToggle.checked) refreshGlobeStarsIfNeeded();
+        else applyGlobeStarsIfNeeded();
+        saveSoon();
+      });
+    }
+
     var buildingsToggle = el("show-3d-buildings-toggle");
     if (buildingsToggle && !buildingsToggle.dataset.optionsWired) {
       buildingsToggle.dataset.optionsWired = "1";
@@ -6508,6 +7216,7 @@
         if (window.Globe3dBuildings) Globe3dBuildings.normalize3dBuildingsConfig(config);
         sync3dBuildingsUi();
         applyGlobe3dBuildingsIfNeeded();
+        apply3dBuildingsZoomPitch();
         saveSoon();
       });
     }

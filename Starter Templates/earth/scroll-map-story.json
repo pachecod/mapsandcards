@@ -96,6 +96,7 @@
     "zoom": 0.2924911068177636
   },
   "projection": "globe",
+  "globeStars": true,
   "satelliteLabels": true,
   "cardBackgroundColor": "#ffffff",
   "cardBackgroundOpacity": 0.86,

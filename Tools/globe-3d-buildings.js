@@ -5,6 +5,8 @@
   var SOURCE_ID = "mc-3d-buildings-src";
   var LAYER_ID = "mc-3d-buildings";
   var PLANET_URL = "https://tiles.openfreemap.org/planet";
+  /* OpenFreeMap building tiles are available from z13 (overzoomed above z14). */
+  var BUILDINGS_MIN_ZOOM = 13;
   var DEFAULT_COLOR_PRESET = "neutral";
   var BUILDINGS_ATTRIBUTION =
     "Building data \u00a9 OpenFreeMap \u00a9 OpenStreetMap contributors";
@@ -48,8 +50,17 @@
     return !!VECTOR_BASEMAP_IDS[baseMapId];
   }
 
-  function wants3dBuildings(config, baseMapId) {
-    return !!(config && config.show3dBuildings === true && baseMapSupports3dBuildings(baseMapId));
+  function effectiveShow3dBuildings(config, step) {
+    if (step && typeof step.show3dBuildings === "boolean") {
+      return step.show3dBuildings;
+    }
+    return !!(config && config.show3dBuildings === true);
+  }
+
+  function wants3dBuildings(config, baseMapId, step) {
+    return !!(
+      effectiveShow3dBuildings(config, step) && baseMapSupports3dBuildings(baseMapId)
+    );
   }
 
   function resolveColorPreset(config) {
@@ -79,13 +90,13 @@
     ];
   }
 
-  function buildingPitchForZoom(config, stepZoom, baseMapId) {
+  function buildingPitchForZoom(config, stepZoom, baseMapId, step) {
     if (!config) return 0;
     if (config.terrain) return 42;
     var zoom = typeof stepZoom === "number" ? stepZoom : 0;
     if (
-      config.show3dBuildings &&
-      zoom >= 15 &&
+      effectiveShow3dBuildings(config, step) &&
+      zoom >= BUILDINGS_MIN_ZOOM &&
       baseMapSupports3dBuildings(baseMapId)
     ) {
       return 45;
@@ -123,20 +134,26 @@
 
   function ensureSource(map) {
     if (map.getSource(SOURCE_ID)) return;
-    map.addSource(SOURCE_ID, {
-      type: "vector",
-      url: PLANET_URL,
-    });
+    try {
+      map.addSource(SOURCE_ID, {
+        type: "vector",
+        url: PLANET_URL,
+      });
+    } catch (e) {
+      console.warn("[Globe3dBuildings] addSource failed:", e);
+    }
   }
 
   function buildingLayerDef(config) {
     var presetId = resolveColorPreset(config);
+    var z0 = BUILDINGS_MIN_ZOOM;
+    var z1 = BUILDINGS_MIN_ZOOM + 0.05;
     return {
       id: LAYER_ID,
       source: SOURCE_ID,
       "source-layer": "building",
       type: "fill-extrusion",
-      minzoom: 15,
+      minzoom: BUILDINGS_MIN_ZOOM,
       filter: ["!=", ["get", "hide_3d"], true],
       paint: {
         "fill-extrusion-color": buildingColorExpression(presetId),
@@ -144,18 +161,18 @@
           "interpolate",
           ["linear"],
           ["zoom"],
-          15,
+          z0,
           0,
-          15.05,
+          z1,
           ["get", "render_height"],
         ],
         "fill-extrusion-base": [
           "interpolate",
           ["linear"],
           ["zoom"],
-          15,
+          z0,
           0,
-          15.05,
+          z1,
           ["get", "render_min_height"],
         ],
         "fill-extrusion-opacity": 0.72,
@@ -182,32 +199,55 @@
       return;
     }
     ensureSource(map);
+    if (!map.getSource(SOURCE_ID)) return;
     var beforeId = findLabelLayerId(map);
     var layer = buildingLayerDef(config);
     if (beforeId) map.addLayer(layer, beforeId);
     else map.addLayer(layer);
   }
 
-  function apply(map, config, baseMapId) {
+  function apply(map, config, baseMapId, step) {
     if (!map) return;
-    if (!wants3dBuildings(config, baseMapId)) {
+    if (!wants3dBuildings(config, baseMapId, step)) {
       removeBuildings(map);
       return;
     }
     if (!map.isStyleLoaded || !map.isStyleLoaded()) {
-      map.once("load", function () {
-        apply(map, config, baseMapId);
+      /* `load` only fires once; after setStyle wait for idle. */
+      map.once("idle", function () {
+        apply(map, config, baseMapId, step);
       });
       return;
     }
-    addBuildings(map, config);
+    try {
+      addBuildings(map, config);
+    } catch (e) {
+      console.warn("[Globe3dBuildings] apply failed:", e);
+    }
   }
 
-  function syncAfterStyleLoad(map, config, baseMapId) {
+  function syncAfterStyleLoad(map, config, baseMapId, step) {
     if (!map) return;
     removeBuildings(map);
-    if (!wants3dBuildings(config, baseMapId)) return;
-    addBuildings(map, config);
+    if (!wants3dBuildings(config, baseMapId, step)) return;
+    if (!map.isStyleLoaded || !map.isStyleLoaded()) {
+      map.once("idle", function () {
+        syncAfterStyleLoad(map, config, baseMapId, step);
+      });
+      return;
+    }
+    try {
+      addBuildings(map, config);
+    } catch (e) {
+      console.warn("[Globe3dBuildings] syncAfterStyleLoad failed:", e);
+    }
+  }
+
+  function normalizeStep3dBuildings(step) {
+    if (!step || typeof step !== "object") return;
+    if (step.show3dBuildings === true) step.show3dBuildings = true;
+    else if (step.show3dBuildings === false) step.show3dBuildings = false;
+    else delete step.show3dBuildings;
   }
 
   function normalize3dBuildingsConfig(data) {
@@ -239,9 +279,11 @@
   global.Globe3dBuildings = {
     SOURCE_ID: SOURCE_ID,
     LAYER_ID: LAYER_ID,
+    BUILDINGS_MIN_ZOOM: BUILDINGS_MIN_ZOOM,
     BUILDINGS_ATTRIBUTION: BUILDINGS_ATTRIBUTION,
     DEFAULT_COLOR_PRESET: DEFAULT_COLOR_PRESET,
     baseMapSupports3dBuildings: baseMapSupports3dBuildings,
+    effectiveShow3dBuildings: effectiveShow3dBuildings,
     wants3dBuildings: wants3dBuildings,
     resolveColorPreset: resolveColorPreset,
     getColorPresets: getColorPresets,
@@ -250,6 +292,7 @@
     syncAfterStyleLoad: syncAfterStyleLoad,
     remove: removeBuildings,
     normalize3dBuildingsConfig: normalize3dBuildingsConfig,
+    normalizeStep3dBuildings: normalizeStep3dBuildings,
     isLayerActive: isLayerActive,
   };
 })(typeof window !== "undefined" ? window : globalThis);

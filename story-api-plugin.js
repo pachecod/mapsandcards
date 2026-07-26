@@ -182,6 +182,7 @@ function rewriteCdnToLocal(html) {
       'src="assets/nightlayer.min.js"'
     )
     .replace(/src="\/Tools\/globe-daynight\.js"/, 'src="assets/globe-daynight.js"')
+    .replace(/src="\/Tools\/globe-stars\.js"/, 'src="assets/globe-stars.js"')
     .replace(/src="\/Tools\/globe-3d-buildings\.js"/, 'src="assets/globe-3d-buildings.js"');
 }
 
@@ -258,7 +259,10 @@ function storyApiMiddleware(rootDir) {
               baseMap: "openfreemap-bright",
               terrain: false,
               projection: "globe",
+              globeStars: true,
+              show3dBuildings: true,
               satelliteLabels: true,
+              restartAtEnd: true,
               initialMap: { lat: 43.0481, lng: -76.1474, zoom: 11 },
               steps: [
                 {
@@ -355,6 +359,7 @@ function storyApiMiddleware(rootDir) {
           CDN_ASSETS.map((a) => getCachedAsset(cacheDir, a))
         );
         const globeDayNightJs = await fs.readFile(path.join(toolsDir, "globe-daynight.js"));
+        const globeStarsJs = await fs.readFile(path.join(toolsDir, "globe-stars.js"));
         const globe3dBuildingsJs = await fs.readFile(path.join(toolsDir, "globe-3d-buildings.js"));
 
         const zipBuf = buildZip([
@@ -364,6 +369,7 @@ function storyApiMiddleware(rootDir) {
           { name: "assets/maplibre-gl.css", data: assetBuffers[1] },
           { name: "assets/nightlayer.min.js", data: assetBuffers[2] },
           { name: "assets/globe-daynight.js", data: globeDayNightJs },
+          { name: "assets/globe-stars.js", data: globeStarsJs },
           { name: "assets/globe-3d-buildings.js", data: globe3dBuildingsJs },
         ]);
 

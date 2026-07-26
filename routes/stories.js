@@ -64,7 +64,10 @@ const DEFAULT_CONFIG = {
   baseMap: "openfreemap-bright",
   terrain: false,
   projection: "globe",
+  globeStars: true,
+  show3dBuildings: true,
   satelliteLabels: true,
+  restartAtEnd: true,
   initialMap: { lat: 43.0481, lng: -76.1474, zoom: 11 },
   steps: [
     {
@@ -176,6 +179,7 @@ const CDN_ASSETS = [
   },
 ];
 const GLOBE_DAYNIGHT_PATH = join(ROOT, "Tools", "globe-daynight.js");
+const GLOBE_STARS_PATH = join(ROOT, "Tools", "globe-stars.js");
 const GLOBE_3D_BUILDINGS_PATH = join(ROOT, "Tools", "globe-3d-buildings.js");
 
 const assetCache = new Map();
@@ -204,6 +208,7 @@ function rewriteCdnToLocal(html) {
       'src="assets/nightlayer.min.js"'
     )
     .replace(/src="\/Tools\/globe-daynight\.js"/, 'src="assets/globe-daynight.js"')
+    .replace(/src="\/Tools\/globe-stars\.js"/, 'src="assets/globe-stars.js"')
     .replace(/src="\/Tools\/globe-3d-buildings\.js"/, 'src="assets/globe-3d-buildings.js"');
 }
 
@@ -417,6 +422,7 @@ router.post("/export", async (req, res) => {
 
   const assetBuffers = await Promise.all(CDN_ASSETS.map((a) => getCachedAsset(a)));
   const globeDayNightJs = await readFile(GLOBE_DAYNIGHT_PATH);
+  const globeStarsJs = await readFile(GLOBE_STARS_PATH);
   const globe3dBuildingsJs = await readFile(GLOBE_3D_BUILDINGS_PATH);
 
   const zipBuf = buildZip([
@@ -426,6 +432,7 @@ router.post("/export", async (req, res) => {
     { name: "assets/maplibre-gl.css", data: assetBuffers[1] },
     { name: "assets/nightlayer.min.js", data: assetBuffers[2] },
     { name: "assets/globe-daynight.js", data: globeDayNightJs },
+    { name: "assets/globe-stars.js", data: globeStarsJs },
     { name: "assets/globe-3d-buildings.js", data: globe3dBuildingsJs },
   ]);
 

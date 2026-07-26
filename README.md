@@ -2,6 +2,8 @@
 
 Create **scroll-driven map stories**: as readers move through story cards, the map flies to each location, switches basemaps, and shows annotations (markers, labels, lines, and regions).
 
+**Live demo:** [mapsandcards.com](https://mapsandcards.com) — try Guest Mode and browse example stories (Earth, Syracuse, and more).
+
 Built with [MapLibre GL](https://maplibre.org/). Licensed under the [MIT License](LICENSE) by [Dan Pacheco](https://danpacheco.com/).
 
 **Current release: v1.8**

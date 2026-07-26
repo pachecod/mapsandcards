@@ -675,6 +675,7 @@
   <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.min.js" crossorigin=""></script>
   <script src="https://cdn.jsdelivr.net/npm/maplibre-gl-nightlayer@1.0.0-alpha.16/dist/nightlayer.min.js" crossorigin=""></script>
   <script src="/Tools/globe-daynight.js"></script>
+  <script src="/Tools/globe-stars.js"></script>
   <script src="/Tools/globe-3d-buildings.js"></script>
   <script>
 (function () {
@@ -975,22 +976,36 @@
     }
   }
 
+  function applyGlobeOverlaysAfterProjection(type) {
+    applyGlobeDayNightIfNeeded();
+    if (type === "globe") refreshGlobeStarsIfNeeded();
+    else applyGlobeStarsIfNeeded();
+    applyGlobe3dBuildingsIfNeeded();
+  }
+
   function applyProjectionIfNeeded() {
     if (!map || typeof map.setProjection !== "function") return;
     var type = config.projection === "globe" ? "globe" : "mercator";
     try {
       var cur = map.getProjection && map.getProjection();
       if (cur && cur.type === type) {
-        applyGlobeDayNightIfNeeded();
-        applyGlobe3dBuildingsIfNeeded();
+        applyGlobeOverlaysAfterProjection(type);
         return;
       }
       map.setProjection({ type: type });
     } catch (e) {
       console.warn("Projection:", e);
     }
-    applyGlobeDayNightIfNeeded();
-    applyGlobe3dBuildingsIfNeeded();
+    /* setProjection finishes asynchronously and clears sky/atmosphere after the
+       current turn — wait for two idles before (re)building stars. */
+    function afterSettled() {
+      applyGlobeOverlaysAfterProjection(type);
+    }
+    map.once("idle", function () {
+      map.once("idle", afterSettled);
+      if (typeof map.triggerRepaint === "function") map.triggerRepaint();
+    });
+    if (typeof map.triggerRepaint === "function") map.triggerRepaint();
   }
 
   function applyGlobeDayNightIfNeeded() {
@@ -1005,6 +1020,50 @@
     }
   }
 
+  function applyGlobeStarsIfNeeded(step) {
+    if (window.GlobeStars && map && config) {
+      var s = step != null ? step : currentViewerStepFor3d();
+      GlobeStars.apply(map, config, s);
+    }
+  }
+
+  function refreshGlobeStarsIfNeeded(step) {
+    if (window.GlobeStars && map && config) {
+      var s = step != null ? step : currentViewerStepFor3d();
+      GlobeStars.refresh(map, config, s);
+    }
+  }
+
+  function applyGlobeStarsAfterStyle(step) {
+    if (window.GlobeStars && map && config) {
+      var s = step != null ? step : currentViewerStepFor3d();
+      GlobeStars.syncAfterStyleLoad(map, config, s);
+    }
+  }
+
+  function applyGlobe3dBuildingsIfNeeded(baseMapId, step) {
+    if (window.Globe3dBuildings && map && config) {
+      var s = step != null ? step : currentViewerStepFor3d();
+      var base = baseMapId || effectiveBaseForStep(s);
+      Globe3dBuildings.apply(map, config, base, s);
+    }
+  }
+
+  function applyGlobe3dBuildingsAfterStyle(baseMapId, step) {
+    if (window.Globe3dBuildings && map && config) {
+      var s = step != null ? step : currentViewerStepFor3d();
+      var base = baseMapId || effectiveBaseForStep(s);
+      Globe3dBuildings.syncAfterStyleLoad(map, config, base, s);
+    }
+  }
+
+  function applyStepMapLayers(step, baseMapId) {
+    var s = step != null ? step : currentViewerStepFor3d();
+    var base = baseMapId || effectiveBaseForStep(s);
+    applyGlobeStarsIfNeeded(s);
+    applyGlobe3dBuildingsIfNeeded(base, s);
+  }
+
   function currentViewerStepFor3d() {
     if (!config || !config.steps || !config.steps.length) return null;
     var idx =
@@ -1016,33 +1075,18 @@
     return config.steps[Math.min(Math.max(idx, 0), config.steps.length - 1)];
   }
 
-  function applyGlobe3dBuildingsIfNeeded(baseMapId) {
-    if (window.Globe3dBuildings && map && config) {
-      var s = currentViewerStepFor3d();
-      var base = baseMapId || effectiveBaseForStep(s);
-      Globe3dBuildings.apply(map, config, base);
-    }
-  }
-
-  function applyGlobe3dBuildingsAfterStyle(baseMapId) {
-    if (window.Globe3dBuildings && map && config) {
-      var s = currentViewerStepFor3d();
-      var base = baseMapId || effectiveBaseForStep(s);
-      Globe3dBuildings.syncAfterStyleLoad(map, config, base);
-    }
-  }
-
   function apply3dBuildingsZoomPitch() {
     if (!map || !config || !window.Globe3dBuildings) return;
     if (storyInteractionMode !== "explore") return;
     var s = currentViewerStepFor3d();
     if (!s) return;
+    if (stepHasCustomCamera(s)) return;
     var base = effectiveBaseForStep(s);
-    if (!Globe3dBuildings.wants3dBuildings(config, base) && !config.terrain && config.projection !== "globe") {
+    if (!Globe3dBuildings.wants3dBuildings(config, base, s) && !config.terrain && config.projection !== "globe") {
       return;
     }
     var zoom = map.getZoom();
-    var targetPitch = Globe3dBuildings.buildingPitchForZoom(config, zoom, base);
+    var targetPitch = Globe3dBuildings.buildingPitchForZoom(config, zoom, base, s);
     if (Math.abs(map.getPitch() - targetPitch) > 0.5) {
       map.easeTo({ pitch: targetPitch, duration: 400 });
     }
@@ -1065,14 +1109,24 @@
     }
   }
 
-  function pauseGlobeSpinForInteraction() {
+  function pauseGlobeSpinForInteraction(ev) {
     if (!globeSpinDesired) return;
+    var alreadyPaused = globeSpinUserInteracting;
     globeSpinUserInteracting = true;
     clearGlobeSpinResumeTimer();
-    if (map) {
+    /* pitchstart/rotatestart fire after mousedown; a second map.stop() mid-drag
+       leaves dragRotate stuck so right-click pitch feels broken while spinning. */
+    if (alreadyPaused) return;
+    if (!map) return;
+    var isRightButton =
+      !!(ev && ev.originalEvent && Number(ev.originalEvent.button) === 2);
+    try {
+      map.stop();
+    } catch (e) {}
+    if (isRightButton) {
       try {
-        map.stop();
-      } catch (e) {}
+        if (map.dragRotate && map.dragRotate.enable) map.dragRotate.enable();
+      } catch (e2) {}
     }
   }
 
@@ -1111,6 +1165,7 @@
     if (!map || !globeSpinDesired || globeSpinUserInteracting || !config) return;
     if (config.projection !== "globe") return;
     if (storyInteractionMode !== "scroll") return;
+    if (!isGlobeProjectionActive()) applyProjectionIfNeeded();
     var zoom = map.getZoom();
     if (zoom >= GLOBE_SPIN_MAX_ZOOM) return;
     var distancePerSecond = 360 / GLOBE_SPIN_SECONDS_PER_REV;
@@ -1226,6 +1281,7 @@
       data.projection = "mercator";
     }
     if (window.GlobeDayNight) GlobeDayNight.normalizeDayNightConfig(data);
+    if (window.GlobeStars) GlobeStars.normalizeGlobeStarsConfig(data);
     if (window.Globe3dBuildings) Globe3dBuildings.normalize3dBuildingsConfig(data);
     if (typeof data.satelliteLabels !== "boolean") {
       data.satelliteLabels = true;
@@ -1271,6 +1327,31 @@
     return data;
   }
 
+  function normalizeStepCamera(step) {
+    if (!step || typeof step !== "object") return;
+    if (typeof step.pitch === "number" && !isNaN(step.pitch)) {
+      step.pitch = Math.max(0, Math.min(85, Math.round(step.pitch * 10) / 10));
+    } else {
+      delete step.pitch;
+    }
+    if (typeof step.bearing === "number" && !isNaN(step.bearing)) {
+      var b = step.bearing % 360;
+      if (b > 180) b -= 360;
+      if (b <= -180) b += 360;
+      step.bearing = Math.round(b * 10) / 10;
+      if (Math.abs(step.bearing) < 0.05) delete step.bearing;
+    } else {
+      delete step.bearing;
+    }
+  }
+
+  function stepHasCustomCamera(step) {
+    return !!(
+      step &&
+      (typeof step.pitch === "number" || typeof step.bearing === "number")
+    );
+  }
+
   function normalizeStepOverlays(step) {
     if (!step || typeof step !== "object") return;
     if (step.type === "intro") {
@@ -1282,6 +1363,9 @@
     else delete step.spin;
     if (step.flyTransition === "smooth") step.flyTransition = "smooth";
     else delete step.flyTransition;
+    normalizeStepCamera(step);
+    if (window.GlobeStars) GlobeStars.normalizeStepGlobeStars(step);
+    if (window.Globe3dBuildings) Globe3dBuildings.normalizeStep3dBuildings(step);
     if (!step.overlays || typeof step.overlays !== "object") {
       step.overlays = { geojson: { type: "FeatureCollection", features: [] } };
       return;
@@ -1789,10 +1873,14 @@
         map.on("zoomend", apply3dBuildingsZoomPitch);
         map.on("load", function () {
           applyEnglishLabels(map);
-          applyProjectionIfNeeded();
           applyTerrainIfNeeded();
-          applyGlobeDayNightIfNeeded();
-          applyGlobe3dBuildingsIfNeeded();
+          applyProjectionIfNeeded();
+          map.once("idle", function () {
+            applyTerrainIfNeeded();
+            applyGlobeOverlaysAfterProjection(
+              config.projection === "globe" ? "globe" : "mercator"
+            );
+          });
           setTimeout(function () {
             syncMapViewportHeight();
             map.resize();
@@ -1851,23 +1939,26 @@
   function peakCameraForStep(s) {
     var from = map.getCenter();
     var destZoom = typeof s.zoom === "number" ? s.zoom : 6;
+    var peakZoom = Math.min(getFlyPullBackZoom(), map.getZoom(), destZoom);
     return {
       center: [
         from.lng + (s.lng - from.lng) * 0.5,
         from.lat + (s.lat - from.lat) * 0.5,
       ],
-      zoom: Math.min(getFlyPullBackZoom(), map.getZoom(), destZoom),
-      pitch: stepPitch(destZoom, s),
+      zoom: peakZoom,
+      pitch: stepHasCustomCamera(s) ? stepPitch(peakZoom, s) : stepPitchForStep(s, destZoom),
+      bearing: stepBearingForStep(s),
     };
   }
 
-  function buildDirectFlyMove(lng, lat, zoom, pitch, duration) {
+  function buildDirectFlyMove(lng, lat, zoom, pitch, bearing, duration) {
     return {
       type: "fly",
       options: {
         center: [lng, lat],
         zoom: zoom,
         pitch: pitch,
+        bearing: typeof bearing === "number" ? bearing : 0,
         duration: duration,
         curve: 1.42,
         essential: true,
@@ -1908,19 +1999,42 @@
       return Globe3dBuildings.buildingPitchForZoom(
         config,
         typeof stepZoom === "number" ? stepZoom : 0,
-        base
+        base,
+        typeof stepOrBase === "string" ? null : stepOrBase
       );
     }
     return config.terrain ? 42 : config.projection === "globe" ? 28 : 0;
+  }
+
+  function stepPitchForStep(s, stepZoom) {
+    if (s && typeof s.pitch === "number" && !isNaN(s.pitch)) {
+      return Math.max(0, Math.min(85, s.pitch));
+    }
+    return stepPitch(stepZoom, s);
+  }
+
+  function stepBearingForStep(s) {
+    if (s && typeof s.bearing === "number" && !isNaN(s.bearing)) {
+      var b = s.bearing % 360;
+      if (b > 180) b -= 360;
+      if (b <= -180) b += 360;
+      return b;
+    }
+    return 0;
   }
 
   function effectiveBaseForStep(s) {
     return s.baseMap || viewerBaseMap;
   }
 
-  function buildCameraMoveTo(lng, lat, zoom, pitch, animate, durationOverride) {
+  function buildCameraMoveTo(lng, lat, zoom, pitch, bearing, animate, durationOverride) {
     if (!map) return null;
-    var target = { center: [lng, lat], zoom: zoom, pitch: pitch, bearing: 0 };
+    var target = {
+      center: [lng, lat],
+      zoom: zoom,
+      pitch: pitch,
+      bearing: typeof bearing === "number" ? bearing : 0,
+    };
 
     if (animate === false) {
       return { type: "jump", options: target };
@@ -1948,6 +2062,7 @@
         center: target.center,
         zoom: zoom,
         pitch: pitch,
+        bearing: target.bearing,
         duration: duration,
         curve: 1.9,
         maxZoom: maxZoom,
@@ -1959,7 +2074,15 @@
   function buildCameraMove(s, animate, durationOverride) {
     if (!map || !s) return null;
     var z = typeof s.zoom === "number" ? s.zoom : 6;
-    return buildCameraMoveTo(s.lng, s.lat, z, stepPitch(z, s), animate, durationOverride);
+    return buildCameraMoveTo(
+      s.lng,
+      s.lat,
+      z,
+      stepPitchForStep(s, z),
+      stepBearingForStep(s),
+      animate,
+      durationOverride
+    );
   }
 
   function applyCameraMove(move) {
@@ -1968,7 +2091,6 @@
       map.jumpTo(move.options);
       nudgeGlobeRepaint();
     } else {
-      if (map.getBearing() !== 0) map.jumpTo({ bearing: 0 });
       map.flyTo(move.options);
     }
   }
@@ -2011,7 +2133,11 @@
       map.setProjection({ type: "mercator" });
       map.setProjection({ type: "globe" });
     } catch (e) {}
-    return waitForMapIdle(12000);
+    return waitForMapIdle(12000).then(function () {
+      applyGlobeDayNightIfNeeded();
+      refreshGlobeStarsIfNeeded();
+      applyGlobe3dBuildingsIfNeeded();
+    });
   }
 
   function shouldUsePullbackForGlobeFly(s) {
@@ -2160,14 +2286,15 @@
           applyProjectionIfNeeded();
           applyTerrainIfNeeded();
           applyGlobeDayNightAfterStyle();
-          applyGlobe3dBuildingsAfterStyle(effectiveBaseForStep(config.steps[i]));
+          applyGlobeStarsAfterStyle(config.steps[i]);
+          applyGlobe3dBuildingsAfterStyle(effectiveBaseForStep(config.steps[i]), config.steps[i]);
           ensureOverlaySources();
           map.resize();
           map.jumpTo({
             center: camera.center,
             zoom: camera.zoom,
             pitch: camera.pitch,
-            bearing: 0,
+            bearing: typeof camera.bearing === "number" ? camera.bearing : 0,
           });
           function afterBasemapReady() {
             if (isGlobeProjectionActive()) {
@@ -2196,10 +2323,10 @@
     switchBasemapAtCamera(
       i,
       gen,
-      { center: [s.lng, s.lat], zoom: z, pitch: stepPitch(z, s) },
+      { center: [s.lng, s.lat], zoom: z, pitch: stepPitchForStep(s, z), bearing: stepBearingForStep(s) },
       function () {
         applyStepOverlays(i);
-        applyGlobe3dBuildingsIfNeeded(effectiveBaseForStep(s));
+        applyStepMapLayers(s, effectiveBaseForStep(s));
         scheduleGlobeSpinAfterCameraMove(i, gen, false);
       }
     );
@@ -2210,25 +2337,24 @@
   }
 
   function currentMapCamera() {
-    if (!map) return { center: [0, 0], zoom: 2, pitch: 0 };
+    if (!map) return { center: [0, 0], zoom: 2, pitch: 0, bearing: 0 };
     var c = map.getCenter();
     return {
       center: [c.lng, c.lat],
       zoom: map.getZoom(),
       pitch: map.getPitch(),
+      bearing: map.getBearing(),
     };
   }
 
   function flySmoothToStep(i, gen, s, needSwitch) {
-    if (map.getBearing() !== 0) map.jumpTo({ bearing: 0 });
-
     function flyInbound() {
       if (gen !== _flyGen) return;
       applyCameraMove(buildCameraMove(s, true));
       waitForMoveEnd(gen, function () {
         nudgeGlobeRepaint();
         applyStepOverlays(i);
-        applyGlobe3dBuildingsIfNeeded(effectiveBaseForStep(s));
+        applyStepMapLayers(s, effectiveBaseForStep(s));
         scheduleGlobeSpinAfterCameraMove(i, gen, false);
       });
     }
@@ -2241,7 +2367,6 @@
   }
 
   function flyViaPullbackPeak(i, gen, s, switchBasemapAtPeak) {
-    if (map.getBearing() !== 0) map.jumpTo({ bearing: 0 });
     var halfDuration = Math.max(600, Math.round(flyDurationMs() / 2));
     var peak = peakCameraForStep(s);
 
@@ -2251,7 +2376,7 @@
       waitForMoveEnd(gen, function () {
         nudgeGlobeRepaint();
         applyStepOverlays(i);
-        applyGlobe3dBuildingsIfNeeded(effectiveBaseForStep(s));
+        applyStepMapLayers(s, effectiveBaseForStep(s));
         scheduleGlobeSpinAfterCameraMove(i, gen, false);
       });
     }
@@ -2265,7 +2390,14 @@
     }
 
     applyCameraMove(
-      buildDirectFlyMove(peak.center[0], peak.center[1], peak.zoom, peak.pitch, halfDuration)
+      buildDirectFlyMove(
+        peak.center[0],
+        peak.center[1],
+        peak.zoom,
+        peak.pitch,
+        peak.bearing,
+        halfDuration
+      )
     );
     waitForMoveEnd(gen, continueFromPeak);
   }
@@ -2296,7 +2428,7 @@
 
     applyCameraForStep(s, false);
     applyStepOverlays(i);
-    applyGlobe3dBuildingsIfNeeded(effectiveBaseForStep(s));
+    applyStepMapLayers(s, effectiveBaseForStep(s));
     scheduleGlobeSpinAfterCameraMove(i, gen, false);
   }
 
@@ -2701,7 +2833,9 @@
           applyProjectionIfNeeded();
           applyTerrainIfNeeded();
           applyGlobeDayNightAfterStyle();
-          applyGlobe3dBuildingsAfterStyle(viewerBaseMap);
+          var activeStep = currentViewerStepFor3d();
+          applyGlobeStarsAfterStyle(activeStep);
+          applyGlobe3dBuildingsAfterStyle(viewerBaseMap, activeStep);
           map.resize();
           if (storyInteractionMode === "scroll") {
             var stepIdx = getCurrentVisibleStepIndex();
@@ -2922,14 +3056,14 @@
     map.jumpTo({
       center: [s.lng, s.lat],
       zoom: z,
-      pitch: stepPitch(z, s),
-      bearing: 0,
+      pitch: stepPitchForStep(s, z),
+      bearing: stepBearingForStep(s),
     });
     if (typeof map.triggerRepaint === "function") map.triggerRepaint();
     return waitForMapIdle(12000);
   }
 
-  function switchBasemapForPreload(baseMapId) {
+  function switchBasemapForPreload(baseMapId, step) {
     if (!map || baseMapId === currentLoadedBaseMap) return Promise.resolve();
     return getBaseMapStylePromise(baseMapId)
       .then(function (style) {
@@ -2942,7 +3076,8 @@
             applyProjectionIfNeeded();
             applyTerrainIfNeeded();
             applyGlobeDayNightAfterStyle();
-            applyGlobe3dBuildingsAfterStyle(baseMapId);
+            applyGlobeStarsAfterStyle(step);
+            applyGlobe3dBuildingsAfterStyle(baseMapId, step);
             ensureOverlaySources();
             map.resize();
             resolve();
@@ -3003,7 +3138,7 @@
 
       var s = steps[index];
       var base = effectiveBaseForStep(s);
-      switchBasemapForPreload(base)
+      switchBasemapForPreload(base, s)
         .then(function () {
           return jumpToStepForPreload(index);
         })
@@ -3051,6 +3186,8 @@
         baseMap: "openfreemap-bright",
         terrain: false,
         projection: "globe",
+        globeStars: true,
+        show3dBuildings: true,
         satelliteLabels: true,
         sources: "",
         cardBackgroundOpacity: 0.86,

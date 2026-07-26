@@ -168,7 +168,11 @@
     return;
   }
 
-  frame.src = "/Stories/" + encodeURIComponent(q) + "/scroll-map-story.html";
+  frame.src =
+    "/Stories/" +
+    encodeURIComponent(q) +
+    "/scroll-map-story.html?t=" +
+    Date.now();
   frame.hidden = false;
 })();
   </script>

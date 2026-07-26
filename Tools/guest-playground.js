@@ -85,6 +85,15 @@
     return html.replace(/<\/body>/i, block + "\n</body>");
   }
 
+  /** Blob preview iframes need absolute /Tools/ script URLs from the site origin. */
+  function absolutizeToolsScriptUrls(html) {
+    if (typeof window === "undefined" || !window.location || !window.location.origin) {
+      return html;
+    }
+    var origin = window.location.origin;
+    return String(html).replace(/src="\/Tools\//g, 'src="' + origin + '/Tools/');
+  }
+
   function findFile(project, name) {
     if (!project || !project.files) return null;
     var lower = String(name).toLowerCase();
@@ -102,22 +111,22 @@
 
   function configFromProject(project) {
     if (!project) return null;
-    var jsonFile = findFile(project, "scroll-map-story.json");
-    if (jsonFile && jsonFile.content) {
-      try {
-        return JSON.parse(jsonFile.content);
-      } catch (e) {}
-    }
     var indexFile = findFile(project, "index.html");
     if (indexFile && indexFile.content) {
       var m = indexFile.content.match(
         /id=["']scroll-map-story-embedded["'][^>]*>([\s\S]*?)<\/script>/i
       );
-      if (m && m[1]) {
+      if (m && m[1] && String(m[1]).trim()) {
         try {
           return JSON.parse(m[1].trim());
         } catch (e) {}
       }
+    }
+    var jsonFile = findFile(project, "scroll-map-story.json");
+    if (jsonFile && jsonFile.content) {
+      try {
+        return JSON.parse(jsonFile.content);
+      } catch (e) {}
     }
     return null;
   }
@@ -132,6 +141,7 @@
     var jsonStr = JSON.stringify(config, null, 2);
     var compact = JSON.stringify(config);
     var html = injectEmbeddedStoryJson(viewerHtml, compact);
+    html = absolutizeToolsScriptUrls(html);
     return {
       name: name || "story",
       framework: "html",

@@ -1,0 +1,404 @@
+{
+  "version": 1,
+  "baseMap": "carto-positron",
+  "terrain": false,
+  "projection": "globe",
+  "globeStars": true,
+  "show3dBuildings": true,
+  "satelliteLabels": true,
+  "sources": "",
+  "cardBackgroundColor": "#ffffff",
+  "cardBackgroundOpacity": 0.86,
+  "initialMap": {
+    "lat": 43.05517975150465,
+    "lng": -76.15039246681448,
+    "zoom": 10.324111728199886
+  },
+  "steps": [
+    {
+      "id": "intro",
+      "type": "intro",
+      "lat": 43.05517975150465,
+      "lng": -76.15039246681448,
+      "zoom": 10.324111728199886,
+      "html": "<h2>Welcome to Syracuse</h2><p>Here are a few things to know about Syracuse, Syracuse University and the community around it.</p><p>You can <strong>Scroll</strong> or click <strong>Next</strong> above to continue, or switch to <strong>Explore</strong> to jump between locations and pan or zoom freely.</p>",
+      "overlays": {
+        "geojson": {
+          "type": "FeatureCollection",
+          "features": []
+        }
+      }
+    },
+    {
+      "id": "location-2",
+      "lat": 43.03797865572582,
+      "lng": -76.135825996937,
+      "zoom": 14.819775058094477,
+      "html": "<p>Thi is Syracuse University. It is at the lower east side of the downtown area of the city of Syracuse.</p>",
+      "flyTransition": "smooth",
+      "overlays": {
+        "geojson": {
+          "type": "FeatureCollection",
+          "features": [
+            {
+              "type": "Feature",
+              "properties": {
+                "kind": "label",
+                "showDot": false,
+                "color": "#f0f0f0",
+                "haloColor": "#0f1419",
+                "radius": 8,
+                "text": "Syracuse University"
+              },
+              "geometry": {
+                "type": "Point",
+                "coordinates": [
+                  -76.1356936568,
+                  43.04077593090125
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "baseMap": "openfreemap-bright",
+      "pitch": 0
+    },
+    {
+      "id": "location-3",
+      "lat": 43.03620809603143,
+      "lng": -76.13506259108851,
+      "zoom": 16.137824034443934,
+      "html": "<p>Here, you can see the whole university and its main buildings. The JMA Wireless Dome (formerly Carrier Dome, which many still call it) is at the southwest corner of the university. The Newhouse School is at the northwest corner.</p>",
+      "flyTransition": "smooth",
+      "overlays": {
+        "geojson": {
+          "type": "FeatureCollection",
+          "features": [
+            {
+              "type": "Feature",
+              "properties": {
+                "kind": "label",
+                "showDot": true,
+                "color": "#f0f0f0",
+                "haloColor": "#0f1419",
+                "radius": 17,
+                "text": "\"The Dome\"",
+                "dotColor": "#3388ff"
+              },
+              "geometry": {
+                "type": "Point",
+                "coordinates": [
+                  -76.1364011670028,
+                  43.035884565513726
+                ]
+              }
+            },
+            {
+              "type": "Feature",
+              "properties": {
+                "kind": "marker",
+                "showDot": true,
+                "dotColor": "#3388ff",
+                "radius": 18,
+                "color": "#f0f0f0",
+                "text": "The Newhouse School",
+                "haloColor": "#0f1419"
+              },
+              "geometry": {
+                "type": "Point",
+                "coordinates": [
+                  -76.13597038537756,
+                  43.040015082804985
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "baseMap": "openfreemap-bright",
+      "pitch": 60
+    },
+    {
+      "id": "location-4",
+      "lat": 43.047270595558416,
+      "lng": -76.14823909540792,
+      "zoom": 15.545586554197106,
+      "html": "<p>Downtown Syracuse is across interstate I-81, which will soon be coming down to be turned into a ground-level boulevard.</p>",
+      "flyTransition": "smooth",
+      "overlays": {
+        "geojson": {
+          "type": "FeatureCollection",
+          "features": [
+            {
+              "type": "Feature",
+              "properties": {
+                "kind": "label",
+                "showDot": true,
+                "color": "#f0f0f0",
+                "haloColor": "#0f1419",
+                "radius": 18,
+                "text": "Downtown Syracuse",
+                "dotColor": "#3388ff"
+              },
+              "geometry": {
+                "type": "Point",
+                "coordinates": [
+                  -76.14962984938661,
+                  43.048000743891606
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "baseMap": "openfreemap-bright",
+      "pitch": 60
+    },
+    {
+      "id": "location-6",
+      "lat": 43.047423041123835,
+      "lng": -76.15490880170137,
+      "zoom": 17.321828251724423,
+      "html": "<p>Armory Square is a hopping location with lots of shops and restaurants. Historically, it was a bustling 19th-century rail hub and industrial district, but it fell into deep decline in the mid-20th century as manufacturing moved out and storefronts sat abandoned. </p><p>Starting in the 1980s, a targeted revitalization movement converted the neighborhood's brick warehouses into apartments, local boutiques, and restaurants.</p>",
+      "flyTransition": "smooth",
+      "overlays": {
+        "geojson": {
+          "type": "FeatureCollection",
+          "features": [
+            {
+              "type": "Feature",
+              "properties": {
+                "kind": "marker",
+                "showDot": true,
+                "dotColor": "#3388ff",
+                "radius": 19,
+                "color": "#f0f0f0",
+                "text": "Armory Square",
+                "haloColor": "#0f1419"
+              },
+              "geometry": {
+                "type": "Point",
+                "coordinates": [
+                  -76.15560225310536,
+                  43.04752981001599
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "baseMap": "openfreemap-bright"
+    },
+    {
+      "id": "location-7",
+      "lat": 43.063849950314705,
+      "lng": -76.16946527202623,
+      "zoom": 15.34498283956006,
+      "html": "<p>Once an industrial scrapyard and oil tank field at the southern tip of Onondaga Lake, the area surrounding Destiny USA and the Inner Harbor underwent a dramatic shift from toxic waste site to commercial centerpiece. Opened in 1990 as Carousel Center, the venue expanded and rebranded in 2012 as Destiny USA—a massive indoor mall packed with retail and unique entertainment, including high-speed indoor go-karting. Next door, public cleanup efforts transformed the harbor basin itself—adding trails, an amphitheater, and modern housing to turn a neglected industrial waterfront into a thriving regional destination. In the near future, a public aquarium will be at the center of the Inner Harbor.</p>",
+      "flyTransition": "smooth",
+      "overlays": {
+        "geojson": {
+          "type": "FeatureCollection",
+          "features": [
+            {
+              "type": "Feature",
+              "properties": {
+                "kind": "marker",
+                "showDot": true,
+                "dotColor": "#3388ff",
+                "radius": 21,
+                "color": "#f0f0f0",
+                "text": "Destiny Mall",
+                "haloColor": "#0f1419"
+              },
+              "geometry": {
+                "type": "Point",
+                "coordinates": [
+                  -76.17322066476954,
+                  43.0689124211888
+                ]
+              }
+            },
+            {
+              "type": "Feature",
+              "properties": {
+                "kind": "marker",
+                "showDot": true,
+                "dotColor": "#3388ff",
+                "radius": 18,
+                "color": "#f0f0f0",
+                "text": "Site of Future Aquarium",
+                "haloColor": "#0f1419"
+              },
+              "geometry": {
+                "type": "Point",
+                "coordinates": [
+                  -76.16633369347815,
+                  43.062194341770095
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "baseMap": "openfreemap-bright"
+    },
+    {
+      "id": "location-5",
+      "lat": 43.075995717846325,
+      "lng": -76.2180520174735,
+      "zoom": 12.518011325379986,
+      "html": "<p>This large lake is Onondaga Lake. The Haudenosaunee Native Americans consider this lake sacred as the location of <span style=\"color: rgba(0, 0, 0, 0.96);\">founding of the Haudenosaunee Confederacy. The Peacemaker brought the five warring nations together on the shores of Onondaga Lake, buried weapons at the Tree of Peace, and united them under the Great Law of Peace.</span></p>",
+      "flyTransition": "smooth",
+      "overlays": {
+        "geojson": {
+          "type": "FeatureCollection",
+          "features": [
+            {
+              "type": "Feature",
+              "properties": {
+                "kind": "label",
+                "showDot": true,
+                "color": "#f0f0f0",
+                "haloColor": "#0f1419",
+                "radius": 21,
+                "text": "Onondaga Lake",
+                "dotColor": "#3388ff"
+              },
+              "geometry": {
+                "type": "Point",
+                "coordinates": [
+                  -76.2103617062728,
+                  43.08949876402281
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "baseMap": "openfreemap-bright",
+      "pitch": 4.5
+    },
+    {
+      "id": "location-6",
+      "lat": 43.07748783113659,
+      "lng": -76.19985128490691,
+      "zoom": 10.120290906346105,
+      "html": "<p>For over a century, Onondaga Lake suffered severe pollution from industrial waste, including massive mercury deposits from chemical manufacturing and untreated municipal sewage. In response to its 1994 Superfund listing, a major remediation effort upgraded wastewater treatment, dredged millions of cubic yards of toxic sediment, and capped the lakebed. </p><p><br></p><p>While water quality and local wildlife have made a remarkable recovery, ongoing monitoring and debates remain over whether capping offers enough long-term protection.</p>",
+      "flyTransition": "smooth",
+      "overlays": {
+        "geojson": {
+          "type": "FeatureCollection",
+          "features": []
+        }
+      },
+      "baseMap": "esri-satellite"
+    },
+    {
+      "id": "location-8",
+      "lat": 42.840231660370776,
+      "lng": -76.9827260915215,
+      "zoom": 8.77674738196139,
+      "html": "<p>Easily accessible by car, the nearby Finger Lakes offer lots of outdoor activities, shopping and wine tasting for tourists. </p><p>Carved by ancient glaciers, the Finger Lakes region is defined by eleven long, narrow lakes surrounded by dramatic gorges, cascading waterfalls, and rolling hills. Visitors flock to the region to sample world-class Rieslings along scenic wine trails, hike through breathtaking state parks like Watkins Glen, and explore charming lakeside towns that blend rich American history with vibrant local culture.</p>",
+      "flyTransition": "smooth",
+      "overlays": {
+        "geojson": {
+          "type": "FeatureCollection",
+          "features": []
+        }
+      },
+      "baseMap": "esri-satellite"
+    },
+    {
+      "id": "location-9",
+      "lat": 43.767311480501576,
+      "lng": -76.22574561901456,
+      "zoom": 12.181256656972018,
+      "html": "<p>At the eastern end of Lake Ontario, there's a great public beach called Southwick Beach State Park. It's famous for its long, golden stretches of sand and ocean-like freshwater waves.</p><p>A favorite destination for swimmers, campers, and sunbathers, the park borders the protected Lake Ontario Dune Center, offering scenic boardwalk trails that wind through rare coastal sand dunes and wetlands. Whether you're pitching a tent steps from the beach, paddling along the shoreline, or watching a sunset over the lake, Southwick delivers a quintessential East Coast beach experience right in Upstate New York.</p>",
+      "flyTransition": "smooth",
+      "overlays": {
+        "geojson": {
+          "type": "FeatureCollection",
+          "features": []
+        }
+      },
+      "baseMap": "esri-satellite"
+    },
+    {
+      "id": "location-10",
+      "lat": 47.69065679520004,
+      "lng": -81.48345799513731,
+      "zoom": 4.271410403793278,
+      "html": "<p>If you're itching to get out of Syracuse, you have plenty of other options. Syracuse serves as an ideal launchpad for road trips across the Northeast and eastern Canada. Within a 4- to 5-hour drive, you can reach several major metropolitan hubs:</p><ul><li><strong>New York City (~4 hrs):</strong> Head south down I-81 and I-80 for world-class dining, Broadway, and iconic urban sights.</li><li><strong>Toronto (~4.5 hrs):</strong> Drive west past Niagara Falls to explore Canada’s largest skyline, diverse neighborhoods, and vibrant waterfront.</li><li><strong>Montreal (~4.5 hrs):</strong> Head straight north past the Thousand Islands to experience Old World European charm, festival life, and French-Canadian cuisine. </li></ul><p><br></p>",
+      "flyTransition": "smooth",
+      "overlays": {
+        "geojson": {
+          "type": "FeatureCollection",
+          "features": [
+            {
+              "type": "Feature",
+              "properties": {
+                "kind": "marker",
+                "showDot": true,
+                "dotColor": "#3388ff",
+                "radius": 10,
+                "color": "#f0f0f0",
+                "text": "New York City",
+                "haloColor": "#0f1419"
+              },
+              "geometry": {
+                "type": "Point",
+                "coordinates": [
+                  -73.90472992925788,
+                  40.74367158977691
+                ]
+              }
+            },
+            {
+              "type": "Feature",
+              "properties": {
+                "kind": "marker",
+                "showDot": true,
+                "dotColor": "#3388ff",
+                "radius": 10,
+                "color": "#f0f0f0",
+                "text": "Toronto",
+                "haloColor": "#0f1419"
+              },
+              "geometry": {
+                "type": "Point",
+                "coordinates": [
+                  -80.73415809314974,
+                  44.02675170752545
+                ]
+              }
+            },
+            {
+              "type": "Feature",
+              "properties": {
+                "kind": "marker",
+                "showDot": true,
+                "dotColor": "#3388ff",
+                "radius": 10,
+                "color": "#f0f0f0",
+                "text": "Montreal",
+                "haloColor": "#0f1419"
+              },
+              "geometry": {
+                "type": "Point",
+                "coordinates": [
+                  -73.54954810222529,
+                  45.66843990405127
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "baseMap": "carto-positron"
+    }
+  ],
+  "restartAtEnd": true,
+  "buildingsColorPreset": "sandstone"
+}

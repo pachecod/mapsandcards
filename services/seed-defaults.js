@@ -12,6 +12,7 @@ const TEMPLATES_DIR = join(ROOT, STARTER_TEMPLATES_DIR_NAME);
 /** Display titles for known template slugs (home page / lists). */
 export const DEFAULT_TEMPLATE_TITLES = {
   earth: "Earth",
+  syracuse: "Syracuse",
 };
 
 /** Former default template slugs to drop from the DB when seeding. */

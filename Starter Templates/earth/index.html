@@ -681,6 +681,7 @@
   <script src="/Tools/globe-daynight.js"></script>
   <script src="/Tools/globe-stars.js"></script>
   <script src="/Tools/globe-3d-buildings.js"></script>
+  <script src="/Tools/scroll-camera-scrub.js"></script>
   <script>
 (function () {
   function syncMapViewportHeight() {
@@ -845,6 +846,21 @@
   var viewerBaseMap = "openfreemap-bright";
   /** Tracks the basemap that is currently loaded in the map, so we only call setStyle when it actually changes. */
   var currentLoadedBaseMap = "openfreemap-bright";
+  var scrollScrubController = null;
+  var scrubLastOverlayIndex = -1;
+  var scrubBasemapSegmentKey = "";
+  var scrubBasemapSwitchInProgress = false;
+  var prefersReducedMotion =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function scrollScrubActive() {
+    return (
+      storyInteractionMode === "scroll" &&
+      !prefersReducedMotion &&
+      !!window.ScrollCameraScrub
+    );
+  }
 
   var MAX_OVERLAY_FEATURES = 500;
   var STORY_OV_LAYERS = [
@@ -2487,8 +2503,162 @@
     if (_stepNavInProgress) return;
     if (storyInteractionMode !== "scroll") return;
     if (idx < 0 || !config || !config.steps || idx >= config.steps.length) return;
+    if (scrollScrubActive()) {
+      syncStoryStepNavButtons(idx);
+      return;
+    }
     if (idx !== lastFlownIndex) flyToStep(idx, true);
     syncStoryStepNavButtons(idx);
+  }
+
+  function stepCameraState(s) {
+    if (!s) return null;
+    var z = typeof s.zoom === "number" ? s.zoom : 6;
+    return {
+      lng: s.lng,
+      lat: s.lat,
+      zoom: z,
+      pitch: stepPitchForStep(s, z),
+      bearing: stepBearingForStep(s),
+    };
+  }
+
+  function peakCameraBetween(fromCam, s) {
+    var destZoom = typeof s.zoom === "number" ? s.zoom : 6;
+    var peakZoom = Math.min(getFlyPullBackZoom(), fromCam.zoom, destZoom);
+    return {
+      lng: fromCam.lng + (s.lng - fromCam.lng) * 0.5,
+      lat: fromCam.lat + (s.lat - fromCam.lat) * 0.5,
+      zoom: peakZoom,
+      pitch: stepHasCustomCamera(s) ? stepPitch(peakZoom, s) : stepPitchForStep(s, destZoom),
+      bearing: stepBearingForStep(s),
+    };
+  }
+
+  function segmentUsesPullback(fromStep, toStep) {
+    if (!toStep) return false;
+    if (config.projection === "globe" && fromStep) {
+      if (haversineKm(fromStep.lng, fromStep.lat, toStep.lng, toStep.lat) > 350) {
+        return true;
+      }
+    }
+    return !stepUsesSmoothFly(toStep);
+  }
+
+  function cameraForScrollSegment(seg) {
+    var fromStep = config.steps[seg.fromIndex];
+    if (!fromStep) return null;
+    if (seg.fromIndex === seg.toIndex || !config.steps[seg.toIndex]) {
+      return stepCameraState(fromStep);
+    }
+    var toStep = config.steps[seg.toIndex];
+    var fromCam = stepCameraState(fromStep);
+    var toCam = stepCameraState(toStep);
+    var usePullback = segmentUsesPullback(fromStep, toStep);
+    var peak = usePullback ? peakCameraBetween(fromCam, toStep) : null;
+    return ScrollCameraScrub.cameraAlongTransition(
+      fromCam,
+      toCam,
+      peak,
+      seg.t,
+      usePullback
+    );
+  }
+
+  function maybeScrubBasemapSwitch(seg, cam) {
+    if (seg.fromIndex === seg.toIndex || seg.t < 0.5 || scrubBasemapSwitchInProgress) return;
+    var toStep = config.steps[seg.toIndex];
+    if (!toStep) return;
+    var segKey = seg.fromIndex + "->" + seg.toIndex;
+    if (scrubBasemapSegmentKey === segKey) return;
+    var effectiveBase = effectiveBaseForStep(toStep);
+    if (effectiveBase === currentLoadedBaseMap) {
+      scrubBasemapSegmentKey = segKey;
+      return;
+    }
+    scrubBasemapSegmentKey = segKey;
+    scrubBasemapSwitchInProgress = true;
+    var gen = ++_flyGen;
+    switchBasemapAtCamera(
+      seg.toIndex,
+      gen,
+      {
+        center: [cam.lng, cam.lat],
+        zoom: cam.zoom,
+        pitch: cam.pitch,
+        bearing: cam.bearing,
+      },
+      function () {
+        scrubBasemapSwitchInProgress = false;
+        if (scrollScrubController) scrollScrubController.scheduleScrub();
+      }
+    );
+  }
+
+  function applyScrubCamera(cam, seg) {
+    if (!map || !cam) return;
+    stopGlobeSpin();
+    try {
+      map.stop();
+    } catch (e) {}
+    map.jumpTo({
+      center: [cam.lng, cam.lat],
+      zoom: cam.zoom,
+      pitch: cam.pitch,
+      bearing: cam.bearing,
+    });
+    lastFlownIndex = seg.activeIndex;
+
+    if (scrubLastOverlayIndex !== seg.activeIndex) {
+      scrubLastOverlayIndex = seg.activeIndex;
+      applyStepOverlays(seg.activeIndex);
+    }
+
+    var activeStep = config.steps[seg.activeIndex];
+    if (activeStep) {
+      applyStepMapLayers(activeStep, effectiveBaseForStep(activeStep));
+    }
+    syncStoryStepNavButtons(seg.activeIndex);
+  }
+
+  function destroyScrollScrub() {
+    if (scrollScrubController) {
+      scrollScrubController.detach();
+      scrollScrubController = null;
+    }
+    scrubLastOverlayIndex = -1;
+    scrubBasemapSegmentKey = "";
+    scrubBasemapSwitchInProgress = false;
+  }
+
+  function initScrollScrub() {
+    destroyScrollScrub();
+    if (!scrollScrubActive()) return;
+    var panel = el("story-panel");
+    if (!panel) return;
+
+    scrollScrubController = ScrollCameraScrub.create({
+      panel: panel,
+      anchorRatio: ScrollCameraScrub.DEFAULT_ANCHOR_RATIO,
+      getStepCount: function () {
+        return config && config.steps ? config.steps.length : 0;
+      },
+      onScrub: function (seg) {
+        if (storyInteractionMode !== "scroll") return;
+        var cam = cameraForScrollSegment(seg);
+        applyScrubCamera(cam, seg);
+        maybeScrubBasemapSwitch(seg, cam);
+      },
+      onSettled: function (seg) {
+        if (storyInteractionMode !== "scroll") return;
+        syncGlobeSpinForStep(seg.activeIndex);
+        nudgeGlobeRepaint();
+        if (_stepNavInProgress) {
+          finishStoryStepNav(seg.activeIndex);
+        }
+      },
+    });
+    scrollScrubController.attach();
   }
 
   var _stepNavInProgress = false;
@@ -2542,6 +2712,18 @@
     if (!config || !config.steps || i < 0 || i >= config.steps.length) return;
     var fromIndex = getActiveStoryStepIndex();
     if (i === fromIndex && i === lastFlownIndex) return;
+
+    if (scrollScrubActive() && scrollScrubController) {
+      _stepNavInProgress = true;
+      _stepNavBusy = true;
+      syncStoryStepNavButtons(i);
+      scrubBasemapSegmentKey = "";
+      scrollScrubController.scrollToStepIndex(i, true);
+      window.setTimeout(function () {
+        if (_stepNavBusy) finishStoryStepNav(i);
+      }, 6000);
+      return;
+    }
 
     _stepNavInProgress = true;
     _stepNavBusy = true;
@@ -2670,6 +2852,7 @@
     }
     if (mode === "explore") {
       stopGlobeSpin();
+      destroyScrollScrub();
       if (storyObserver) storyObserver.disconnect();
       exploreActiveStepIndex = lastFlownIndex >= 0 ? lastFlownIndex : 0;
       mapHandler("scrollZoom", "enable");
@@ -2692,9 +2875,15 @@
       mapHandler("boxZoom", "disable");
       mapHandler("keyboard", "disable");
       mapHandler("dragRotate", "disable");
-      var idx = getCurrentVisibleStepIndex();
-      flyToStep(idx, false);
-      connectStoryObserver();
+      if (scrollScrubActive()) {
+        initScrollScrub();
+        connectStoryObserver();
+      } else {
+        destroyScrollScrub();
+        var idx = getCurrentVisibleStepIndex();
+        flyToStep(idx, false);
+        connectStoryObserver();
+      }
     }
     updateStoryModeUI();
     updateExploreBasemapVisibility();
@@ -2921,6 +3110,11 @@
     } catch (e) {
       window.scrollTo(0, 0);
     }
+    if (scrollScrubActive() && scrollScrubController) {
+      scrubBasemapSegmentKey = "";
+      scrollScrubController.scheduleScrub();
+      return;
+    }
     if (config && config.steps && config.steps[0]) {
       flyToStep(0, true);
     }
@@ -2963,6 +3157,7 @@
       panel.appendChild(endWrap);
     }
     connectStoryObserver();
+    initScrollScrub();
     applyCardBackgroundOpacity();
     wireStoryStepNavButtons();
     updateStoryStepNavVisibility();
@@ -3175,7 +3370,12 @@
         renderStory();
         lastFlownIndex = -1;
         function startStory() {
-          if (config.steps[0]) flyToStep(0, false);
+          if (scrollScrubActive()) {
+            initScrollScrub();
+            if (scrollScrubController) scrollScrubController.scheduleScrub();
+          } else if (config.steps[0]) {
+            flyToStep(0, false);
+          }
         }
         if (isStandaloneExport()) {
           preloadStandaloneExportAssets(startStory);

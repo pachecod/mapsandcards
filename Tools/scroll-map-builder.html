@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Scroll map story — builder v1.86.4</title>
+  <title>Scroll map story — builder v1.86.5</title>
   <script src="/__analytics.js" defer></script>
   <link href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.css" rel="stylesheet" crossorigin="" />
   <link
@@ -1546,7 +1546,7 @@
       <div class="topbar-story-brand">
         <h1 id="builder-story-title">Untitled story</h1>
         <p class="topbar-builder-meta">
-          <span class="builder-version">Builder v1.86.4</span>
+          <span class="builder-version">Builder v1.86.5</span>
           <span id="guest-mode-badge" class="builder-version hidden" style="color:var(--accent)">· Guest</span>
         </p>
       </div>
@@ -5167,6 +5167,7 @@
       typeof p.opacity === "number" ? Math.round(p.opacity * 100) : 100;
     var curFade = p.fade === true;
     var curFadeSec = typeof p.fadeSec === "number" ? p.fadeSec : StoryMapImages.DEFAULT_FADE_SEC;
+    var curFadeLoop = curFade && p.fadeLoop === true;
     /* 2× the default so a new image starts mid-slider; widen for larger existing images. */
     var sliderMax = Math.max(IMAGE_WIDTH_PX_SLIDER_MAX, Math.ceil(curPx / 10) * 10);
 
@@ -5210,6 +5211,15 @@
       '" step="0.1" value="' +
       curFadeSec +
       '" style="width:4em;font-size:0.75rem" aria-label="Fade duration in seconds" /> seconds</label>' +
+      '  <label class="ae-image-fade-loop-wrap" style="font-size:0.75rem;color:var(--muted);display:' +
+      (curFade ? "flex" : "none") +
+      ';align-items:center;gap:0.3rem">' +
+      '    <input type="checkbox" class="ae-image-fade-loop"' +
+      (curFadeLoop ? " checked" : "") +
+      " /> Loop</label>" +
+      '  <p class="ae-image-fade-loop-note" role="status" style="flex:0 0 100%;margin:0;font-size:0.72rem;color:var(--muted);display:' +
+      (curFadeLoop ? "block" : "none") +
+      '">This image will keep fading in and out on its own while its card is showing, instead of fading as you scroll.</p>' +
       "</div>" +
       '<div style="display:flex;align-items:center;gap:0.5rem">' +
       '  <button type="button" class="btn primary ae-done" style="margin-left:auto;font-size:0.75rem;padding:0.3rem 0.6rem">Done</button>' +
@@ -5222,6 +5232,9 @@
     var fadeCb = editor.querySelector(".ae-image-fade");
     var fadeSecWrap = editor.querySelector(".ae-image-fade-sec-wrap");
     var fadeSecInput = editor.querySelector(".ae-image-fade-sec");
+    var fadeLoopWrap = editor.querySelector(".ae-image-fade-loop-wrap");
+    var fadeLoopCb = editor.querySelector(".ae-image-fade-loop");
+    var fadeLoopNote = editor.querySelector(".ae-image-fade-loop-note");
 
     function liveUpdate(px) {
       if (typeof px !== "number" || isNaN(px)) px = parseInt(widthSlider.value, 10);
@@ -5239,9 +5252,12 @@
         feat.properties.fade = true;
         var sec = parseFloat(fadeSecInput.value);
         feat.properties.fadeSec = isNaN(sec) ? StoryMapImages.DEFAULT_FADE_SEC : sec;
+        if (fadeLoopCb.checked) feat.properties.fadeLoop = true;
+        else delete feat.properties.fadeLoop;
       } else {
         delete feat.properties.fade;
         delete feat.properties.fadeSec;
+        delete feat.properties.fadeLoop;
       }
       if (StoryMapImages) StoryMapImages.normalizeImageFeature(feat);
       saveSoon();
@@ -5269,8 +5285,17 @@
       opacityVal.textContent = opacitySlider.value + "%";
       liveUpdate(parseInt(widthNum.value, 10));
     });
-    fadeCb.addEventListener("change", function () {
+    function syncFadeLoopUi() {
       fadeSecWrap.style.display = fadeCb.checked ? "flex" : "none";
+      fadeLoopWrap.style.display = fadeCb.checked ? "flex" : "none";
+      fadeLoopNote.style.display = fadeCb.checked && fadeLoopCb.checked ? "block" : "none";
+    }
+    fadeCb.addEventListener("change", function () {
+      syncFadeLoopUi();
+      liveUpdate(parseInt(widthNum.value, 10));
+    });
+    fadeLoopCb.addEventListener("change", function () {
+      syncFadeLoopUi();
       liveUpdate(parseInt(widthNum.value, 10));
     });
     fadeSecInput.addEventListener("change", function () {

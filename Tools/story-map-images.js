@@ -16,6 +16,8 @@
   var imageSourceUrls = {};
   /** layerId -> timeout id for images fading out before removal */
   var fadeOutTimers = {};
+  /** layerId -> { map, p, timer, shown } for images whose fade loops */
+  var fadeLoops = {};
 
   function clamp(v, lo, hi) {
     return Math.max(lo, Math.min(hi, v));
@@ -112,9 +114,11 @@
     if (p.fade === true) {
       if (typeof p.fadeSec !== "number" || isNaN(p.fadeSec)) p.fadeSec = DEFAULT_FADE_SEC;
       p.fadeSec = clamp(p.fadeSec, 0.1, MAX_FADE_SEC);
+      if (p.fadeLoop !== true) delete p.fadeLoop;
     } else {
       delete p.fade;
       delete p.fadeSec;
+      delete p.fadeLoop;
     }
     if (typeof p.rotation !== "number" || isNaN(p.rotation)) {
       delete p.rotation;
@@ -149,6 +153,45 @@
     return p && p.fade === true ? Math.round((p.fadeSec || DEFAULT_FADE_SEC) * 1000) : 0;
   }
 
+  function loopsFade(p) {
+    return !!(p && p.fade === true && p.fadeLoop === true);
+  }
+
+  /** Scroll-driven fade length: 0 for looping images, which come and go with
+      their card instantly and fade on their own clock instead. */
+  function scrollFadeMs(p) {
+    return loopsFade(p) ? 0 : fadeMs(p);
+  }
+
+  function stopFadeLoop(layerId) {
+    var loop = fadeLoops[layerId];
+    if (!loop) return;
+    clearTimeout(loop.timer);
+    delete fadeLoops[layerId];
+  }
+
+  /** Fade in and out repeatedly, one fadeSec each way, until stopped. */
+  function startFadeLoop(map, layerId, p) {
+    if (fadeLoops[layerId]) {
+      fadeLoops[layerId].p = p;
+      return;
+    }
+    /* Start from where the image is: a visible one fades out first. */
+    var shown = map.getLayer(layerId) && map.getPaintProperty(layerId, "raster-opacity") > 0;
+    var loop = { map: map, p: p, timer: null, shown: !!shown };
+    fadeLoops[layerId] = loop;
+    (function tick() {
+      if (fadeLoops[layerId] !== loop || !map.getLayer(layerId)) {
+        stopFadeLoop(layerId);
+        return;
+      }
+      loop.shown = !loop.shown;
+      var ms = fadeMs(loop.p);
+      setImageOpacity(map, layerId, loop.shown ? loop.p.opacity : 0, ms);
+      loop.timer = setTimeout(tick, ms);
+    })();
+  }
+
   function cancelFadeOut(layerId) {
     if (fadeOutTimers[layerId]) {
       clearTimeout(fadeOutTimers[layerId]);
@@ -164,18 +207,21 @@
   }
 
   function addImageLayer(map, sourceId, layerId, p, beforeId) {
-    var ms = fadeMs(p);
+    var ms = scrollFadeMs(p);
+    var loop = loopsFade(p);
     map.addLayer(
       {
         id: layerId,
         type: "raster",
         source: sourceId,
         metadata: { fadeMs: ms },
-        paint: { "raster-opacity": ms ? 0 : p.opacity },
+        paint: { "raster-opacity": ms || loop ? 0 : p.opacity },
       },
       beforeId
     );
-    if (ms) {
+    if (loop) {
+      startFadeLoop(map, layerId, p);
+    } else if (ms) {
       /* The layer starts at 0, so this change animates from 0 to the target. */
       setImageOpacity(map, layerId, p.opacity, ms);
     }
@@ -184,6 +230,7 @@
   function removeImageLayer(map, layerId, sourceId) {
     if (!map) return;
     cancelFadeOut(layerId);
+    stopFadeLoop(layerId);
     try {
       if (map.getLayer(layerId)) map.removeLayer(layerId);
     } catch (e) {}
@@ -267,14 +314,21 @@
             }
             var layer = map.getLayer(layerId);
             if (layer) {
-              var ms = fadeMs(p);
+              var ms = scrollFadeMs(p);
               var wasFadingOut = !!fadeOutTimers[layerId];
               cancelFadeOut(layerId);
               if (layer.metadata) layer.metadata.fadeMs = ms;
               /* Coming back while fading out: fade back in. A changed opacity (the
                  editor slider) applies instantly. A repeat sync with the same
-                 opacity must not touch it, or it would cut a fade-in short. */
-              if (wasFadingOut) {
+                 opacity must not touch it, or it would cut a fade-in short.
+                 Looping images run on their own clock; just hand it the new
+                 settings. */
+              if (loopsFade(p)) {
+                startFadeLoop(map, layerId, p);
+              } else if (fadeLoops[layerId]) {
+                stopFadeLoop(layerId);
+                setImageOpacity(map, layerId, p.opacity, 0);
+              } else if (wasFadingOut) {
                 setImageOpacity(map, layerId, p.opacity, ms);
               } else if (map.getPaintProperty(layerId, "raster-opacity") !== p.opacity) {
                 setImageOpacity(map, layerId, p.opacity, 0);

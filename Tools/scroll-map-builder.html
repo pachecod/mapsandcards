@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Scroll map story — builder v1.86.1</title>
+  <title>Scroll map story — builder v1.86.2</title>
   <script src="/__analytics.js" defer></script>
   <link href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.css" rel="stylesheet" crossorigin="" />
   <link
@@ -1546,7 +1546,7 @@
       <div class="topbar-story-brand">
         <h1 id="builder-story-title">Untitled story</h1>
         <p class="topbar-builder-meta">
-          <span class="builder-version">Builder v1.86.1</span>
+          <span class="builder-version">Builder v1.86.2</span>
           <span id="guest-mode-badge" class="builder-version hidden" style="color:var(--accent)">· Guest</span>
         </p>
       </div>
@@ -2415,8 +2415,11 @@
     applyCapturedCameraToStep(step, c.lat, c.lng, z, p, b);
     config.steps.push(step);
     selectedIndex = config.steps.length - 1;
-    // saveNow reads the pause checkbox into the selected step; point it at the new step first.
+    // saveNow reads the pause checkbox and per-step map overrides into the selected
+    // step; point them at the new step first.
     syncStepScrollHoldUi();
+    syncStepBasemapSelect();
+    syncStepMapOverridesUi();
     saveNow();
     renderStepList();
     syncEditorFromStep();
@@ -4764,7 +4767,7 @@
         var s = config.steps[selectedIndex];
         ensureStepOverlays(s);
         if (placementKind === "image" && pendingImagePlacement) {
-          var widthM = StoryMapImages ? StoryMapImages.DEFAULT_WIDTH_M : 2000;
+          var widthM = DEFAULT_IMAGE_WIDTH_PX * imageMetersPerPixel(ll.lat);
           var aspect = pendingImagePlacement.aspectRatio || 1.333;
           var heightM = widthM / aspect;
           var imgFeat = {
@@ -4956,7 +4959,9 @@
         var wM = f.properties && f.properties.widthM;
         summary =
           (f.properties.imageLabel || "image") +
-          (typeof wM === "number" ? " — " + Math.round(wM) + " m wide" : "");
+          (typeof wM === "number"
+            ? " — " + Math.round(wM / imageMetersPerPixel(imageFeatureLat(f))) + " px wide"
+            : "");
       } else {
       var hasText = f.properties && f.properties.text;
       var hasDot = f.properties && (typeof f.properties.showDot === "boolean"
@@ -5119,6 +5124,25 @@
     li.appendChild(editor);
   }
 
+  /* Image widths are stored in meters on the ground (they scale with map zoom);
+     the editor shows pixels as seen at the selected location's saved zoom. */
+  var DEFAULT_IMAGE_WIDTH_PX = 300;
+  var IMAGE_WIDTH_PX_MIN = 20;
+  var IMAGE_WIDTH_PX_SLIDER_MAX = DEFAULT_IMAGE_WIDTH_PX * 2;
+
+  function imageMetersPerPixel(lat) {
+    var s = config && config.steps[selectedIndex];
+    var zoom = s && typeof s.zoom === "number" ? s.zoom : map ? map.getZoom() : 11;
+    var cosLat = Math.max(0.01, Math.cos((lat * Math.PI) / 180));
+    /* MapLibre zoom levels use 512 px tiles. */
+    return (40075016.686 * cosLat) / (512 * Math.pow(2, zoom));
+  }
+
+  function imageFeatureLat(feat) {
+    var c = feat.geometry && feat.geometry.coordinates;
+    return c && typeof c[1] === "number" ? c[1] : 0;
+  }
+
   function toggleImageEditor(li, feat, idx) {
     var existing = li.querySelector(".annotation-editor");
     if (existing) {
@@ -5126,31 +5150,33 @@
       return;
     }
     var p = feat.properties || {};
-    var curWidth = typeof p.widthM === "number" ? p.widthM : StoryMapImages.DEFAULT_WIDTH_M;
+    var mPerPx = imageMetersPerPixel(imageFeatureLat(feat));
+    var curWidthM = typeof p.widthM === "number" ? p.widthM : StoryMapImages.DEFAULT_WIDTH_M;
+    var curPx = Math.round(curWidthM / mPerPx);
     var curOpacity =
       typeof p.opacity === "number" ? Math.round(p.opacity * 100) : 100;
-    var minW = StoryMapImages.MIN_WIDTH_M;
+    var curFade = p.fade === true;
+    var curFadeSec = typeof p.fadeSec === "number" ? p.fadeSec : StoryMapImages.DEFAULT_FADE_SEC;
     /* 2× the default so a new image starts mid-slider; widen for larger existing images. */
-    var maxW = Math.min(
-      StoryMapImages.MAX_WIDTH_M,
-      Math.max(StoryMapImages.DEFAULT_WIDTH_M * 2, Math.ceil(curWidth / 100) * 100)
-    );
+    var sliderMax = Math.max(IMAGE_WIDTH_PX_SLIDER_MAX, Math.ceil(curPx / 10) * 10);
 
     var editor = document.createElement("div");
     editor.className = "annotation-editor";
     editor.innerHTML =
       '<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.4rem">' +
-      '  <label style="font-size:0.75rem;color:var(--muted);flex-shrink:0">Width (m)</label>' +
+      '  <label style="font-size:0.75rem;color:var(--muted);flex-shrink:0" title="Pixels at this location\'s zoom; the image still grows and shrinks as readers zoom">Width (px)</label>' +
       '  <input type="range" class="ae-image-width" min="' +
-      minW +
+      IMAGE_WIDTH_PX_MIN +
       '" max="' +
-      maxW +
-      '" step="10" value="' +
-      curWidth +
-      '" style="flex:1" />' +
-      '  <span class="ae-image-width-val" style="font-size:0.75rem;color:var(--muted);min-width:3.5em">' +
-      Math.round(curWidth) +
-      " m</span>" +
+      sliderMax +
+      '" step="1" value="' +
+      curPx +
+      '" style="flex:1" aria-label="Image width in pixels" />' +
+      '  <input type="number" class="ae-image-width-num" min="' +
+      IMAGE_WIDTH_PX_MIN +
+      '" step="1" value="' +
+      curPx +
+      '" style="width:4.5em;flex-shrink:0;font-size:0.75rem" aria-label="Image width in pixels" />' +
       "</div>" +
       '<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.4rem">' +
       '  <label style="font-size:0.75rem;color:var(--muted);flex-shrink:0">Opacity</label>' +
@@ -5161,18 +5187,37 @@
       curOpacity +
       "%</span>" +
       "</div>" +
+      '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.4rem">' +
+      '  <label style="font-size:0.75rem;color:var(--muted);display:flex;align-items:center;gap:0.3rem">' +
+      '    <input type="checkbox" class="ae-image-fade"' +
+      (curFade ? " checked" : "") +
+      " /> Fade in and out</label>" +
+      '  <label class="ae-image-fade-sec-wrap" style="font-size:0.75rem;color:var(--muted);display:' +
+      (curFade ? "flex" : "none") +
+      ';align-items:center;gap:0.3rem">' +
+      '    <input type="number" class="ae-image-fade-sec" min="0.1" max="' +
+      StoryMapImages.MAX_FADE_SEC +
+      '" step="0.1" value="' +
+      curFadeSec +
+      '" style="width:4em;font-size:0.75rem" aria-label="Fade duration in seconds" /> seconds</label>' +
+      "</div>" +
       '<div style="display:flex;align-items:center;gap:0.5rem">' +
       '  <button type="button" class="btn primary ae-done" style="margin-left:auto;font-size:0.75rem;padding:0.3rem 0.6rem">Done</button>' +
       "</div>";
 
     var widthSlider = editor.querySelector(".ae-image-width");
-    var widthVal = editor.querySelector(".ae-image-width-val");
+    var widthNum = editor.querySelector(".ae-image-width-num");
     var opacitySlider = editor.querySelector(".ae-image-opacity");
     var opacityVal = editor.querySelector(".ae-image-opacity-val");
+    var fadeCb = editor.querySelector(".ae-image-fade");
+    var fadeSecWrap = editor.querySelector(".ae-image-fade-sec-wrap");
+    var fadeSecInput = editor.querySelector(".ae-image-fade-sec");
 
-    function liveUpdate() {
-      var w = parseInt(widthSlider.value, 10);
-      if (isNaN(w)) w = StoryMapImages.DEFAULT_WIDTH_M;
+    function liveUpdate(px) {
+      if (typeof px !== "number" || isNaN(px)) px = parseInt(widthSlider.value, 10);
+      if (isNaN(px)) px = DEFAULT_IMAGE_WIDTH_PX;
+      px = Math.max(IMAGE_WIDTH_PX_MIN, px);
+      var w = px * mPerPx;
       feat.properties.widthM = w;
       if (typeof feat.properties.aspectRatio === "number" && feat.properties.aspectRatio > 0) {
         feat.properties.heightM = w / feat.properties.aspectRatio;
@@ -5180,23 +5225,53 @@
       var op = parseInt(opacitySlider.value, 10);
       if (isNaN(op)) op = 100;
       feat.properties.opacity = op / 100;
+      if (fadeCb.checked) {
+        feat.properties.fade = true;
+        var sec = parseFloat(fadeSecInput.value);
+        feat.properties.fadeSec = isNaN(sec) ? StoryMapImages.DEFAULT_FADE_SEC : sec;
+      } else {
+        delete feat.properties.fade;
+        delete feat.properties.fadeSec;
+      }
       if (StoryMapImages) StoryMapImages.normalizeImageFeature(feat);
       saveSoon();
       syncOverlayFieldsFromStep();
       applyStepOverlays(selectedIndex);
+      /* normalize may clamp the size; show what was actually kept */
+      return Math.round(feat.properties.widthM / mPerPx);
     }
 
     widthSlider.addEventListener("input", function () {
-      widthVal.textContent = widthSlider.value + " m";
-      liveUpdate();
+      widthNum.value = String(liveUpdate(parseInt(widthSlider.value, 10)));
+    });
+    widthNum.addEventListener("input", function () {
+      var px = parseInt(widthNum.value, 10);
+      if (isNaN(px) || px < IMAGE_WIDTH_PX_MIN) return;
+      if (px > parseInt(widthSlider.max, 10)) widthSlider.max = String(px);
+      widthSlider.value = String(liveUpdate(px));
+    });
+    widthNum.addEventListener("change", function () {
+      var kept = liveUpdate(parseInt(widthNum.value, 10));
+      widthNum.value = String(kept);
+      widthSlider.value = String(kept);
     });
     opacitySlider.addEventListener("input", function () {
       opacityVal.textContent = opacitySlider.value + "%";
-      liveUpdate();
+      liveUpdate(parseInt(widthNum.value, 10));
+    });
+    fadeCb.addEventListener("change", function () {
+      fadeSecWrap.style.display = fadeCb.checked ? "flex" : "none";
+      liveUpdate(parseInt(widthNum.value, 10));
+    });
+    fadeSecInput.addEventListener("change", function () {
+      liveUpdate(parseInt(widthNum.value, 10));
+      if (typeof feat.properties.fadeSec === "number") {
+        fadeSecInput.value = String(feat.properties.fadeSec);
+      }
     });
 
     editor.querySelector(".ae-done").addEventListener("click", function () {
-      liveUpdate();
+      liveUpdate(parseInt(widthNum.value, 10));
       persistStory({ immediate: true });
       renderOverlayFeatureList();
     });
@@ -6966,6 +7041,8 @@
       selectedIndex = config.steps.length - 1;
     }
     syncStepScrollHoldUi();
+    syncStepBasemapSelect();
+    syncStepMapOverridesUi();
     saveNow();
     renderStepList();
     syncEditorFromStep();
@@ -7617,16 +7694,19 @@
     } else {
       delete s.baseMap;
     }
+    /* switch the builder map to reflect this step's effective basemap. Record the
+       target before saveNow: it copies currentBuilderBaseMap into the story default
+       when this step has no override, and the old (override) style is still loaded. */
+    var targetBase = val || config.baseMap || "openfreemap-bright";
+    var prevBase = currentBuilderBaseMap;
+    currentBuilderBaseMap = targetBase;
     saveNow();
     syncStepMapOverridesUi();
     syncBaseMapSelect();
-    /* switch the builder map to reflect this step's effective basemap */
-    var targetBase = val || config.baseMap || "openfreemap-bright";
-    if (targetBase === currentBuilderBaseMap) {
+    if (targetBase === prevBase) {
       applyStepMapLayers(s, targetBase);
       return;
     }
-    currentBuilderBaseMap = targetBase;
     getBaseMapStylePromise(targetBase)
       .then(function (style) {
         map.once("style.load", function () {

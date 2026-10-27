@@ -15,15 +15,24 @@ const DEFAULT_SITE = {
   public_template_slugs: ["earth", "syracuse"],
 };
 
+/** Retired settings keys, stripped on read and write so they cannot come back. */
+const LEGACY_SITE_KEYS = ["featured_story_slugs"];
+
+function withoutLegacyKeys(settings) {
+  const out = { ...settings };
+  for (const key of LEGACY_SITE_KEYS) delete out[key];
+  return out;
+}
+
 export async function getSiteSettings() {
   const { rows } = await query(`SELECT value FROM site_settings WHERE key = 'site'`);
   if (!rows.length) return { ...DEFAULT_SITE };
-  return { ...DEFAULT_SITE, ...rows[0].value };
+  return withoutLegacyKeys({ ...DEFAULT_SITE, ...rows[0].value });
 }
 
 export async function updateSiteSettings(partial) {
   const current = await getSiteSettings();
-  const next = { ...current, ...partial };
+  const next = withoutLegacyKeys({ ...current, ...partial });
   await query(
     `INSERT INTO site_settings (key, value, updated_at)
      VALUES ('site', $1::jsonb, now())
@@ -371,5 +380,30 @@ export async function listAdminStudentStories(studentId) {
     [studentId]
   );
   return rows;
+}
+
+/** Every story, so the admin Featured tab can offer any of them for the queue. */
+export async function listAllStoriesAdmin() {
+  const { rows } = await query(
+    `SELECT s.slug, s.title, s.published, s.featured, s.featured_rank, s.status, s.updated_at,
+            st.display_name AS owner_name
+     FROM stories s
+     LEFT JOIN students st ON st.id = s.owner_student_id
+     ORDER BY s.featured DESC, s.featured_rank NULLS LAST, s.updated_at DESC`
+  );
+  return rows;
+}
+
+/** Only published stories are listed to anonymous visitors, so featuring a story also needs this. */
+export async function setStoryPublished(slug, published) {
+  const normalized = String(slug || "").trim().toLowerCase();
+  if (!normalized) throw new Error("Story slug is required.");
+  const { rows } = await query(
+    `UPDATE stories SET published = $2, updated_at = now()
+     WHERE slug = $1 RETURNING slug, title, published`,
+    [normalized, !!published]
+  );
+  if (!rows.length) throw new Error(`Story "${normalized}" was not found.`);
+  return rows[0];
 }
 

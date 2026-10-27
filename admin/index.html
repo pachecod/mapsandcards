@@ -24,6 +24,7 @@
       <nav class="tabs" role="tablist">
         <button type="button" class="tab active" data-tab="classes">Classes</button>
         <button type="button" class="tab" data-tab="students">Students</button>
+        <button type="button" class="tab" data-tab="featured">Featured stories</button>
         <button type="button" class="tab" data-tab="settings">Site settings</button>
         <button type="button" class="tab" data-tab="submissions">Submissions</button>
         <button type="button" class="tab" data-tab="legal">Legal pages</button>
@@ -70,6 +71,23 @@
           <button type="button" id="student-form-cancel">Cancel</button>
         </form>
         <pre id="password-report" class="report hidden"></pre>
+      </section>
+
+      <section id="tab-featured" class="tab-panel hidden">
+        <div class="section-head">
+          <h2>Featured stories</h2>
+          <button type="button" id="btn-new-featured-story">New featured story</button>
+          <a href="/Tools/scroll-map-builder.html" class="btn-link">Open builder</a>
+        </div>
+        <p class="meta">Published stories in this queue appear on the home page, in this order. Edits saved in the builder go live immediately.</p>
+        <div id="featured-stories-list" class="card-list"></div>
+        <p id="featured-stories-status" class="status"></p>
+
+        <div class="section-head" style="margin-top:1.75rem">
+          <h2>All stories</h2>
+        </div>
+        <p class="meta">Add any story to the featured queue, or remove it without deleting. Deleting a story also removes it from the queue.</p>
+        <div id="all-stories-list" class="card-list"></div>
       </section>
 
       <section id="tab-settings" class="tab-panel hidden">

@@ -681,6 +681,8 @@
   <script src="/Tools/globe-daynight.js"></script>
   <script src="/Tools/globe-stars.js"></script>
   <script src="/Tools/globe-3d-buildings.js"></script>
+  <script src="/Tools/scroll-camera-scrub.js"></script>
+  <script src="/Tools/story-map-images.js"></script>
   <script>
 (function () {
   function syncMapViewportHeight() {
@@ -845,6 +847,25 @@
   var viewerBaseMap = "openfreemap-bright";
   /** Tracks the basemap that is currently loaded in the map, so we only call setStyle when it actually changes. */
   var currentLoadedBaseMap = "openfreemap-bright";
+  var scrollScrubController = null;
+  var scrubLastOverlayIndex = -1;
+  var scrubBasemapSegmentKey = "";
+  var scrubBasemapPreloadKey = "";
+  var scrubLastTransitionKey = "";
+  var scrubBasemapSwitchInProgress = false;
+  var _stepNavFromIndex = -1;
+  var _stepNavTargetIndex = -1;
+  var prefersReducedMotion =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function scrollScrubActive() {
+    return (
+      storyInteractionMode === "scroll" &&
+      !prefersReducedMotion &&
+      !!window.ScrollCameraScrub
+    );
+  }
 
   var MAX_OVERLAY_FEATURES = 500;
   var STORY_OV_LAYERS = [
@@ -1266,10 +1287,27 @@
     if (!introStep.id) introStep.id = "intro";
   }
 
+  function normalizeStoryTitle(data) {
+    if (!data || typeof data !== "object") return;
+    if (typeof data.title === "string") {
+      data.title = data.title.trim().replace(/\s+/g, " ");
+      if (!data.title) delete data.title;
+      else if (data.title.length > 120) data.title = data.title.slice(0, 120);
+    } else {
+      delete data.title;
+    }
+  }
+
+  function applyStoryDocumentTitle(cfg) {
+    var title = cfg && typeof cfg.title === "string" ? cfg.title.trim() : "";
+    document.title = title || "Scroll map story";
+  }
+
   function normalizeConfig(data) {
     if (!data.steps || !Array.isArray(data.steps)) {
       throw new Error("Invalid JSON: need steps array");
     }
+    normalizeStoryTitle(data);
     if (!data.version) data.version = 1;
     var validBase = {};
     BASE_MAPS.forEach(function (b) {
@@ -1365,6 +1403,20 @@
     }
     if (step.spin === true) step.spin = true;
     else delete step.spin;
+    if (step.scrollHold === true) step.scrollHold = true;
+    else delete step.scrollHold;
+    if (
+      step.scrollHold === true &&
+      typeof step.scrollHoldExtraSec === "number" &&
+      step.scrollHoldExtraSec > 0
+    ) {
+      step.scrollHoldExtraSec = Math.min(
+        30,
+        Math.round(step.scrollHoldExtraSec * 10) / 10
+      );
+    } else {
+      delete step.scrollHoldExtraSec;
+    }
     if (step.flyTransition === "smooth") step.flyTransition = "smooth";
     else delete step.flyTransition;
     normalizeStepCamera(step);
@@ -1384,6 +1436,10 @@
     }
     g.features.forEach(function (f) {
       if (!f || !f.properties || !f.geometry || f.geometry.type !== "Point") return;
+      if (f.properties.kind === "image") {
+        if (window.StoryMapImages) StoryMapImages.normalizeImageFeature(f);
+        return;
+      }
       var p = f.properties;
       if (typeof p.radius !== "number" || p.radius < 1) p.radius = 8;
       var hasText =
@@ -1428,6 +1484,7 @@
       } else if (g === "LineString" || g === "MultiLineString") {
         lines.features.push(f);
       } else if (g === "Point") {
+        if (p.kind === "image") return;
         var hasText =
           (typeof p.text === "string" && p.text.trim() !== "") ||
           (typeof p.title === "string" && p.title.trim() !== "");
@@ -1565,13 +1622,21 @@
     if (!map || !config || !config.steps) return;
     ensureOverlaySources();
     var split;
+    var imageFc = { type: "FeatureCollection", features: [] };
     if (storyInteractionMode === "explore") {
-      split = splitOverlayFeatures(mergeAllStepOverlays());
+      var merged = mergeAllStepOverlays();
+      split = splitOverlayFeatures(merged);
+      if (window.StoryMapImages) {
+        imageFc.features = StoryMapImages.extractImageFeatures(merged);
+      }
     } else {
       var step = config.steps[stepIndex];
       if (step) {
         normalizeStepOverlays(step);
         split = splitOverlayFeatures(step.overlays.geojson);
+        if (window.StoryMapImages) {
+          imageFc.features = StoryMapImages.extractImageFeatures(step.overlays.geojson);
+        }
       } else {
         split = { poly: EMPTY_FC, lines: EMPTY_FC, ptMark: EMPTY_FC, ptLabel: EMPTY_FC };
       }
@@ -1583,6 +1648,9 @@
       map.getSource(OV_SRC_PTL).setData(split.ptLabel);
     } catch (err) {
       console.warn("Step overlays:", err);
+    }
+    if (window.StoryMapImages) {
+      StoryMapImages.syncImageOverlays(map, imageFc.features, { beforeLayerId: "story-ov-fill" });
     }
   }
 
@@ -2487,8 +2555,310 @@
     if (_stepNavInProgress) return;
     if (storyInteractionMode !== "scroll") return;
     if (idx < 0 || !config || !config.steps || idx >= config.steps.length) return;
+    if (scrollScrubActive()) {
+      syncStoryStepNavButtons(idx);
+      return;
+    }
     if (idx !== lastFlownIndex) flyToStep(idx, true);
     syncStoryStepNavButtons(idx);
+  }
+
+  function stepCameraState(s) {
+    if (!s) return null;
+    var z = typeof s.zoom === "number" ? s.zoom : 6;
+    return {
+      lng: s.lng,
+      lat: s.lat,
+      zoom: z,
+      pitch: stepPitchForStep(s, z),
+      bearing: stepBearingForStep(s),
+    };
+  }
+
+  function peakCameraBetween(fromCam, s) {
+    var destZoom = typeof s.zoom === "number" ? s.zoom : 6;
+    var peakZoom = Math.min(getFlyPullBackZoom(), fromCam.zoom, destZoom);
+    return {
+      lng: fromCam.lng + (s.lng - fromCam.lng) * 0.5,
+      lat: fromCam.lat + (s.lat - fromCam.lat) * 0.5,
+      zoom: peakZoom,
+      pitch: stepHasCustomCamera(s) ? stepPitch(peakZoom, s) : stepPitchForStep(s, destZoom),
+      bearing: stepBearingForStep(s),
+    };
+  }
+
+  function segmentUsesPullback(fromStep, toStep) {
+    if (!toStep) return false;
+    if (config.projection === "globe" && fromStep) {
+      if (haversineKm(fromStep.lng, fromStep.lat, toStep.lng, toStep.lat) > 350) {
+        return true;
+      }
+    }
+    return !stepUsesSmoothFly(toStep);
+  }
+
+  function cameraForDirectNav(scrollY) {
+    var fromIdx = _stepNavFromIndex >= 0 ? _stepNavFromIndex : 0;
+    var toIdx =
+      _stepNavTargetIndex >= 0 ? _stepNavTargetIndex : fromIdx;
+    if (fromIdx === toIdx) {
+      return {
+        camera: stepCameraState(config.steps[fromIdx]),
+        seg: {
+          fromIndex: fromIdx,
+          toIndex: toIdx,
+          t: 0,
+          activeIndex: toIdx,
+          mode: "direct",
+        },
+      };
+    }
+    var panel = el("story-panel");
+    var y0 = ScrollCameraScrub.scrollYForStepAnchor(
+      panel,
+      fromIdx,
+      ScrollCameraScrub.DEFAULT_ANCHOR_RATIO
+    );
+    var y1 = ScrollCameraScrub.scrollYForStepAnchor(
+      panel,
+      toIdx,
+      ScrollCameraScrub.DEFAULT_ANCHOR_RATIO
+    );
+    var t = 0;
+    if (y0 != null && y1 != null && y1 !== y0) {
+      t = clamp((scrollY - y0) / (y1 - y0), 0, 1);
+    } else if (scrollY >= (y1 != null ? y1 : 0)) {
+      t = 1;
+    }
+    var fromStep = config.steps[fromIdx];
+    var toStep = config.steps[toIdx];
+    var seg = {
+      fromIndex: fromIdx,
+      toIndex: toIdx,
+      t: t,
+      activeIndex: t >= 0.5 ? toIdx : fromIdx,
+      mode: "direct",
+    };
+    if (!fromStep || !toStep) {
+      return { camera: stepCameraState(toStep || fromStep), seg: seg };
+    }
+    var fromCam = stepCameraState(fromStep);
+    var toCam = stepCameraState(toStep);
+    var usePullback = segmentUsesPullback(fromStep, toStep);
+    var peak = usePullback ? peakCameraBetween(fromCam, toStep) : null;
+    return {
+      camera: ScrollCameraScrub.cameraAlongTransition(
+        fromCam,
+        toCam,
+        peak,
+        t,
+        usePullback
+      ),
+      seg: seg,
+    };
+  }
+
+  function clamp(v, lo, hi) {
+    return Math.max(lo, Math.min(hi, v));
+  }
+
+  function resolveScrollCamera(scrollY, seg) {
+    if (_stepNavInProgress && _stepNavTargetIndex >= 0) {
+      return cameraForDirectNav(scrollY);
+    }
+    return {
+      camera: cameraForScrollSegment(seg),
+      seg: seg,
+    };
+  }
+
+  function cameraForScrollSegment(seg) {
+    var fromStep = config.steps[seg.fromIndex];
+    if (!fromStep) return null;
+    if (seg.fromIndex === seg.toIndex || !config.steps[seg.toIndex]) {
+      return stepCameraState(fromStep);
+    }
+    var toStep = config.steps[seg.toIndex];
+    var fromCam = stepCameraState(fromStep);
+    var toCam = stepCameraState(toStep);
+    var usePullback = segmentUsesPullback(fromStep, toStep);
+    var peak = usePullback ? peakCameraBetween(fromCam, toStep) : null;
+    return ScrollCameraScrub.cameraAlongTransition(
+      fromCam,
+      toCam,
+      peak,
+      seg.t,
+      usePullback
+    );
+  }
+
+  function stepScrollHold(s) {
+    return !!(s && s.scrollHold === true);
+  }
+
+  function stepScrollHoldExtraSec(s) {
+    if (!s || !stepScrollHold(s)) return 0;
+    if (typeof s.scrollHoldExtraSec !== "number" || s.scrollHoldExtraSec <= 0) return 0;
+    return Math.min(30, s.scrollHoldExtraSec);
+  }
+
+  function isSegmentSettledOnStep(seg) {
+    if (!seg) return false;
+    if (seg.mode === "hold" || seg.mode === "approach") return true;
+    if (seg.fromIndex === seg.toIndex) return true;
+    return seg.t <= 0.05 || seg.t >= 0.95;
+  }
+
+  function maybeScrubBasemapPreload(seg) {
+    if (seg.fromIndex === seg.toIndex || seg.t < 0.45 || scrubBasemapSwitchInProgress) return;
+    var toStep = config.steps[seg.toIndex];
+    if (!toStep) return;
+    var preloadKey = seg.fromIndex + "->" + seg.toIndex + ":preload";
+    if (scrubBasemapPreloadKey === preloadKey) return;
+    var effectiveBase = effectiveBaseForStep(toStep);
+    if (effectiveBase === currentLoadedBaseMap) {
+      scrubBasemapPreloadKey = preloadKey;
+      return;
+    }
+    scrubBasemapPreloadKey = preloadKey;
+    getBaseMapStylePromise(effectiveBase).catch(function () {});
+  }
+
+  function maybeScrubBasemapSwitch(seg, cam) {
+    if (seg.fromIndex === seg.toIndex || seg.t < 0.5 || scrubBasemapSwitchInProgress) return;
+    var toStep = config.steps[seg.toIndex];
+    if (!toStep) return;
+    var segKey = seg.fromIndex + "->" + seg.toIndex;
+    if (scrubBasemapSegmentKey === segKey) return;
+    var effectiveBase = effectiveBaseForStep(toStep);
+    if (effectiveBase === currentLoadedBaseMap) {
+      scrubBasemapSegmentKey = segKey;
+      return;
+    }
+    scrubBasemapSegmentKey = segKey;
+    scrubBasemapSwitchInProgress = true;
+    var gen = ++_flyGen;
+    switchBasemapAtCamera(
+      seg.toIndex,
+      gen,
+      {
+        center: [cam.lng, cam.lat],
+        zoom: cam.zoom,
+        pitch: cam.pitch,
+        bearing: cam.bearing,
+      },
+      function () {
+        scrubBasemapSwitchInProgress = false;
+        if (scrollScrubController) scrollScrubController.scheduleScrub();
+      }
+    );
+  }
+
+  function applyScrubCamera(cam, seg) {
+    if (!map || !cam) return;
+    stopGlobeSpin();
+    try {
+      map.stop();
+    } catch (e) {}
+    map.jumpTo({
+      center: [cam.lng, cam.lat],
+      zoom: cam.zoom,
+      pitch: cam.pitch,
+      bearing: cam.bearing,
+    });
+    lastFlownIndex = seg.activeIndex;
+
+    if (scrubLastOverlayIndex !== seg.activeIndex) {
+      scrubLastOverlayIndex = seg.activeIndex;
+      applyStepOverlays(seg.activeIndex);
+    }
+
+    var activeStep = config.steps[seg.activeIndex];
+    if (activeStep) {
+      applyStepMapLayers(activeStep, effectiveBaseForStep(activeStep));
+    }
+    syncStoryStepNavButtons(seg.activeIndex);
+  }
+
+  function destroyScrollScrub() {
+    if (scrollScrubController) {
+      scrollScrubController.detach();
+      scrollScrubController = null;
+    }
+    scrubLastOverlayIndex = -1;
+    scrubBasemapSegmentKey = "";
+    scrubBasemapPreloadKey = "";
+    scrubLastTransitionKey = "";
+    scrubBasemapSwitchInProgress = false;
+  }
+
+  function initScrollScrub() {
+    destroyScrollScrub();
+    if (!scrollScrubActive()) return;
+    var panel = el("story-panel");
+    if (!panel) return;
+
+    scrollScrubController = ScrollCameraScrub.create({
+      panel: panel,
+      anchorRatio: ScrollCameraScrub.DEFAULT_ANCHOR_RATIO,
+      getStepCount: function () {
+        return config && config.steps ? config.steps.length : 0;
+      },
+      stepScrollHoldFn: function (i) {
+        return config && config.steps && config.steps[i]
+          ? stepScrollHold(config.steps[i])
+          : false;
+      },
+      stepScrollHoldExtraFn: function (i) {
+        return config && config.steps && config.steps[i]
+          ? stepScrollHoldExtraSec(config.steps[i])
+          : 0;
+      },
+      onScrub: function (seg, scrollY) {
+        if (storyInteractionMode !== "scroll") return;
+        var transitionKey = seg.fromIndex + "->" + seg.toIndex;
+        if (transitionKey !== scrubLastTransitionKey) {
+          scrubLastTransitionKey = transitionKey;
+          scrubBasemapSegmentKey = "";
+          scrubBasemapPreloadKey = "";
+        }
+        var resolved = resolveScrollCamera(scrollY, seg);
+        var cam = resolved.camera;
+        seg = resolved.seg;
+        applyScrubCamera(cam, seg);
+        maybeScrubBasemapPreload(seg);
+        maybeScrubBasemapSwitch(seg, cam);
+      },
+      onSettled: function (seg) {
+        if (storyInteractionMode !== "scroll") return;
+        if (isSegmentSettledOnStep(seg)) {
+          syncGlobeSpinForStep(seg.activeIndex);
+          nudgeGlobeRepaint();
+        }
+        if (_stepNavInProgress) {
+          var fromStep =
+            _stepNavFromIndex >= 0 ? config.steps[_stepNavFromIndex] : null;
+          var toStep = config.steps[seg.activeIndex];
+          var longGlobeHop =
+            !!fromStep &&
+            !!toStep &&
+            isGlobeProjectionActive() &&
+            haversineKm(fromStep.lng, fromStep.lat, toStep.lng, toStep.lat) > 350;
+          if (longGlobeHop) {
+            var targetIndex = seg.activeIndex;
+            resetGlobeProjection().then(function () {
+              finishStoryStepNav(targetIndex);
+            });
+            window.setTimeout(function () {
+              if (_stepNavBusy) finishStoryStepNav(targetIndex);
+            }, 15000);
+            return;
+          }
+          finishStoryStepNav(seg.activeIndex);
+        }
+      },
+    });
+    scrollScrubController.attach();
   }
 
   var _stepNavInProgress = false;
@@ -2534,6 +2904,7 @@
   function finishStoryStepNav(stepIndex) {
     _stepNavInProgress = false;
     _stepNavBusy = false;
+    _stepNavTargetIndex = -1;
     syncStoryStepNavButtons(stepIndex);
   }
 
@@ -2542,6 +2913,22 @@
     if (!config || !config.steps || i < 0 || i >= config.steps.length) return;
     var fromIndex = getActiveStoryStepIndex();
     if (i === fromIndex && i === lastFlownIndex) return;
+
+    if (scrollScrubActive() && scrollScrubController) {
+      _stepNavFromIndex = fromIndex;
+      _stepNavTargetIndex = i;
+      _stepNavInProgress = true;
+      _stepNavBusy = true;
+      syncStoryStepNavButtons(i);
+      scrubBasemapSegmentKey = "";
+      scrubBasemapPreloadKey = "";
+      scrubLastTransitionKey = "";
+      scrollScrubController.scrollToStepIndex(i, true);
+      window.setTimeout(function () {
+        if (_stepNavBusy) finishStoryStepNav(i);
+      }, 6000);
+      return;
+    }
 
     _stepNavInProgress = true;
     _stepNavBusy = true;
@@ -2670,6 +3057,7 @@
     }
     if (mode === "explore") {
       stopGlobeSpin();
+      destroyScrollScrub();
       if (storyObserver) storyObserver.disconnect();
       exploreActiveStepIndex = lastFlownIndex >= 0 ? lastFlownIndex : 0;
       mapHandler("scrollZoom", "enable");
@@ -2692,9 +3080,15 @@
       mapHandler("boxZoom", "disable");
       mapHandler("keyboard", "disable");
       mapHandler("dragRotate", "disable");
-      var idx = getCurrentVisibleStepIndex();
-      flyToStep(idx, false);
-      connectStoryObserver();
+      if (scrollScrubActive()) {
+        initScrollScrub();
+        connectStoryObserver();
+      } else {
+        destroyScrollScrub();
+        var idx = getCurrentVisibleStepIndex();
+        flyToStep(idx, false);
+        connectStoryObserver();
+      }
     }
     updateStoryModeUI();
     updateExploreBasemapVisibility();
@@ -2921,6 +3315,11 @@
     } catch (e) {
       window.scrollTo(0, 0);
     }
+    if (scrollScrubActive() && scrollScrubController) {
+      scrubBasemapSegmentKey = "";
+      scrollScrubController.scheduleScrub();
+      return;
+    }
     if (config && config.steps && config.steps[0]) {
       flyToStep(0, true);
     }
@@ -2963,6 +3362,7 @@
       panel.appendChild(endWrap);
     }
     connectStoryObserver();
+    initScrollScrub();
     applyCardBackgroundOpacity();
     wireStoryStepNavButtons();
     updateStoryStepNavVisibility();
@@ -3166,6 +3566,7 @@
   loadStoryData()
     .then(function (data) {
       config = normalizeConfig(data);
+      applyStoryDocumentTitle(config);
       viewerBaseMap = config.baseMap;
       /* Initialise currentLoadedBaseMap to the actual basemap the initMap call will load. */
       var firstStep = config.steps && config.steps[0];
@@ -3175,7 +3576,12 @@
         renderStory();
         lastFlownIndex = -1;
         function startStory() {
-          if (config.steps[0]) flyToStep(0, false);
+          if (scrollScrubActive()) {
+            initScrollScrub();
+            if (scrollScrubController) scrollScrubController.scheduleScrub();
+          } else if (config.steps[0]) {
+            flyToStep(0, false);
+          }
         }
         if (isStandaloneExport()) {
           preloadStandaloneExportAssets(startStory);

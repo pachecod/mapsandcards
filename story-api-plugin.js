@@ -10,6 +10,11 @@ import {
   listDefaultTemplates,
 } from "./services/seed-defaults.js";
 import { isDbEnabled } from "./services/db-service.js";
+import { isAdminRequest } from "./middleware/admin-auth.js";
+import {
+  getFeaturedStorySlugs,
+  titleForFeaturedSlug,
+} from "./services/featured-stories.js";
 import storyRoutes from "./routes/stories.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -53,6 +58,17 @@ function isValidSlug(s) {
   const reserved = new Set(["list", "create", "save", "new", "api", "templates"]);
   if (reserved.has(t)) return false;
   return true;
+}
+
+async function readStoryTitleFromJson(storiesRoot, slug) {
+  try {
+    const raw = await fs.readFile(path.join(storiesRoot, slug, "scroll-map-story.json"), "utf8");
+    const json = JSON.parse(raw);
+    if (json.title && String(json.title).trim()) return String(json.title).trim();
+  } catch {
+    /* ignore */
+  }
+  return null;
 }
 
 async function readJsonBody(req) {
@@ -183,15 +199,22 @@ function rewriteCdnToLocal(html) {
     )
     .replace(/src="\/Tools\/globe-daynight\.js"/, 'src="assets/globe-daynight.js"')
     .replace(/src="\/Tools\/globe-stars\.js"/, 'src="assets/globe-stars.js"')
-    .replace(/src="\/Tools\/globe-3d-buildings\.js"/, 'src="assets/globe-3d-buildings.js"');
+    .replace(/src="\/Tools\/globe-3d-buildings\.js"/, 'src="assets/globe-3d-buildings.js"')
+    .replace(/src="\/Tools\/scroll-camera-scrub\.js"/, 'src="assets/scroll-camera-scrub.js"')
+    .replace(/src="\/Tools\/story-map-images\.js"/, 'src="assets/story-map-images.js"')
+    .replace(/src="\/Tools\/map-compass\.js"/, 'src="assets/map-compass.js"');
+}
+
+/** The analytics tag is served by this app's middleware, so it only 404s in a standalone bundle. */
+function stripServerOnlyScripts(html) {
+  return html.replace(
+    /[ \t]*<script[^>]*src="\/__analytics\.js"[^>]*><\/script>[ \t]*\r?\n?/gi,
+    ""
+  );
 }
 
 function markStandaloneExport(html) {
-  if (/data-standalone-export/i.test(html)) return html;
-  return html.replace(/<html(\s[^>]*)>/i, function (match) {
-    if (/data-standalone-export/i.test(match)) return match;
-    return match.replace("<html", '<html data-standalone-export="1"');
-  });
+  return stripServerOnlyScripts(html);
 }
 
 function storyApiMiddleware(rootDir) {
@@ -221,15 +244,40 @@ function storyApiMiddleware(rootDir) {
         await seedDefaultTemplatesFs(rootDir);
         await fs.mkdir(storiesRoot, { recursive: true });
         const names = await fs.readdir(storiesRoot, { withFileTypes: true });
-        const stories = names
+        const allStories = names
           .filter((d) => d.isDirectory() && !d.name.startsWith("."))
           .map((d) => d.name)
           .sort();
+        const featuredSlugs = await getFeaturedStorySlugs();
+        const isAdmin = isAdminRequest(req);
+        const stories = isAdmin ? allStories : featuredSlugs.filter((s) => allStories.includes(s));
         const titles = {};
-        stories.forEach((slug) => {
-          if (DEFAULT_TEMPLATE_TITLES[slug]) titles[slug] = DEFAULT_TEMPLATE_TITLES[slug];
+        await Promise.all(
+          allStories.map(async (slug) => {
+            const fromJson = await readStoryTitleFromJson(storiesRoot, slug);
+            titles[slug] = fromJson || titleForFeaturedSlug(slug, titles);
+          })
+        );
+        const featuredStories = featuredSlugs
+          .filter((slug) => allStories.includes(slug))
+          .map((slug) => ({
+            slug,
+            title: titleForFeaturedSlug(slug, titles),
+            published: true,
+          }));
+        // Filesystem mode has no publish state; anything on disk is live.
+        const published = {};
+        allStories.forEach((slug) => {
+          published[slug] = true;
         });
-        return sendJson(200, { stories, titles });
+        return sendJson(200, {
+          stories,
+          titles,
+          published,
+          featuredSlugs,
+          featuredStories,
+          role: isAdmin ? "admin" : "anonymous",
+        });
       }
 
       if (req.method === "POST" && url === "/__story-api/create") {
@@ -348,7 +396,43 @@ function storyApiMiddleware(rootDir) {
           return sendJson(500, { error: "Missing viewer template." });
         }
 
-        const jsonStr = (await fs.readFile(jsonPath, "utf8")).trim();
+        let jsonStr = (await fs.readFile(jsonPath, "utf8")).trim();
+        let parsedConfig = JSON.parse(jsonStr);
+        const imageEntries = [];
+        const usedNames = {};
+        let imgIndex = 0;
+        function uniqueImgName(base) {
+          let name = base;
+          let n = 1;
+          while (usedNames[name]) {
+            n += 1;
+            name = base.replace(/(\.[a-z]+)$/i, "-" + n + "$1");
+          }
+          usedNames[name] = true;
+          return name;
+        }
+        if (parsedConfig.steps) {
+          for (const step of parsedConfig.steps) {
+            const feats = step?.overlays?.geojson?.features;
+            if (!Array.isArray(feats)) continue;
+            for (const f of feats) {
+              if (!f?.properties || f.properties.kind !== "image") continue;
+              const url = f.properties.imageUrl;
+              if (!url || String(url).indexOf("data:") !== 0) continue;
+              const m = String(url).match(/^data:[^;]+;base64,(.+)$/);
+              if (!m) continue;
+              const fname = uniqueImgName("overlay-" + (f.properties.id || imgIndex) + ".png");
+              imgIndex += 1;
+              imageEntries.push({
+                name: "assets/" + fname,
+                data: Buffer.from(m[1], "base64"),
+              });
+              f.properties.imageUrl = "assets/" + fname;
+            }
+          }
+        }
+        jsonStr = JSON.stringify(parsedConfig, null, 2);
+
         let html = await fs.readFile(viewerTemplate, "utf8");
         html = injectEmbeddedStoryJson(html, jsonStr);
         html = rewriteCdnToLocal(html);
@@ -361,6 +445,9 @@ function storyApiMiddleware(rootDir) {
         const globeDayNightJs = await fs.readFile(path.join(toolsDir, "globe-daynight.js"));
         const globeStarsJs = await fs.readFile(path.join(toolsDir, "globe-stars.js"));
         const globe3dBuildingsJs = await fs.readFile(path.join(toolsDir, "globe-3d-buildings.js"));
+        const scrollCameraScrubJs = await fs.readFile(path.join(toolsDir, "scroll-camera-scrub.js"));
+        const storyMapImagesJs = await fs.readFile(path.join(toolsDir, "story-map-images.js"));
+        const mapCompassJs = await fs.readFile(path.join(toolsDir, "map-compass.js"));
 
         const zipBuf = buildZip([
           { name: "index.html", data: Buffer.from(html, "utf8") },
@@ -371,6 +458,10 @@ function storyApiMiddleware(rootDir) {
           { name: "assets/globe-daynight.js", data: globeDayNightJs },
           { name: "assets/globe-stars.js", data: globeStarsJs },
           { name: "assets/globe-3d-buildings.js", data: globe3dBuildingsJs },
+          { name: "assets/scroll-camera-scrub.js", data: scrollCameraScrubJs },
+          { name: "assets/story-map-images.js", data: storyMapImagesJs },
+          { name: "assets/map-compass.js", data: mapCompassJs },
+          ...imageEntries,
         ]);
 
         res.statusCode = 200;

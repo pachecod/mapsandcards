@@ -29,7 +29,14 @@ import {
   createPlatformAuthToken,
   redeemPlatformAuthToken,
   listAdminStudentStories,
+  listAllStoriesAdmin,
+  setStoryPublished,
 } from "../../services/platform-service.js";
+import {
+  listFeaturedStories,
+  setStoryFeatured,
+  reorderFeatured,
+} from "../../services/featured-stories.js";
 import {
   requireAdminApi,
   handleAdminLogin,
@@ -216,6 +223,44 @@ router.put("/admin/settings", requireAdminApi, async (req, res) => {
   if (!platformDbRequired(res)) return;
   try {
     res.json({ settings: await updateSiteSettings(req.body || {}) });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+router.get("/admin/stories", requireAdminApi, async (req, res) => {
+  if (!platformDbRequired(res)) return;
+  try {
+    res.json({ stories: await listAllStoriesAdmin() });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.put("/admin/stories/:slug/published", requireAdminApi, async (req, res) => {
+  if (!platformDbRequired(res)) return;
+  try {
+    const story = await setStoryPublished(req.params.slug, (req.body || {}).published);
+    res.json({ story });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+router.put("/admin/stories/:slug/featured", requireAdminApi, async (req, res) => {
+  if (!platformDbRequired(res)) return;
+  try {
+    const story = await setStoryFeatured(req.params.slug, (req.body || {}).featured);
+    res.json({ story, featured: await listFeaturedStories() });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+router.put("/admin/featured/order", requireAdminApi, async (req, res) => {
+  if (!platformDbRequired(res)) return;
+  try {
+    res.json({ featured: await reorderFeatured((req.body || {}).slugs) });
   } catch (e) {
     res.status(400).json({ error: e.message });
   }

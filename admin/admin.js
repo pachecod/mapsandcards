@@ -55,6 +55,7 @@ function clearBootstrapError() {
 async function bootstrap() {
   await loadClasses();
   await loadStudents();
+  await loadFeaturedStories();
   await loadSettings();
   await loadCommonFiles();
   await loadSubmissions();
@@ -88,7 +89,16 @@ document.querySelectorAll(".tab").forEach((btn) => {
     document.querySelectorAll(".tab-panel").forEach((p) => p.classList.add("hidden"));
     btn.classList.add("active");
     document.getElementById(`tab-${btn.dataset.tab}`).classList.remove("hidden");
+    if (btn.dataset.tab === "featured") loadFeaturedStories();
   });
+});
+
+// The builder opens in another tab, so pick up stories created or published there.
+window.addEventListener("focus", () => {
+  const panel = document.getElementById("tab-featured");
+  if (panel && !panel.classList.contains("hidden") && !appView.classList.contains("hidden")) {
+    loadFeaturedStories();
+  }
 });
 
 async function loadClasses() {
@@ -254,6 +264,158 @@ document.getElementById("btn-password-report").addEventListener("click", async (
   pre.textContent = rows.length
     ? rows.map((r) => `${r.class_name}\t${r.display_name}\t${r.username}`).join("\n")
     : "No students.";
+});
+
+function featuredStatus(message) {
+  const status = document.getElementById("featured-stories-status");
+  if (status) status.textContent = message || "";
+}
+
+function builderLink(slug) {
+  return `/Tools/scroll-map-builder.html?story=${encodeURIComponent(slug)}`;
+}
+
+function storyLinks(slug) {
+  return `<a href="${builderLink(slug)}" target="_blank" rel="noopener">Edit in builder</a>
+    <a href="/Stories/${encodeURIComponent(slug)}/scroll-map-story.html" target="_blank" rel="noopener">View live</a>`;
+}
+
+async function setFeatured(slug, featured) {
+  featuredStatus(featured ? "Adding to featured…" : "Removing from featured…");
+  await api(`/admin/stories/${encodeURIComponent(slug)}/featured`, {
+    method: "PUT",
+    body: JSON.stringify({ featured }),
+  });
+  featuredStatus(`${slug} ${featured ? "added to" : "removed from"} the featured queue.`);
+  await loadFeaturedStories();
+}
+
+async function setPublished(slug, published) {
+  featuredStatus(published ? "Publishing…" : "Unpublishing…");
+  await api(`/admin/stories/${encodeURIComponent(slug)}/published`, {
+    method: "PUT",
+    body: JSON.stringify({ published }),
+  });
+  featuredStatus(`${slug} is now ${published ? "published" : "unpublished"}.`);
+  await loadFeaturedStories();
+}
+
+async function deleteStory(slug) {
+  if (!confirm(`Delete "${slug}" permanently? This also removes it from the featured queue.`)) {
+    return;
+  }
+  featuredStatus("Deleting…");
+  const res = await fetch("/__story-api/delete", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ slug }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "Could not delete story");
+  featuredStatus(`${slug} deleted.`);
+  await loadFeaturedStories();
+}
+
+async function moveFeatured(slugs, slug, delta) {
+  const order = [...slugs];
+  const from = order.indexOf(slug);
+  const to = from + delta;
+  if (from === -1 || to < 0 || to >= order.length) return;
+  order.splice(to, 0, order.splice(from, 1)[0]);
+  featuredStatus("Reordering…");
+  await api("/admin/featured/order", {
+    method: "PUT",
+    body: JSON.stringify({ slugs: order }),
+  });
+  featuredStatus("Home page order updated.");
+  await loadFeaturedStories();
+}
+
+function bindStoryActions(container, featuredSlugs) {
+  container.querySelectorAll("[data-action]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const { action, slug } = btn.dataset;
+      btn.disabled = true;
+      try {
+        if (action === "feature") await setFeatured(slug, true);
+        else if (action === "unfeature") await setFeatured(slug, false);
+        else if (action === "publish") await setPublished(slug, true);
+        else if (action === "unpublish") await setPublished(slug, false);
+        else if (action === "delete") await deleteStory(slug);
+        else if (action === "up") await moveFeatured(featuredSlugs, slug, -1);
+        else if (action === "down") await moveFeatured(featuredSlugs, slug, 1);
+      } catch (e) {
+        featuredStatus(e.message);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  });
+}
+
+async function loadFeaturedStories() {
+  const featuredList = document.getElementById("featured-stories-list");
+  const allList = document.getElementById("all-stories-list");
+  if (!featuredList || !allList) return;
+  featuredList.innerHTML = `<p class="meta">Loading…</p>`;
+  allList.innerHTML = "";
+
+  try {
+    const { stories } = await api("/admin/stories");
+    const featured = stories.filter((s) => s.featured);
+    const featuredSlugs = featured.map((s) => s.slug);
+
+    featuredList.innerHTML = featured.length
+      ? featured
+          .map((s, i) => {
+            const live = s.published
+              ? "live on the home page"
+              : "not published — hidden from the home page";
+            return `<div class="card">
+        <strong>${i + 1}. ${escapeHtml(s.title || s.slug)}</strong>
+        <span class="meta">${escapeHtml(s.slug)} · ${live}</span>
+        <button type="button" data-action="up" data-slug="${escapeHtml(s.slug)}" title="Move up"${i === 0 ? " disabled" : ""}>↑</button>
+        <button type="button" data-action="down" data-slug="${escapeHtml(s.slug)}" title="Move down"${i === featured.length - 1 ? " disabled" : ""}>↓</button>
+        ${storyLinks(s.slug)}
+        <button type="button" data-action="${s.published ? "unpublish" : "publish"}" data-slug="${escapeHtml(s.slug)}">${s.published ? "Unpublish" : "Publish"}</button>
+        <button type="button" data-action="unfeature" data-slug="${escapeHtml(s.slug)}">Remove from featured</button>
+        <button type="button" class="danger" data-action="delete" data-slug="${escapeHtml(s.slug)}">Delete</button>
+      </div>`;
+          })
+          .join("")
+      : `<p class="meta">No featured stories yet. Use “New featured story” or add one from the list below.</p>`;
+
+    allList.innerHTML = stories.length
+      ? stories
+          .map((s) => {
+            const owner = s.owner_name ? ` · ${escapeHtml(s.owner_name)}` : "";
+            const flags = [s.featured ? "featured" : null, s.published ? "published" : "draft"]
+              .filter(Boolean)
+              .join(" · ");
+            return `<div class="card">
+        <strong>${escapeHtml(s.title || s.slug)}</strong>
+        <span class="meta">${escapeHtml(s.slug)} · ${flags}${owner}</span>
+        ${storyLinks(s.slug)}
+        <button type="button" data-action="${s.featured ? "unfeature" : "feature"}" data-slug="${escapeHtml(s.slug)}">${s.featured ? "Remove from featured" : "Add to featured"}</button>
+        <button type="button" class="danger" data-action="delete" data-slug="${escapeHtml(s.slug)}">Delete</button>
+      </div>`;
+          })
+          .join("")
+      : `<p class="meta">No stories yet.</p>`;
+
+    bindStoryActions(featuredList, featuredSlugs);
+    bindStoryActions(allList, featuredSlugs);
+  } catch (e) {
+    featuredList.innerHTML = `<p class="meta">${escapeHtml(e.message)}</p>`;
+  }
+}
+
+document.getElementById("btn-new-featured-story")?.addEventListener("click", () => {
+  featuredStatus(
+    "Set up the story in the builder, then publish it there — it will appear on the home page."
+  );
+  window.open("/Tools/scroll-map-builder.html?new=1&featured=1", "_blank", "noopener");
 });
 
 async function loadSettings() {

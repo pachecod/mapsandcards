@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS stories (
   title       TEXT NOT NULL DEFAULT 'Untitled',
   config      JSONB NOT NULL DEFAULT '{}'::jsonb,
   published   BOOLEAN NOT NULL DEFAULT false,
+  featured    BOOLEAN NOT NULL DEFAULT false,
+  featured_rank INTEGER,
   owner_student_id UUID,
   class_id    UUID,
   status      TEXT NOT NULL DEFAULT 'draft',
@@ -17,11 +19,14 @@ CREATE TABLE IF NOT EXISTS stories (
 ALTER TABLE stories ADD COLUMN IF NOT EXISTS owner_student_id UUID;
 ALTER TABLE stories ADD COLUMN IF NOT EXISTS class_id UUID;
 ALTER TABLE stories ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'draft';
+ALTER TABLE stories ADD COLUMN IF NOT EXISTS featured BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE stories ADD COLUMN IF NOT EXISTS featured_rank INTEGER;
 
 CREATE INDEX IF NOT EXISTS idx_stories_slug ON stories (slug);
 CREATE INDEX IF NOT EXISTS idx_stories_published ON stories (published) WHERE published = true;
 CREATE INDEX IF NOT EXISTS idx_stories_owner ON stories (owner_student_id);
 CREATE INDEX IF NOT EXISTS idx_stories_class ON stories (class_id);
+CREATE INDEX IF NOT EXISTS idx_stories_featured ON stories (featured_rank) WHERE featured = true;
 
 CREATE TABLE IF NOT EXISTS classes (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),

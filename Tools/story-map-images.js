@@ -7,7 +7,7 @@
 
   var MIN_WIDTH_M = 10;
   var MAX_WIDTH_M = 50000;
-  var DEFAULT_WIDTH_M = 400;
+  var DEFAULT_WIDTH_M = 2000;
   var DEFAULT_OPACITY = 1;
   var ID_PREFIX = "sov-img-";
   var LAYER_PREFIX = "story-ov-img-";

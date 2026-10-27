@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Scroll map story — builder v1.86</title>
+  <title>Scroll map story — builder v1.86.1</title>
   <script src="/__analytics.js" defer></script>
   <link href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.css" rel="stylesheet" crossorigin="" />
   <link
@@ -1249,6 +1249,7 @@
     }
     .overlay-feature-list li {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
       gap: 0.35rem;
@@ -1261,17 +1262,24 @@
     .overlay-feature-list .of-meta {
       color: var(--muted);
       min-width: 0;
-      flex: 1;
+      flex: 1 1 8rem;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
     .annotation-editor {
+      /* Own full-width line under the row, so narrow panels don't squeeze it beside the buttons. */
+      flex: 0 0 100%;
+      min-width: 0;
+      box-sizing: border-box;
       margin-top: 0.45rem;
       padding: 0.5rem;
       border-top: 1px solid var(--border);
       background: rgba(0, 0, 0, 0.15);
       border-radius: 0 0 6px 6px;
+    }
+    .annotation-editor input[type="range"] {
+      min-width: 0;
     }
     .annotate-advanced {
       margin-top: 0.5rem;
@@ -1538,7 +1546,7 @@
       <div class="topbar-story-brand">
         <h1 id="builder-story-title">Untitled story</h1>
         <p class="topbar-builder-meta">
-          <span class="builder-version">Builder v1.86</span>
+          <span class="builder-version">Builder v1.86.1</span>
           <span id="guest-mode-badge" class="builder-version hidden" style="color:var(--accent)">· Guest</span>
         </p>
       </div>
@@ -4756,7 +4764,7 @@
         var s = config.steps[selectedIndex];
         ensureStepOverlays(s);
         if (placementKind === "image" && pendingImagePlacement) {
-          var widthM = StoryMapImages ? StoryMapImages.DEFAULT_WIDTH_M : 400;
+          var widthM = StoryMapImages ? StoryMapImages.DEFAULT_WIDTH_M : 2000;
           var aspect = pendingImagePlacement.aspectRatio || 1.333;
           var heightM = widthM / aspect;
           var imgFeat = {
@@ -4968,7 +4976,7 @@
       meta.className = "of-meta";
       meta.textContent = idx + 1 + ". " + k + " — " + summary;
       var btnWrap = document.createElement("span");
-      btnWrap.style.cssText = "display:flex;gap:0.3rem;flex-shrink:0";
+      btnWrap.style.cssText = "display:flex;flex-wrap:wrap;gap:0.3rem;flex-shrink:0";
       if (g === "Point") {
         var editBtn = document.createElement("button");
         editBtn.type = "button";
@@ -5122,7 +5130,11 @@
     var curOpacity =
       typeof p.opacity === "number" ? Math.round(p.opacity * 100) : 100;
     var minW = StoryMapImages.MIN_WIDTH_M;
-    var maxW = Math.min(StoryMapImages.MAX_WIDTH_M, 5000);
+    /* 2× the default so a new image starts mid-slider; widen for larger existing images. */
+    var maxW = Math.min(
+      StoryMapImages.MAX_WIDTH_M,
+      Math.max(StoryMapImages.DEFAULT_WIDTH_M * 2, Math.ceil(curWidth / 100) * 100)
+    );
 
     var editor = document.createElement("div");
     editor.className = "annotation-editor";

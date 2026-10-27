@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;700&family=Sora:wght@500;700;800&display=swap" rel="stylesheet" />
+  <link href="/Tools/app-nav.css" rel="stylesheet" />
   <style>
     :root {
       --m-bg: #141414;
@@ -466,6 +467,8 @@
   </style>
 </head>
 <body>
+  <div class="app-layout" id="app-layout">
+  <div class="app-content">
   <header class="nav">
     <a class="nav-brand" href="/">
       <span class="nav-mark" aria-hidden="true">M</span>
@@ -573,7 +576,11 @@
       </div>
     </div>
   </div>
+  </div>
+  </div>
 
+  <script src="/Tools/builder-auth-ui.js"></script>
+  <script src="/Tools/app-nav.js"></script>
   <script src="/Tools/guest-playground.js"></script>
   <script src="/Tools/guest-agreement.js"></script>
   <script>
@@ -721,7 +728,7 @@
     ids.forEach(addGuestCard);
   })();
 
-  fetch("/__story-api/list", { cache: "no-store" })
+  fetch("/__story-api/list", { cache: "no-store", credentials: "include" })
     .then(function (r) {
       if (!r.ok) throw new Error();
       return r.json();
@@ -750,6 +757,10 @@
       note.textContent = "Story API unavailable. Showing Earth path only — Guest Mode still works.";
       storyGrid.appendChild(note);
     });
+
+  if (window.MapsAndCardsAppNav) {
+    window.MapsAndCardsAppNav.init({ page: "home" });
+  }
 })();
   </script>
 </body>

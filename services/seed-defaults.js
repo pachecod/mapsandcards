@@ -18,6 +18,9 @@ export const DEFAULT_TEMPLATE_TITLES = {
 /** Former default template slugs to drop from the DB when seeding. */
 const RETIRED_DEFAULT_SLUGS = ["demo"];
 
+/** Featured stories to bootstrap when nothing has ever been featured. */
+const BOOTSTRAP_FEATURED_SLUGS = ["earth", "syracuse"];
+
 function jsonSafeForHtmlScript(jsonStr) {
   return String(jsonStr).replace(/<\/script/gi, "<\\/script");
 }
@@ -79,29 +82,30 @@ export async function seedDefaultTemplatesFs(rootDir = ROOT) {
   await mkdir(storiesRoot, { recursive: true });
 
   const created = [];
-  const updated = [];
+  const skipped = [];
 
   for (const t of templates) {
+    const config = JSON.parse(await readFile(t.configPath, "utf8"));
     const dir = join(storiesRoot, t.slug);
-    const existed = existsSync(dir);
-    const configRaw = await readFile(t.configPath, "utf8");
-    const config = JSON.parse(configRaw);
+    if (existsSync(dir)) {
+      skipped.push(t.slug);
+      continue;
+    }
     const jsonStr = JSON.stringify(config, null, 2);
     await mkdir(dir, { recursive: true });
     await writeFile(join(dir, "scroll-map-story.json"), jsonStr + "\n", "utf8");
     const html = injectEmbeddedStoryJson(viewerHtml, jsonStr);
     await writeFile(join(dir, "scroll-map-story.html"), html, "utf8");
-    if (existed) updated.push(t.slug);
-    else created.push(t.slug);
+    created.push(t.slug);
   }
 
   if (created.length) {
     console.log(`[seed] Created default stories: ${created.join(", ")}`);
   }
-  if (updated.length) {
-    console.log(`[seed] Updated starter templates: ${updated.join(", ")}`);
+  if (skipped.length) {
+    console.log(`[seed] Skipped existing stories: ${skipped.join(", ")}`);
   }
-  return { created, updated, skipped: [] };
+  return { created, updated: [], skipped };
 }
 
 /**
@@ -111,7 +115,7 @@ export async function seedDefaultTemplatesFs(rootDir = ROOT) {
 export async function seedDefaultTemplatesDb(queryFn) {
   const templates = await listDefaultTemplates();
   const created = [];
-  const updated = [];
+  const skipped = [];
   const retired = [];
 
   for (const slug of RETIRED_DEFAULT_SLUGS) {
@@ -122,17 +126,13 @@ export async function seedDefaultTemplatesDb(queryFn) {
     console.log(`[seed] Removed retired default stories: ${retired.join(", ")}`);
   }
 
-  if (!templates.length) return { created, updated, skipped: [], retired };
+  if (!templates.length) return { created, skipped, retired };
 
   for (const t of templates) {
     const config = JSON.parse(await readFile(t.configPath, "utf8"));
     const existing = await queryFn("SELECT 1 FROM stories WHERE slug = $1", [t.slug]);
     if (existing.rows.length > 0) {
-      await queryFn(
-        "UPDATE stories SET title = $2, config = $3, published = true, updated_at = now() WHERE slug = $1",
-        [t.slug, t.title, config]
-      );
-      updated.push(t.slug);
+      skipped.push(t.slug);
       continue;
     }
     await queryFn(
@@ -145,10 +145,48 @@ export async function seedDefaultTemplatesDb(queryFn) {
   if (created.length) {
     console.log(`[seed] Created default stories in DB: ${created.join(", ")}`);
   }
-  if (updated.length) {
-    console.log(`[seed] Updated starter templates in DB: ${updated.join(", ")}`);
+  if (skipped.length) {
+    console.log(`[seed] Skipped existing stories: ${skipped.join(", ")}`);
   }
-  return { created, updated, skipped: [], retired };
+
+  await backfillFeaturedStories(queryFn);
+
+  return { created, skipped, retired };
+}
+
+/**
+ * One-time migration off the legacy site_settings.featured_story_slugs list onto
+ * stories.featured / stories.featured_rank. No-op once any story is featured.
+ * @param {typeof import("./db-service.js").query} queryFn
+ */
+export async function backfillFeaturedStories(queryFn) {
+  const existing = await queryFn("SELECT 1 FROM stories WHERE featured = true LIMIT 1");
+  if (existing.rows.length) return { featured: [] };
+
+  let slugs = [];
+  try {
+    const settings = await queryFn("SELECT value FROM site_settings WHERE key = 'site'");
+    const legacy = settings.rows[0]?.value?.featured_story_slugs;
+    if (Array.isArray(legacy)) {
+      slugs = legacy.map((s) => String(s || "").trim().toLowerCase()).filter(Boolean);
+    }
+  } catch {
+    /* fall through to bootstrap defaults */
+  }
+  if (!slugs.length) slugs = [...BOOTSTRAP_FEATURED_SLUGS];
+
+  const featured = [];
+  for (let i = 0; i < slugs.length; i++) {
+    const result = await queryFn(
+      "UPDATE stories SET featured = true, featured_rank = $2 WHERE slug = $1 RETURNING slug",
+      [slugs[i], i + 1]
+    );
+    if (result.rows.length) featured.push(slugs[i]);
+  }
+  if (featured.length) {
+    console.log(`[seed] Featured stories initialized: ${featured.join(", ")}`);
+  }
+  return { featured };
 }
 
 export function displayTitleForSlug(slug, titlesMap) {

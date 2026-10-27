@@ -1,6 +1,7 @@
 import { isDbEnabled, query } from "../services/db-service.js";
 import { getStudentSession } from "./student-auth.js";
 import { isAdminRequest } from "./admin-auth.js";
+import { isFeaturedStorySlug } from "../services/featured-stories.js";
 
 export function isPlatformRosterEnabled() {
   return isDbEnabled() && process.env.STUDENT_AUTH_REQUIRED === "true";
@@ -49,16 +50,19 @@ export async function getStoryAccessContext(req) {
   return { role: "anonymous" };
 }
 
+const STORY_LIST_COLUMNS =
+  "slug, title, published, featured, featured_rank, status, owner_student_id, class_id";
+
 export function storyListSql(ctx) {
   if (ctx.role === "admin") {
     return {
-      sql: `SELECT slug, title, published, status, owner_student_id, class_id FROM stories ORDER BY updated_at DESC`,
+      sql: `SELECT ${STORY_LIST_COLUMNS} FROM stories ORDER BY updated_at DESC`,
       params: [],
     };
   }
   if (ctx.role === "student") {
     return {
-      sql: `SELECT slug, title, published, status, owner_student_id, class_id FROM stories
+      sql: `SELECT ${STORY_LIST_COLUMNS} FROM stories
             WHERE owner_student_id = $1
                OR (class_id = $2 AND published = TRUE)
             ORDER BY updated_at DESC`,
@@ -66,7 +70,7 @@ export function storyListSql(ctx) {
     };
   }
   return {
-    sql: `SELECT slug, title, published, status, owner_student_id, class_id FROM stories
+    sql: `SELECT ${STORY_LIST_COLUMNS} FROM stories
           WHERE published = TRUE ORDER BY slug`,
     params: [],
   };
@@ -90,6 +94,9 @@ export async function canReadStory(ctx, slug) {
 }
 
 export async function canWriteStory(ctx, slug) {
+  if (slug && (await isFeaturedStorySlug(slug)) && ctx.role !== "admin") {
+    return { ok: false, reason: "forbidden" };
+  }
   if (ctx.role === "admin") return { ok: true };
   if (ctx.role !== "student") return { ok: false, reason: "auth_required" };
   if (!slug) return { ok: true };
@@ -100,6 +107,11 @@ export async function canWriteStory(ctx, slug) {
   if (!rows.length) return { ok: true };
   if (rows[0].owner_student_id === ctx.studentId) return { ok: true };
   return { ok: false, reason: "forbidden" };
+}
+
+/** Deleting a featured story is allowed for admins; the row going away drops it from the queue. */
+export async function canDeleteStory(ctx, slug) {
+  return canWriteStory(ctx, slug);
 }
 
 export function buildStudentSlug(ctx, baseSlug) {

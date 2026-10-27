@@ -51,6 +51,8 @@
       display: flex;
       flex-direction: column;
       align-items: stretch;
+      align-self: stretch;
+      min-height: 0;
       background: #eef0f3;
       border-right: 1px solid #d5d9e0;
       z-index: 12;
@@ -129,10 +131,6 @@
       background: #d5d9e0;
       flex-shrink: 0;
     }
-    .nav-rail-spacer {
-      flex: 1 1 0;
-      min-height: 0;
-    }
     .nav-story-panel,
     .nav-flyout-panel {
       flex: 0 0 15rem;
@@ -143,6 +141,7 @@
       border-right: 1px solid #d5d9e0;
       z-index: 11;
       min-height: 0;
+      color: #1a1a1a;
     }
     .nav-map-options-panel {
       flex-basis: 18rem;
@@ -195,18 +194,18 @@
       gap: 0.65rem;
     }
     .nav-flyout-field label,
-    .nav-story-panel-body label {
+    .nav-flyout-panel-body > label {
       font-size: 0.68rem;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.04em;
-      color: #6b7280;
+      color: #374151;
     }
     .nav-flyout-field select,
     .nav-flyout-field input[type="number"],
     .nav-flyout-field textarea,
     .nav-flyout-field input[type="color"],
-    .nav-story-panel-body select {
+    .nav-flyout-panel-body select {
       width: 100%;
       padding: 0.4rem 0.45rem;
       border-radius: 6px;
@@ -234,9 +233,10 @@
     .nav-flyout-field .check-label input {
       margin-top: 0.12rem;
     }
-    .nav-flyout-field .field-hint {
-      font-size: 0.68rem;
-      color: #6b7280;
+    .nav-flyout-field .field-hint,
+    .nav-flyout-panel-body .field-hint {
+      font-size: 0.72rem;
+      color: #374151;
       margin: 0.25rem 0 0;
       line-height: 1.35;
     }
@@ -282,6 +282,19 @@
     .nav-flyout-btn.hidden {
       display: none !important;
     }
+    .nav-featured-quick {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin: 0.35rem 0 0.5rem;
+    }
+    .nav-featured-quick .btn {
+      font-size: 0.76rem;
+      padding: 0.35rem 0.55rem;
+    }
+    .nav-featured-stories.hidden {
+      display: none !important;
+    }
     .nav-export-help {
       font-size: 0.72rem;
       color: #4b5563;
@@ -294,6 +307,17 @@
     }
     .nav-export-help:empty {
       display: none;
+    }
+    .nav-account-summary {
+      margin: 0 0 0.65rem;
+      font-size: 0.78rem;
+      line-height: 1.4;
+      color: #374151;
+    }
+    .nav-account-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
     }
     .nav-flyout-divider {
       height: 1px;
@@ -384,6 +408,29 @@
       z-index: 2;
     }
     .topbar h1 { margin: 0; font-size: 1rem; font-weight: 600; }
+    .topbar-story-brand {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+      min-width: 0;
+    }
+    #builder-story-title {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: min(100%, 42rem);
+    }
+    .topbar-builder-meta {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      flex-wrap: wrap;
+    }
     .builder-version {
       font-weight: 500;
       font-size: 0.85em;
@@ -399,7 +446,7 @@
     .topbar-session-label {
       margin: 0;
       font-size: 0.72rem;
-      color: var(--muted);
+      color: #c8d1da;
     }
     .topbar-session-label.hidden {
       display: none !important;
@@ -424,6 +471,28 @@
     .topbar-license:hover {
       color: var(--accent);
     }
+    .topbar-guest-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex: 0 0 auto;
+      margin-left: auto;
+    }
+    .topbar-guest-actions.hidden {
+      display: none !important;
+    }
+    .topbar-guest-actions + .topbar-license {
+      margin-left: 0.75rem;
+    }
+    .btn-guest-exit {
+      font-size: 0.8rem;
+      padding: 0.35rem 0.65rem;
+      white-space: nowrap;
+    }
+    #btn-guest-revert[disabled] {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
     .shell {
       display: flex;
       flex-direction: row;
@@ -439,8 +508,8 @@
       }
       .map-wrap {
         flex: none;
-        height: 45vh;
-        min-height: 280px;
+        height: 36vh;
+        min-height: 200px;
       }
     }
     /* Flex + absolute fill so MapLibre always gets a non-zero size (avoids black canvas). */
@@ -669,8 +738,8 @@
     }
     .build-panel {
       flex: 0 0 44%;
-      min-width: 280px;
-      max-width: 520px;
+      min-width: 300px;
+      max-width: 680px;
       display: flex;
       flex-direction: column;
       gap: 0;
@@ -679,6 +748,8 @@
       min-height: 0;
       border-left: 1px solid var(--border);
       background: var(--panel);
+      container-type: inline-size;
+      container-name: build-panel;
     }
     .build-panel-main {
       flex: 1 1 auto;
@@ -768,15 +839,151 @@
         border-left: none;
         border-top: 1px solid var(--border);
         max-width: none;
-        flex: 1;
+        flex: 1 1 0;
+        min-height: 0;
+        min-width: 0;
+        padding: 0.75rem;
+      }
+      .build-panel-main {
+        flex: 1 1 0;
+        min-height: 0;
+        display: block;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 0.75rem;
+      }
+      .build-panel-footer {
+        flex-shrink: 0;
+      }
+      .locations-section {
+        min-height: auto;
+      }
+      .step-list {
+        max-height: min(22vh, 160px);
+      }
+      .step-list-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .step-list-row .step-location-btn {
+        width: 100%;
+      }
+      .step-list-row #btn-capture {
+        width: 100%;
+        text-align: center;
+      }
+      .step-workspace {
+        flex: 0 1 auto;
+        min-height: auto;
+        flex-direction: column;
+      }
+      .step-workspace-controls {
+        flex: 0 0 auto;
+        order: 2;
+        max-width: none;
+        padding-right: 0;
+        border-right: 0;
+      }
+      .card-content-field {
+        flex: 0 0 auto;
+        min-height: auto;
+        order: 1;
+      }
+      .card-quill-wrap .ql-editor {
+        min-height: 10rem;
+      }
+      #card-text:not(.hidden) {
+        display: block;
+        width: 100%;
+        min-height: 10rem;
+        box-sizing: border-box;
+      }
+      #step-camera-hint {
+        font-size: 0.7rem;
+        line-height: 1.35;
+        margin-top: 0.35rem;
       }
     }
     .step-list {
       display: flex;
       flex-direction: column;
       gap: 0.35rem;
-      max-height: 220px;
-      overflow: auto;
+      max-height: min(36vh, 240px);
+      overflow-y: auto;
+      flex-shrink: 0;
+      padding-right: 0.15rem;
+    }
+    .locations-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      min-height: 0;
+      flex: 0 1 auto;
+    }
+    .locations-section-head {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0;
+    }
+    .locations-section-head .coords {
+      flex: 1 1 auto;
+      margin: 0;
+    }
+    .step-workspace {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      flex: 0 1 auto;
+      min-height: auto;
+    }
+    .step-workspace-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      min-width: 0;
+      flex: 0 1 auto;
+    }
+    .step-workspace-controls .step-options {
+      margin-top: 0;
+    }
+    .card-content-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      min-width: 0;
+      flex: 0 0 auto;
+    }
+    /* Side-by-side only on desktop shell — avoid squashing card editor on mobile column layout. */
+    @media (min-width: 901px) {
+      @container build-panel (min-width: 520px) {
+        .step-workspace {
+          flex-direction: row;
+          align-items: flex-start;
+          gap: 1rem;
+        }
+        .step-workspace-controls {
+          flex: 0 1 44%;
+          max-width: 44%;
+          padding-right: 0.85rem;
+          border-right: 1px solid var(--border);
+        }
+        .card-content-field {
+          flex: 1 1 56%;
+          min-width: 0;
+        }
+        .card-quill-wrap .ql-editor {
+          min-height: 10rem;
+        }
+      }
+    }
+    .step-list-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+    .step-list-item--selected .step-list-row .step-location-btn {
+      font-weight: 600;
     }
     .step-list-row {
       display: flex;
@@ -823,6 +1030,55 @@
     .step-list-row .step-delete-btn:disabled {
       opacity: 0.35;
       cursor: not-allowed;
+    }
+    .step-list-actions-row {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.1rem 0 0;
+    }
+    .step-list-icon-btn {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.65rem;
+      height: 1.65rem;
+      padding: 0;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--bg);
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1;
+    }
+    .step-list-icon-btn--add {
+      border-style: dashed;
+    }
+    .step-list-icon-btn:hover:not(:disabled),
+    .step-list-icon-btn:focus-visible:not(:disabled) {
+      border-color: var(--accent);
+      color: var(--accent);
+      outline: none;
+    }
+    .step-list-icon-btn--delete:hover:not(:disabled),
+    .step-list-icon-btn--delete:focus-visible:not(:disabled) {
+      border-color: #b42318;
+      color: #b42318;
+    }
+    .step-list-icon-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+    .step-list-icon-btn svg {
+      width: 12px;
+      height: 12px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
     }
     .step-list-row--intro .step-location-btn {
       font-weight: 600;
@@ -976,6 +1232,10 @@
       min-height: 12rem;
       font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
       font-size: 0.8rem;
+    }
+    .card-editor-hint {
+      margin: 0;
+      font-size: 0.75rem;
     }
     .overlay-feature-list {
       margin: 0.35rem 0 0;
@@ -1275,16 +1535,25 @@
 <body>
   <header class="topbar">
     <div class="topbar-left">
-      <h1>Scroll map story — builder <span class="builder-version">v1.85</span> <span id="guest-mode-badge" class="builder-version hidden" style="color:var(--accent)">· Guest</span></h1>
+      <div class="topbar-story-brand">
+        <h1 id="builder-story-title">Untitled story</h1>
+        <p class="topbar-builder-meta">
+          <span class="builder-version">Builder v1.85</span>
+          <span id="guest-mode-badge" class="builder-version hidden" style="color:var(--accent)">· Guest</span>
+        </p>
+      </div>
       <p id="builder-session-label" class="topbar-session-label hidden" role="status" aria-live="polite"></p>
       <p id="student-session-bar" class="api-offline-hint hidden" role="status"></p>
       <p id="story-api-hint" class="api-offline-hint hidden" role="status">
         Saving into <code>Stories/</code> needs <code>npm run dev</code> (Vite).
       </p>
       <p id="guest-mode-hint" class="api-offline-hint hidden" role="status">
-        <strong>Guest Mode</strong> — edits stay in this browser (<code>localStorage</code>, WebxRide playground format).
-        No server save. Use <strong>Export</strong> for a ZIP you can open offline.
+        <strong>Guest Mode</strong> — edits stay in this browser only.
+        Use <strong>Revert changes</strong> to undo a demo, or <strong>← Home</strong> to exit without signing in.
       </p>
+    </div>
+    <div class="topbar-guest-actions hidden" id="topbar-guest-actions">
+      <a href="/index.html" class="btn btn-guest-exit" id="btn-guest-exit-home">← Home</a>
     </div>
     <a
       class="topbar-license"
@@ -1351,33 +1620,15 @@
       <button
         type="button"
         class="nav-rail-btn hidden"
-        id="builder-session-signout"
-        data-label="Sign Out"
+        id="nav-account-toggle"
+        data-label="Account"
         title="Account"
-        aria-label="Account — Sign out"
+        aria-expanded="false"
+        aria-controls="nav-account-panel"
+        aria-label="Account"
       >
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21a8 8 0 1 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3.1-6 7-6s7 2.5 7 6"/></svg>
       </button>
-      <button
-        type="button"
-        class="nav-rail-btn hidden"
-        id="builder-session-guest-signout"
-        data-label="Sign Out"
-        title="Account"
-        aria-label="Account — Sign out of guest mode"
-      >
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21a8 8 0 1 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
-      </button>
-      <button
-        type="button"
-        class="nav-rail-btn hidden"
-        id="builder-session-guest-signin"
-        data-label="Sign in"
-        title="Sign in for full features"
-      >
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>
-      </button>
-      <div class="nav-rail-spacer" aria-hidden="true"></div>
     </nav>
 
     <aside class="nav-flyout-panel nav-story-panel" id="nav-story-panel" hidden aria-label="Story">
@@ -1386,9 +1637,33 @@
         <button type="button" class="nav-panel-close" id="nav-story-panel-close" aria-label="Close story panel">&times;</button>
       </div>
       <div class="nav-flyout-panel-body">
+        <div class="nav-flyout-field">
+          <label for="story-title-input">Story title</label>
+          <input
+            type="text"
+            id="story-title-input"
+            maxlength="120"
+            placeholder="Give your story a display name"
+            autocomplete="off"
+            spellcheck="true"
+          />
+          <p class="field-hint" style="margin:0.35rem 0 0">Shown in the browser tab and at the top of the builder.</p>
+        </div>
         <label for="story-select">Current story</label>
         <select id="story-select" aria-label="Current story"></select>
+        <div id="featured-stories-admin" class="nav-featured-stories hidden" hidden>
+          <p class="field-hint" style="margin:0.35rem 0">Featured on the home page — saves go live for visitors.</p>
+          <div id="featured-stories-quick" class="nav-featured-quick"></div>
+        </div>
+        <p id="featured-story-editing-note" class="field-hint hidden" style="margin:0.35rem 0"></p>
+        <div id="story-publish-admin" class="hidden" hidden>
+          <button type="button" class="nav-flyout-btn" id="btn-toggle-published">Publish</button>
+          <p id="story-publish-status" class="field-hint" style="margin:0.35rem 0" role="status" aria-live="polite"></p>
+        </div>
         <button type="button" class="nav-flyout-btn" id="btn-new-story">New Story</button>
+        <button type="button" class="nav-flyout-btn hidden" id="btn-guest-revert" title="Undo all edits since you opened this story">
+          Revert changes
+        </button>
         <button type="button" class="nav-flyout-btn hidden" id="btn-nav-preview">Preview</button>
         <button type="button" class="nav-flyout-btn btn-danger" id="btn-delete-story">Delete</button>
         <div class="nav-flyout-divider" aria-hidden="true"></div>
@@ -1422,6 +1697,20 @@
         <label class="nav-flyout-file-btn">Upload file<input type="file" id="nav-files-input" accept="image/*,.geojson,.json" hidden /></label>
         <div id="nav-files-list" class="nav-files-list"></div>
         <p id="nav-files-status" class="nav-flyout-status" role="status" aria-live="polite"></p>
+      </div>
+    </aside>
+
+    <aside class="nav-flyout-panel nav-account-panel" id="nav-account-panel" hidden aria-label="Account">
+      <div class="nav-flyout-panel-head">
+        <h2>Account</h2>
+        <button type="button" class="nav-panel-close" id="nav-account-panel-close" aria-label="Close account panel">&times;</button>
+      </div>
+      <div class="nav-flyout-panel-body">
+        <p id="nav-account-summary" class="nav-account-summary"></p>
+        <div id="nav-account-settings" class="nav-account-actions" aria-label="Account actions">
+          <button type="button" class="nav-flyout-btn hidden" id="nav-account-signin">Sign in</button>
+          <button type="button" class="nav-flyout-btn btn-danger hidden" id="nav-account-signout">Sign out</button>
+        </div>
       </div>
     </aside>
 
@@ -1506,6 +1795,13 @@
           </label>
         </div>
         <div class="nav-flyout-field">
+          <label class="check-label" for="show-compass-toggle">
+            <input type="checkbox" id="show-compass-toggle" checked />
+            <span>Show map compass (N/E/S/W)</span>
+          </label>
+          <p class="field-hint">Bottom-right bearing indicator for readers and while authoring.</p>
+        </div>
+        <div class="nav-flyout-field">
           <label class="check-label" for="restart-at-end-toggle">
             <input type="checkbox" id="restart-at-end-toggle" />
             <span>Show “Return to beginning” at the end of the story</span>
@@ -1553,103 +1849,20 @@
         <button type="button" class="btn" id="btn-move-up">Move up</button>
         <button type="button" class="btn" id="btn-move-down">Move down</button>
       </div>
-      <div>
-        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.35rem">
-          <span class="coords" style="flex:1">Locations</span>
+      <div class="locations-section">
+        <div class="locations-section-head">
+          <span class="coords">Locations</span>
           <button type="button" class="btn" id="btn-prev-step" style="padding:0.3rem 0.6rem;font-size:0.75rem">&larr; Prev</button>
           <button type="button" class="btn" id="btn-next-step" style="padding:0.3rem 0.6rem;font-size:0.75rem">Next &rarr;</button>
         </div>
         <div class="step-list" id="step-list" role="group" aria-label="Locations"></div>
-        <p class="coords" id="step-coords" style="margin: 0.35rem 0 0"></p>
-        <p class="coords" id="step-camera-hint" style="margin: 0.15rem 0 0">
-          Tip: Ctrl+drag (or right-drag) the map to tilt and rotate, then Set Map Location.
-        </p>
-        <button type="button" class="btn" id="btn-clear-step-camera" hidden style="margin-top:0.35rem;padding:0.3rem 0.6rem;font-size:0.75rem">
-          Clear camera angle
-        </button>
-      </div>
-      <div class="row" id="step-basemap-row" style="align-items:flex-end;margin-top:0.35rem">
-        <div class="field" style="flex:1;margin:0;min-width:0">
-          <label for="step-basemap-select" style="font-size:0.78rem">Base map</label>
-          <select id="step-basemap-select" aria-label="Base map override for this location">
-            <option value="">— Default —</option>
-          </select>
-        </div>
-        <button
-          type="button"
-          class="btn annotate-toggle-btn"
-          id="btn-annotate-toggle"
-          aria-expanded="false"
-          aria-controls="annotate-panel"
-          style="flex:0 0 auto"
-        >
-          Annotate
-        </button>
-      </div>
-      <details class="step-options" id="step-options">
-        <summary>Options</summary>
-        <div class="step-options-panel-body">
-          <div class="row" id="step-map-overrides-row" style="align-items:flex-end;margin-top:0">
-            <div class="field" style="flex:1;margin:0;min-width:0">
-              <label for="step-stars-select" style="font-size:0.78rem">Stars</label>
-              <select id="step-stars-select" aria-label="Stars override for this location">
-                <option value="">— Default —</option>
-                <option value="on">On</option>
-                <option value="off">Off</option>
-              </select>
-            </div>
-            <div class="field" style="flex:1;margin:0;min-width:0">
-              <label for="step-3d-buildings-select" style="font-size:0.78rem">3D buildings</label>
-              <select id="step-3d-buildings-select" aria-label="3D buildings override for this location">
-                <option value="">— Default —</option>
-                <option value="on">On</option>
-                <option value="off">Off</option>
-              </select>
-            </div>
-          </div>
-          <div class="field" id="step-spin-field" style="margin:0.35rem 0 0">
-            <label for="step-spin-toggle" style="display:flex;gap:0.5rem;align-items:flex-start;font-size:0.78rem;font-weight:normal;cursor:pointer">
-              <input type="checkbox" id="step-spin-toggle" style="margin-top:0.15rem" />
-              <span>Spin globe while this card is active <span class="coords">(globe projection only)</span></span>
-            </label>
-          </div>
-          <div class="field" style="margin:0.35rem 0 0">
-            <label for="step-fly-transition-select" id="step-fly-transition-label" style="font-size:0.78rem">Move to this location</label>
-            <select id="step-fly-transition-select" aria-label="Camera transition when moving to this location">
-              <option value="smooth">Smooth transition</option>
-              <option value="pullback">Zoom out and zoom in</option>
-            </select>
-          </div>
-        </div>
-      </details>
-      <div class="annotate-panel" id="annotate-panel" role="region" aria-label="Map annotation" hidden>
-        <div class="field">
-          <div class="row" style="align-items:center;margin-bottom:0.35rem">
-            <span class="coords" style="flex:0 0 auto;margin:0">Add annotation:</span>
-            <button type="button" class="btn" id="btn-draw-marker" title="Click map to place a marker (optional text)">Marker</button>
-            <button type="button" class="btn" id="btn-add-label" title="Click map to place a text label (optional marker)">Label</button>
-          </div>
-          <p class="coords draw-tools-hint" id="draw-tools-hint" aria-live="polite"></p>
-          <span class="coords" style="display: block; margin-top: 0.35rem; margin-bottom: 0.25rem">Existing annotations</span>
-          <ul class="overlay-feature-list" id="overlay-feature-list" aria-label="Overlay features"></ul>
-          <details class="annotate-advanced">
-            <summary>GeoJSON</summary>
-            <div class="annotate-advanced-body">
-              <label for="overlay-geojson" class="coords" style="display: block; margin-bottom: 0.25rem">FeatureCollection JSON</label>
-              <textarea id="overlay-geojson" rows="5" placeholder='{"type":"FeatureCollection","features":[]}'></textarea>
-              <p class="coords" id="overlay-json-error" hidden></p>
-              <div class="row" style="margin-top: 0.35rem">
-                <button type="button" class="btn" id="btn-apply-overlay-json">Apply</button>
-                <label class="btn" style="display: inline-block; margin: 0">
-                  Import file
-                  <input id="overlay-import-file" type="file" accept=".json,.geojson,application/geo+json" class="hidden" />
-                </label>
-              </div>
-            </div>
-          </details>
-        </div>
-      </div>
-      <div class="field card-content-field">
+        <div class="step-workspace" id="step-workspace">
+          <div
+            class="step-workspace-controls"
+            id="step-workspace-controls"
+            aria-live="polite"
+          ></div>
+          <div class="field card-content-field">
         <span class="coords" style="display: block; margin-bottom: 0.35rem">Card content</span>
         <div class="row card-editor-mode-toggle" role="group" aria-label="Card editor mode">
           <button type="button" class="btn primary" id="card-mode-visual" aria-pressed="true">
@@ -1659,7 +1872,7 @@
             HTML source
           </button>
         </div>
-        <p class="coords" style="margin: 0.35rem 0 0.5rem">
+        <p class="coords card-editor-hint">
           Visual mode supports common formatting; use <strong>HTML source</strong> for full control or custom markup.
         </p>
         <div id="card-quill-wrap" class="card-quill-wrap">
@@ -1667,6 +1880,112 @@
         </div>
         <label for="card-text" class="hidden">Card HTML</label>
         <textarea id="card-text" class="hidden" rows="14" spellcheck="false"></textarea>
+          </div>
+        </div>
+        <div id="step-context-park" hidden aria-hidden="true">
+          <p class="coords" id="step-coords" style="margin: 0"></p>
+          <button type="button" class="btn" id="btn-clear-step-camera" hidden style="margin-top:0.35rem;padding:0.3rem 0.6rem;font-size:0.75rem">
+            Clear camera angle
+          </button>
+          <div class="row" id="step-basemap-row" style="align-items:flex-end;margin-top:0.35rem">
+            <div class="field" style="flex:1;margin:0;min-width:0">
+              <label for="step-basemap-select" style="font-size:0.78rem">Base map</label>
+              <select id="step-basemap-select" aria-label="Base map override for this location">
+                <option value="">— Default —</option>
+              </select>
+            </div>
+            <button
+              type="button"
+              class="btn annotate-toggle-btn"
+              id="btn-annotate-toggle"
+              aria-expanded="false"
+              aria-controls="annotate-panel"
+              style="flex:0 0 auto"
+            >
+              Annotate
+            </button>
+          </div>
+          <details class="step-options" id="step-options">
+            <summary>Options</summary>
+            <div class="step-options-panel-body">
+              <div class="row" id="step-map-overrides-row" style="align-items:flex-end;margin-top:0">
+                <div class="field" style="flex:1;margin:0;min-width:0">
+                  <label for="step-stars-select" style="font-size:0.78rem">Stars</label>
+                  <select id="step-stars-select" aria-label="Stars override for this location">
+                    <option value="">— Default —</option>
+                    <option value="on">On</option>
+                    <option value="off">Off</option>
+                  </select>
+                </div>
+                <div class="field" style="flex:1;margin:0;min-width:0">
+                  <label for="step-3d-buildings-select" style="font-size:0.78rem">3D buildings</label>
+                  <select id="step-3d-buildings-select" aria-label="3D buildings override for this location">
+                    <option value="">— Default —</option>
+                    <option value="on">On</option>
+                    <option value="off">Off</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field" id="step-spin-field" style="margin:0.35rem 0 0">
+                <label for="step-spin-toggle" style="display:flex;gap:0.5rem;align-items:flex-start;font-size:0.78rem;font-weight:normal;cursor:pointer">
+                  <input type="checkbox" id="step-spin-toggle" style="margin-top:0.15rem" />
+                  <span>Spin globe while this card is active <span class="coords">(globe projection only)</span></span>
+                </label>
+              </div>
+              <div class="field" id="step-scroll-hold-field" style="margin:0.35rem 0 0">
+                <label for="step-scroll-hold-toggle" style="display:flex;gap:0.5rem;align-items:flex-start;font-size:0.78rem;font-weight:normal;cursor:pointer">
+                  <input type="checkbox" id="step-scroll-hold-toggle" style="margin-top:0.15rem" />
+                  <span>Pause map while card is on screen <span class="coords">(scroll only — Next/Previous skip this pause)</span></span>
+                </label>
+              </div>
+              <div class="field" id="step-scroll-hold-extra-field" style="margin:0.25rem 0 0 1.5rem">
+                <label for="step-scroll-hold-extra" style="font-size:0.78rem">Pause map between cards (seconds)</label>
+                <input type="number" id="step-scroll-hold-extra" min="0" max="30" step="0.5" value="0" style="width:5rem;margin-top:0.2rem" aria-describedby="step-scroll-hold-extra-hint" />
+                <p class="coords" id="step-scroll-hold-extra-hint" style="margin:0.25rem 0 0">Default is 0. Adds scroll-only stillness after this card before the map moves on. Next/Previous skip this pause.</p>
+              </div>
+              <div class="field" style="margin:0.35rem 0 0">
+                <label for="step-fly-transition-select" id="step-fly-transition-label" style="font-size:0.78rem">Move to this location</label>
+                <select id="step-fly-transition-select" aria-label="Camera transition when moving to this location">
+                  <option value="smooth">Smooth transition</option>
+                  <option value="pullback">Zoom out and zoom in</option>
+                </select>
+              </div>
+            </div>
+          </details>
+          <div class="annotate-panel" id="annotate-panel" role="region" aria-label="Map annotation" hidden>
+            <div class="field">
+              <div class="row" style="align-items:center;margin-bottom:0.35rem">
+                <span class="coords" style="flex:0 0 auto;margin:0">Add annotation:</span>
+                <button type="button" class="btn" id="btn-draw-marker" title="Click map to place a marker (optional text)">Marker</button>
+                <button type="button" class="btn" id="btn-add-label" title="Click map to place a text label (optional marker)">Label</button>
+                <button type="button" class="btn" id="btn-add-image" title="Place an image on the map">Image</button>
+                <button type="button" class="btn hidden" id="btn-add-image-from-files">From My Files</button>
+                <input type="file" id="overlay-image-file" accept="image/*" class="hidden" />
+              </div>
+              <p class="coords draw-tools-hint" id="draw-tools-hint" aria-live="polite"></p>
+              <span class="coords" style="display: block; margin-top: 0.35rem; margin-bottom: 0.25rem">Existing annotations</span>
+              <ul class="overlay-feature-list" id="overlay-feature-list" aria-label="Overlay features"></ul>
+              <details class="annotate-advanced">
+                <summary>GeoJSON</summary>
+                <div class="annotate-advanced-body">
+                  <label for="overlay-geojson" class="coords" style="display: block; margin-bottom: 0.25rem">FeatureCollection JSON</label>
+                  <textarea id="overlay-geojson" rows="5" placeholder='{"type":"FeatureCollection","features":[]}'></textarea>
+                  <p class="coords" id="overlay-json-error" hidden></p>
+                  <div class="row" style="margin-top: 0.35rem">
+                    <button type="button" class="btn" id="btn-apply-overlay-json">Apply</button>
+                    <label class="btn" style="display: inline-block; margin: 0">
+                      Import file
+                      <input id="overlay-import-file" type="file" accept=".json,.geojson,application/geo+json" class="hidden" />
+                    </label>
+                  </div>
+                </div>
+              </details>
+            </div>
+          </div>
+          <p class="coords" id="step-camera-hint" style="margin: 0">
+            Tip: Ctrl+drag (or right-drag) the map to tilt and rotate, then Set Map Location.
+          </p>
+        </div>
       </div>
       </div>
       <div class="build-panel-footer">
@@ -1715,6 +2034,20 @@
         <label for="ns-slug">Story name</label>
         <input type="text" id="ns-slug" placeholder="my-road-trip" autocomplete="off" spellcheck="false" />
       </div>
+      <div class="ns-field">
+        <label for="ns-display-title">Story title</label>
+        <input
+          type="text"
+          id="ns-display-title"
+          placeholder="My road trip"
+          maxlength="120"
+          autocomplete="off"
+          spellcheck="true"
+        />
+        <p class="coords" style="margin:0.35rem 0 0;font-size:0.75rem">
+          Display name for the browser tab and builder header. The story name above is the folder slug.
+        </p>
+      </div>
       <div class="ns-field" id="ns-location-field">
         <label for="ns-location-search">Starting location</label>
         <input
@@ -1741,7 +2074,7 @@
           <option value="">Blank story</option>
         </select>
         <p class="coords" style="margin:0.35rem 0 0;font-size:0.75rem">
-          Default is a new blank story. Optionally copy a bundled example (e.g. Earth) into your guest draft.
+          Default is a new blank story. Optionally copy a bundled example (e.g. Earth) as your starting point.
         </p>
       </div>
       <div id="ns-global-options">
@@ -1791,6 +2124,8 @@
   <script src="/Tools/globe-daynight.js"></script>
   <script src="/Tools/globe-stars.js"></script>
   <script src="/Tools/globe-3d-buildings.js"></script>
+  <script src="/Tools/story-map-images.js"></script>
+  <script src="/Tools/map-compass.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mapbox/mapbox-gl-draw@1.4.3/dist/mapbox-gl-draw.js" crossorigin=""></script>
   <script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js" crossorigin=""></script>
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" crossorigin=""></script>
@@ -1958,8 +2293,58 @@
     ]
   };
 
+  function getStoryDisplayTitle() {
+    if (config && typeof config.title === "string" && config.title.trim()) {
+      return config.title.trim();
+    }
+    if (currentSlug === "earth") return "Earth";
+    if (currentSlug) return currentSlug;
+    return "Untitled story";
+  }
+
+  function syncStoryTitleUi() {
+    var titleEl = el("builder-story-title");
+    var input = el("story-title-input");
+    var label = getStoryDisplayTitle();
+    if (titleEl) titleEl.textContent = label;
+    if (input && document.activeElement !== input) {
+      input.value = config && typeof config.title === "string" ? config.title : "";
+    }
+    document.title = label + " — Maps & Cards builder";
+    var sel = el("story-select");
+    if (sel && currentSlug) {
+      for (var i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value === currentSlug) {
+          sel.options[i].textContent = label;
+          break;
+        }
+      }
+    }
+  }
+
+  function applyStoryTitleFromInput(raw) {
+    if (!config) return;
+    var title = String(raw || "").trim().replace(/\s+/g, " ");
+    if (title.length > 120) title = title.slice(0, 120);
+    if (title) config.title = title;
+    else delete config.title;
+    syncStoryTitleUi();
+    saveSoon();
+  }
+
+  function normalizeStoryTitle(data) {
+    if (!data || typeof data !== "object") return;
+    if (typeof data.title === "string") {
+      data.title = data.title.trim().replace(/\s+/g, " ");
+      if (!data.title) delete data.title;
+      else if (data.title.length > 120) data.title = data.title.slice(0, 120);
+    } else {
+      delete data.title;
+    }
+  }
+
   function isIntroStep(step) {
-    return !!(step && step.type === "intro");
+    return !!(step && (step.type === "intro" || step.id === "intro"));
   }
 
   function hasIntroStep() {
@@ -1988,13 +2373,55 @@
     return "Location " + locNum;
   }
 
+  function selectStepAt(index, animate) {
+    if (!config || !config.steps || !config.steps[index]) return;
+    captureStepScrollHoldFromUi();
+    selectedIndex = index;
+    setMarkerPlacementMode(false);
+    ensureDrawSimpleSelect();
+    renderStepList();
+    syncEditorFromStep();
+    flyToStep(index, animate !== false);
+  }
+
+  function addLocationStep() {
+    if (!config || !map) return;
+    setMarkerPlacementMode(false);
+    ensureDrawSimpleSelect();
+    var c = map.getCenter();
+    var z = map.getZoom();
+    var p = map.getPitch();
+    var b = map.getBearing();
+    var n = countLocationSteps() + 1;
+    var step = {
+      id: "location-" + n,
+      lat: c.lat,
+      lng: c.lng,
+      zoom: z,
+      html: "<p>New location.</p>",
+      flyTransition: "smooth",
+      overlays: { geojson: { type: "FeatureCollection", features: [] } },
+    };
+    applyCapturedCameraToStep(step, c.lat, c.lng, z, p, b);
+    config.steps.push(step);
+    selectedIndex = config.steps.length - 1;
+    saveNow();
+    renderStepList();
+    syncEditorFromStep();
+    flyToStep(selectedIndex, false);
+  }
+
   function pinIntroStepFirst(data) {
     if (!data.steps || !data.steps.length) return;
     var introIdx = -1;
     for (var i = 0; i < data.steps.length; i++) {
-      if (data.steps[i] && data.steps[i].type === "intro") {
-        if (introIdx >= 0) delete data.steps[i].type;
-        else introIdx = i;
+      if (isIntroStep(data.steps[i])) {
+        if (introIdx >= 0) {
+          delete data.steps[i].type;
+          if (data.steps[i].id === "intro") data.steps[i].id = "location-" + (i + 1);
+        } else {
+          introIdx = i;
+        }
       }
     }
     if (introIdx < 0) return;
@@ -2007,21 +2434,53 @@
     if (!introStep.id) introStep.id = "intro";
   }
 
+  function ensureIntroStep(data) {
+    if (!data.steps) data.steps = [];
+    pinIntroStepFirst(data);
+    if (data.steps[0] && isIntroStep(data.steps[0])) return data.steps[0];
+    var im = data.initialMap || { lat: 43.0481, lng: -76.1474, zoom: 11 };
+    var intro = {
+      id: "intro",
+      type: "intro",
+      lat: im.lat,
+      lng: im.lng,
+      zoom: typeof im.zoom === "number" && !isNaN(im.zoom) ? im.zoom : 11,
+      html: INTRO_DEFAULT_HTML,
+      overlays: { geojson: { type: "FeatureCollection", features: [] } },
+    };
+    data.steps.unshift(intro);
+    return intro;
+  }
+
+  function getFirstLocationStep(data) {
+    if (!data || !data.steps) return null;
+    for (var i = 0; i < data.steps.length; i++) {
+      if (!isIntroStep(data.steps[i])) return data.steps[i];
+    }
+    return null;
+  }
+
   var config;
   var map;
   var creditsPanelControl = null;
+  var compassControl = null;
   var selectedIndex = 0;
   var captureButtonEl = null;
   var mapResizeObserverAttached = false;
   var storyApiOk = false;
+  var builderIsAdmin = false;
+  var featuredSlugs = [];
+  var publishedBySlug = {};
   var guestMode = false;
+  var guestRevertSnapshot = null;
   var guestViewerTemplate = null;
   var guestViewerTemplatePromise = null;
   var currentSlug = null;
   var drawControl = null;
   var drawCreateWired = false;
   var markerPlacementMode = false;
-  var placementKind = "marker"; /* "marker" or "label" */
+  var placementKind = "marker"; /* "marker", "label", or "image" */
+  var pendingImagePlacement = null;
   var currentBuilderBaseMap = null; /** tracks which basemap the builder map currently shows */
   var cardQuill = null;
   var cardEditorMode = "visual";
@@ -2190,6 +2649,7 @@
       Globe3dBuildings.normalize3dBuildingsConfig(config);
       if (s) Globe3dBuildings.normalizeStep3dBuildings(s);
     }
+    captureStepScrollHoldFromUi();
   }
 
   function flushBeforePreview() {
@@ -2240,6 +2700,55 @@
     updateNavPreviewButton(currentSlug);
   }
 
+  function captureGuestRevertSnapshot() {
+    if (!guestMode || !config) return;
+    guestRevertSnapshot = clone(config);
+    syncGuestDemoUi();
+  }
+
+  function guestConfigDiffersFromSnapshot() {
+    if (!guestRevertSnapshot || !config) return false;
+    try {
+      return (
+        JSON.stringify(normalizeConfig(clone(config))) !==
+        JSON.stringify(normalizeConfig(clone(guestRevertSnapshot)))
+      );
+    } catch (e) {
+      return true;
+    }
+  }
+
+  function syncGuestDemoUi() {
+    var actions = el("topbar-guest-actions");
+    var revertBtn = el("btn-guest-revert");
+    if (actions) actions.classList.toggle("hidden", !guestMode);
+    if (revertBtn) {
+      revertBtn.classList.toggle("hidden", !guestMode);
+      revertBtn.disabled =
+        !guestMode || !guestRevertSnapshot || !guestConfigDiffersFromSnapshot();
+    }
+  }
+
+  function revertGuestChanges() {
+    if (!guestMode || !guestRevertSnapshot) return;
+    if (
+      !confirm(
+        "Discard all changes since you opened this story?\n\nThe map and cards will return to how they were when you started."
+      )
+    ) {
+      return;
+    }
+    config = normalizeConfig(clone(guestRevertSnapshot));
+    selectedIndex = Math.min(selectedIndex, Math.max(0, config.steps.length - 1));
+    saveNow();
+    renderStepList();
+    syncMapOptionsFlyoutFields();
+    syncEditorFromStep();
+    syncStoryTitleUi();
+    if (map) flyToStep(selectedIndex, false);
+    syncGuestDemoUi();
+  }
+
   function applyGuestModeUi() {
     var apiHint = el("story-api-hint");
     var guestHint = el("guest-mode-hint");
@@ -2258,6 +2767,7 @@
     if (saveBtn) saveBtn.title = "Save draft in this browser (localStorage)";
     document.body.classList.add("guest-mode");
     showGuestPreviewControls();
+    syncGuestDemoUi();
   }
 
   function updateNavPreviewButton(slug) {
@@ -2675,6 +3185,43 @@
     cb.checked = !!(s && s.spin === true);
   }
 
+  function captureStepScrollHoldFromUi() {
+    if (!config || !config.steps) return;
+    var s = config.steps[selectedIndex];
+    if (!s) return;
+    var cb = el("step-scroll-hold-toggle");
+    var extraInput = el("step-scroll-hold-extra");
+    if (cb) {
+      if (cb.checked) s.scrollHold = true;
+      else delete s.scrollHold;
+    }
+    if (extraInput) {
+      var raw = parseFloat(extraInput.value, 10);
+      if (isFinite(raw) && raw > 0) {
+        s.scrollHoldExtraSec = Math.min(30, Math.round(raw * 10) / 10);
+      } else {
+        delete s.scrollHoldExtraSec;
+      }
+    }
+    normalizeStepOverlays(s);
+  }
+
+  function syncStepScrollHoldUi() {
+    var cb = el("step-scroll-hold-toggle");
+    var extraField = el("step-scroll-hold-extra-field");
+    var extraInput = el("step-scroll-hold-extra");
+    if (!cb || !config) return;
+    var s = config.steps[selectedIndex];
+    cb.checked = !!(s && s.scrollHold === true);
+    if (extraInput) {
+      extraInput.disabled = false;
+      extraInput.value =
+        typeof s.scrollHoldExtraSec === "number" && s.scrollHoldExtraSec > 0
+          ? String(s.scrollHoldExtraSec)
+          : "0";
+    }
+  }
+
   function flyTransitionStepIndex() {
     if (!config || !config.steps || !config.steps.length) return selectedIndex;
     var s = config.steps[selectedIndex];
@@ -2737,6 +3284,21 @@
     c.checked = config.restartAtEnd === true;
   }
 
+  function configShowCompass(cfg) {
+    return !!(cfg && cfg.showCompass !== false);
+  }
+
+  function syncShowCompassToggle() {
+    var c = el("show-compass-toggle");
+    if (!c || !config) return;
+    c.checked = configShowCompass(config);
+  }
+
+  function syncCompassControlVisibility() {
+    if (!compassControl || !compassControl._container) return;
+    compassControl._container.style.display = configShowCompass(config) ? "" : "none";
+  }
+
   function syncStepNavButtonsToggle() {
     var c = el("step-nav-buttons-toggle");
     if (!c || !config) return;
@@ -2769,6 +3331,8 @@
     syncTerrainToggle();
     syncSatelliteLabelsUi();
     syncRestartAtEndToggle();
+    syncShowCompassToggle();
+    syncCompassControlVisibility();
     syncStepNavButtonsToggle();
     syncSourcesField();
     syncCardBackgroundFields();
@@ -3080,6 +3644,7 @@
     if (!data.steps || !Array.isArray(data.steps)) {
       throw new Error('Invalid JSON: need a "steps" array of locations.');
     }
+    normalizeStoryTitle(data);
     if (!data.version) data.version = 1;
     var validBase = {};
     BASE_MAPS.forEach(function (b) {
@@ -3104,6 +3669,8 @@
     else delete data.restartAtEnd;
     if (data.stepNavButtons === false) data.stepNavButtons = false;
     else delete data.stepNavButtons;
+    if (data.showCompass === false) data.showCompass = false;
+    else delete data.showCompass;
     if (data.flySpeed === "slow") data.flyDurationSeconds = 8;
     else if (data.flySpeed === "fast") data.flyDurationSeconds = 3;
     delete data.flySpeed;
@@ -3175,6 +3742,16 @@
     }
     if (step.spin === true) step.spin = true;
     else delete step.spin;
+    if (step.scrollHold === true) step.scrollHold = true;
+    else delete step.scrollHold;
+    if (typeof step.scrollHoldExtraSec === "number" && step.scrollHoldExtraSec > 0) {
+      step.scrollHoldExtraSec = Math.min(
+        30,
+        Math.round(step.scrollHoldExtraSec * 10) / 10
+      );
+    } else {
+      delete step.scrollHoldExtraSec;
+    }
     if (step.flyTransition === "smooth") step.flyTransition = "smooth";
     else delete step.flyTransition;
     normalizeStepCamera(step);
@@ -3194,6 +3771,10 @@
     }
     g.features.forEach(function (f) {
       if (!f || !f.properties || !f.geometry || f.geometry.type !== "Point") return;
+      if (f.properties.kind === "image") {
+        if (window.StoryMapImages) StoryMapImages.normalizeImageFeature(f);
+        return;
+      }
       var p = f.properties;
       if (typeof p.radius !== "number" || p.radius < 1) p.radius = 8;
       var hasText =
@@ -3243,6 +3824,7 @@
       } else if (g === "LineString" || g === "MultiLineString") {
         lines.features.push(f);
       } else if (g === "Point") {
+        if (p.kind === "image") return;
         var hasText =
           (typeof p.text === "string" && p.text.trim() !== "") ||
           (typeof p.title === "string" && p.title.trim() !== "");
@@ -3366,9 +3948,13 @@
     ensureOverlaySources();
     var step = config.steps[stepIndex];
     var split;
+    var imageFeats = [];
     if (step) {
       normalizeStepOverlays(step);
       split = splitOverlayFeatures(step.overlays.geojson);
+      if (window.StoryMapImages) {
+        imageFeats = StoryMapImages.extractImageFeatures(step.overlays.geojson);
+      }
     } else {
       split = { poly: EMPTY_FC, lines: EMPTY_FC, ptMark: EMPTY_FC, ptLabel: EMPTY_FC };
     }
@@ -3379,6 +3965,9 @@
       map.getSource(OV_SRC_PTL).setData(split.ptLabel);
     } catch (err) {
       console.warn("Location overlays:", err);
+    }
+    if (window.StoryMapImages) {
+      StoryMapImages.syncImageOverlays(map, imageFeats, { beforeLayerId: "story-ov-fill" });
     }
   }
 
@@ -3404,6 +3993,7 @@
   function setMarkerPlacementMode(on, kind) {
     markerPlacementMode = !!on;
     if (kind) placementKind = kind;
+    if (!markerPlacementMode) pendingImagePlacement = null;
     if (map) {
       var canvas = map.getCanvas();
       if (canvas) canvas.style.cursor = markerPlacementMode ? "crosshair" : "";
@@ -3418,15 +4008,25 @@
     var hint = el("draw-tools-hint");
     var markerBtn = el("btn-draw-marker");
     var labelBtn = el("btn-add-label");
+    var imageBtn = el("btn-add-image");
     var isMarker = markerPlacementMode && placementKind === "marker";
     var isLabel = markerPlacementMode && placementKind === "label";
+    var isImage = markerPlacementMode && placementKind === "image";
     if (markerBtn) markerBtn.classList.toggle("primary", isMarker);
     if (labelBtn) labelBtn.classList.toggle("primary", isLabel);
+    if (imageBtn) imageBtn.classList.toggle("primary", isImage);
     if (hint) {
       if (isMarker) {
         hint.textContent = "Click the map to place a marker. You can optionally add text. Press Esc to cancel.";
       } else if (isLabel) {
         hint.textContent = "Click the map to place a text label. You can optionally add a marker. Press Esc to cancel.";
+      } else if (isImage) {
+        hint.textContent =
+          "Click the map to place the image" +
+          (pendingImagePlacement && pendingImagePlacement.label
+            ? " (“" + pendingImagePlacement.label + "”)."
+            : ".") +
+          " Press Esc to cancel.";
       } else {
         hint.textContent = "";
       }
@@ -3508,7 +4108,7 @@
   }
 
   /**
-   * List bundled Starter Templates for Guest Mode "Start from".
+   * List bundled Starter Templates for the new-story "Start from" picker.
    * Falls back to probing /Starter Templates/earth/ if the API is unavailable.
    */
   function starterTemplatesBasePath() {
@@ -3565,25 +4165,51 @@
     return 15;
   }
 
-  function applyStartLocationToConfig(data, startLocation) {
+  function escapeLabelForHtml(text) {
+    return String(text || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function applyStartLocationToStep(step, lat, lng, zoom, label) {
+    if (!step) return;
+    step.lat = lat;
+    step.lng = lng;
+    step.zoom = zoom;
+    if (label) {
+      step.html = "<p>" + escapeLabelForHtml(label) + "</p>";
+    }
+  }
+
+  function applyStartLocationToConfig(data, startLocation, options) {
+    options = options || {};
     if (!data || !startLocation) return;
-    var lat = startLocation.lat;
-    var lng = startLocation.lng;
-    if (typeof lat !== "number" || typeof lng !== "number" || isNaN(lat) || isNaN(lng)) return;
+    var lat =
+      typeof startLocation.lat === "number"
+        ? startLocation.lat
+        : parseFloat(startLocation.lat);
+    var lng =
+      typeof startLocation.lng === "number"
+        ? startLocation.lng
+        : parseFloat(startLocation.lng);
+    if (isNaN(lat) || isNaN(lng)) return;
     var zoom =
       typeof startLocation.zoom === "number" && !isNaN(startLocation.zoom)
         ? startLocation.zoom
         : 11;
-    data.initialMap = { lat: lat, lng: lng, zoom: zoom };
-    pinIntroStepFirst(data);
-    if (data.steps && data.steps.length) {
-      var intro = data.steps[0];
-      if (intro && intro.type === "intro") {
-        intro.lat = lat;
-        intro.lng = lng;
-        intro.zoom = zoom;
-      }
+    var label = startLocation.label ? String(startLocation.label) : "";
+    var intro = ensureIntroStep(data);
+    if (intro) {
+      intro.type = "intro";
+      if (!intro.id) intro.id = "intro";
+      applyStartLocationToStep(intro, lat, lng, zoom);
     }
+    if (options.updateFirstLocation !== false) {
+      applyStartLocationToStep(getFirstLocationStep(data), lat, lng, zoom, label);
+    }
+    data.initialMap = { lat: lat, lng: lng, zoom: zoom };
   }
 
   function searchStartLocations(query) {
@@ -3621,12 +4247,13 @@
   /**
    * New story dialog: folder name + starting location + global options.
    * Resolves with { slug, defaults, templateSlug, startLocation } or null if cancelled.
-   * templateSlug is set when Guest Mode starts from a bundled default template.
+   * templateSlug is set when starting from a bundled default template.
    */
   function promptNewStoryModal() {
     return new Promise(function (resolve) {
       var modal = el("new-story-modal");
       var slugInput = el("ns-slug");
+      var displayTitleInput = el("ns-display-title");
       var locationSearch = el("ns-location-search");
       var locationResults = el("ns-location-results");
       var locationStatus = el("ns-location-status");
@@ -3815,7 +4442,7 @@
       }
 
       function populateTemplatesThenOpen(templates) {
-        if (templateField && templateSel && guestMode && templates && templates.length) {
+        if (templateField && templateSel && templates && templates.length) {
           templateSel.innerHTML = "";
           var blank = document.createElement("option");
           blank.value = "";
@@ -3837,11 +4464,7 @@
         openModal();
       }
 
-      if (guestMode) {
-        fetchDefaultTemplateCatalog().then(populateTemplatesThenOpen);
-      } else {
-        populateTemplatesThenOpen([]);
-      }
+      fetchDefaultTemplateCatalog().then(populateTemplatesThenOpen);
 
       function cleanup() {
         if (searchTimer) {
@@ -3879,7 +4502,7 @@
           return;
         }
         var templateSlug =
-          guestMode && templateSel && templateSel.value ? String(templateSel.value).trim() : "";
+          templateSel && templateSel.value ? String(templateSel.value).trim() : "";
         var opacityPct = opacityRange ? parseInt(opacityRange.value, 10) : 86;
         if (isNaN(opacityPct)) opacityPct = 86;
         opacityPct = Math.max(0, Math.min(100, opacityPct));
@@ -3893,12 +4516,17 @@
             : "#ffffff",
           cardBackgroundOpacity: opacityPct / 100
         };
+        if (displayTitleInput) {
+          var displayTitle = String(displayTitleInput.value || "").trim().replace(/\s+/g, " ");
+          if (displayTitle) defaults.title = displayTitle.slice(0, 120);
+        }
+        var pickedStartLocation = selectedStartLocation;
         cleanup();
         resolve({
           slug: slug,
           defaults: defaults,
           templateSlug: templateSlug || null,
-          startLocation: selectedStartLocation,
+          startLocation: pickedStartLocation,
         });
       }
 
@@ -4115,6 +4743,36 @@
         var ll = map.unproject([x, y]);
         var s = config.steps[selectedIndex];
         ensureStepOverlays(s);
+        if (placementKind === "image" && pendingImagePlacement) {
+          var widthM = StoryMapImages ? StoryMapImages.DEFAULT_WIDTH_M : 400;
+          var aspect = pendingImagePlacement.aspectRatio || 1.333;
+          var heightM = widthM / aspect;
+          var imgFeat = {
+            type: "Feature",
+            properties: {
+              kind: "image",
+              id: StoryMapImages ? StoryMapImages.newImageFeatureId() : "img-" + Date.now(),
+              imageUrl: pendingImagePlacement.imageUrl,
+              widthM: widthM,
+              heightM: heightM,
+              aspectRatio: aspect,
+              opacity: 1,
+            },
+            geometry: { type: "Point", coordinates: [ll.lng, ll.lat] },
+          };
+          if (pendingImagePlacement.label) {
+            imgFeat.properties.imageLabel = pendingImagePlacement.label;
+          }
+          if (StoryMapImages) StoryMapImages.normalizeImageFeature(imgFeat);
+          s.overlays.geojson.features.push(imgFeat);
+          saveNow();
+          syncOverlayFieldsFromStep();
+          renderOverlayFeatureList();
+          applyStepOverlays(selectedIndex);
+          pendingImagePlacement = null;
+          setMarkerPlacementMode(false);
+          return;
+        }
         var featureIndex = s.overlays.geojson.features.length;
         var isLabelMode = placementKind === "label";
         if (isLabelMode) {
@@ -4274,6 +4932,12 @@
       var g = f.geometry && f.geometry.type;
       var k = (f.properties && f.properties.kind) || g || "feature";
       var summary = "";
+      if (k === "image") {
+        var wM = f.properties && f.properties.widthM;
+        summary =
+          (f.properties.imageLabel || "image") +
+          (typeof wM === "number" ? " — " + Math.round(wM) + " m wide" : "");
+      } else {
       var hasText = f.properties && f.properties.text;
       var hasDot = f.properties && (typeof f.properties.showDot === "boolean"
         ? f.properties.showDot
@@ -4285,6 +4949,7 @@
         summary = "marker only";
       } else {
         summary = g || "";
+      }
       }
       var li = document.createElement("li");
       var meta = document.createElement("span");
@@ -4298,7 +4963,8 @@
         editBtn.className = "btn";
         editBtn.textContent = "Edit";
         editBtn.addEventListener("click", function () {
-          toggleAnnotationEditor(li, f, idx);
+          if (k === "image") toggleImageEditor(li, f, idx);
+          else toggleAnnotationEditor(li, f, idx);
         });
         btnWrap.appendChild(editBtn);
         var moveBtn = document.createElement("button");
@@ -4433,6 +5099,87 @@
     li.appendChild(editor);
   }
 
+  function toggleImageEditor(li, feat, idx) {
+    var existing = li.querySelector(".annotation-editor");
+    if (existing) {
+      existing.remove();
+      return;
+    }
+    var p = feat.properties || {};
+    var curWidth = typeof p.widthM === "number" ? p.widthM : StoryMapImages.DEFAULT_WIDTH_M;
+    var curOpacity =
+      typeof p.opacity === "number" ? Math.round(p.opacity * 100) : 100;
+    var minW = StoryMapImages.MIN_WIDTH_M;
+    var maxW = Math.min(StoryMapImages.MAX_WIDTH_M, 5000);
+
+    var editor = document.createElement("div");
+    editor.className = "annotation-editor";
+    editor.innerHTML =
+      '<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.4rem">' +
+      '  <label style="font-size:0.75rem;color:var(--muted);flex-shrink:0">Width (m)</label>' +
+      '  <input type="range" class="ae-image-width" min="' +
+      minW +
+      '" max="' +
+      maxW +
+      '" step="10" value="' +
+      curWidth +
+      '" style="flex:1" />' +
+      '  <span class="ae-image-width-val" style="font-size:0.75rem;color:var(--muted);min-width:3.5em">' +
+      Math.round(curWidth) +
+      " m</span>" +
+      "</div>" +
+      '<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.4rem">' +
+      '  <label style="font-size:0.75rem;color:var(--muted);flex-shrink:0">Opacity</label>' +
+      '  <input type="range" class="ae-image-opacity" min="5" max="100" value="' +
+      curOpacity +
+      '" style="flex:1" />' +
+      '  <span class="ae-image-opacity-val" style="font-size:0.75rem;color:var(--muted);min-width:2.5em">' +
+      curOpacity +
+      "%</span>" +
+      "</div>" +
+      '<div style="display:flex;align-items:center;gap:0.5rem">' +
+      '  <button type="button" class="btn primary ae-done" style="margin-left:auto;font-size:0.75rem;padding:0.3rem 0.6rem">Done</button>' +
+      "</div>";
+
+    var widthSlider = editor.querySelector(".ae-image-width");
+    var widthVal = editor.querySelector(".ae-image-width-val");
+    var opacitySlider = editor.querySelector(".ae-image-opacity");
+    var opacityVal = editor.querySelector(".ae-image-opacity-val");
+
+    function liveUpdate() {
+      var w = parseInt(widthSlider.value, 10);
+      if (isNaN(w)) w = StoryMapImages.DEFAULT_WIDTH_M;
+      feat.properties.widthM = w;
+      if (typeof feat.properties.aspectRatio === "number" && feat.properties.aspectRatio > 0) {
+        feat.properties.heightM = w / feat.properties.aspectRatio;
+      }
+      var op = parseInt(opacitySlider.value, 10);
+      if (isNaN(op)) op = 100;
+      feat.properties.opacity = op / 100;
+      if (StoryMapImages) StoryMapImages.normalizeImageFeature(feat);
+      saveSoon();
+      syncOverlayFieldsFromStep();
+      applyStepOverlays(selectedIndex);
+    }
+
+    widthSlider.addEventListener("input", function () {
+      widthVal.textContent = widthSlider.value + " m";
+      liveUpdate();
+    });
+    opacitySlider.addEventListener("input", function () {
+      opacityVal.textContent = opacitySlider.value + "%";
+      liveUpdate();
+    });
+
+    editor.querySelector(".ae-done").addEventListener("click", function () {
+      liveUpdate();
+      persistStory({ immediate: true });
+      renderOverlayFeatureList();
+    });
+
+    li.appendChild(editor);
+  }
+
   var _moveAnnotationCleanup = null;
   var _moveFeatureIndex = -1;
 
@@ -4504,6 +5251,7 @@
     try {
       localStorage.setItem(storageKeyForDraft(), JSON.stringify(config));
     } catch (e) {}
+    syncGuestDemoUi();
   }
 
   var _persistTimer = null;
@@ -4687,23 +5435,200 @@
     return q ? normalizeSlug(q) : null;
   }
 
-  function populateStorySelect(stories, titles) {
+  /** Admin deep-link from the Featured stories panel: ?new=1[&featured=1]. */
+  function getNewStoryRequestFromUrl() {
+    var p = new URLSearchParams(window.location.search);
+    if (p.get("new") !== "1") return null;
+    return { featured: p.get("featured") === "1" };
+  }
+
+  /** Drop ?new / ?featured so a reload does not reopen the dialog. */
+  function clearNewStoryParamsFromUrl() {
+    try {
+      var url = new URL(window.location.href);
+      url.searchParams.delete("new");
+      url.searchParams.delete("featured");
+      window.history.replaceState({}, "", url.toString());
+    } catch (e) {}
+  }
+
+  function populateStorySelect(stories, titles, opts) {
     titles = titles || {};
+    opts = opts || {};
+    var featured = opts.featuredSlugs || featuredSlugs || [];
+    var isAdmin = !!opts.isAdmin;
     var sel = el("story-select");
     if (!sel) return;
     sel.innerHTML = "";
-    stories.forEach(function (slug) {
+
+    function addOption(group, slug) {
       var o = document.createElement("option");
       o.value = slug;
       o.textContent = titles[slug] || (slug === "earth" ? "Earth" : slug);
-      sel.appendChild(o);
-    });
+      group.appendChild(o);
+    }
+
+    if (isAdmin && featured.length) {
+      var featuredGroup = document.createElement("optgroup");
+      featuredGroup.label = "Featured (live on site)";
+      featured.forEach(function (slug) {
+        if (stories.indexOf(slug) !== -1) addOption(featuredGroup, slug);
+      });
+      if (featuredGroup.children.length) sel.appendChild(featuredGroup);
+
+      var other = stories.filter(function (slug) {
+        return featured.indexOf(slug) === -1;
+      });
+      if (other.length) {
+        var allGroup = document.createElement("optgroup");
+        allGroup.label = "All stories";
+        other.forEach(function (slug) {
+          addOption(allGroup, slug);
+        });
+        sel.appendChild(allGroup);
+      }
+    } else {
+      stories.forEach(function (slug) {
+        addOption(sel, slug);
+      });
+    }
+
     if (!stories.length) {
       var empty = document.createElement("option");
       empty.value = "";
       empty.textContent = "(no stories — create one)";
       sel.appendChild(empty);
     }
+    syncFeaturedStoriesAdminUi(titles);
+    syncFeaturedStoryEditingNote();
+    syncDeleteStoryButton();
+    syncPublishButton();
+  }
+
+  function isFeaturedSlug(slug) {
+    return !!(slug && featuredSlugs.indexOf(slug) !== -1);
+  }
+
+  function syncFeaturedStoriesAdminUi(titles) {
+    var wrap = el("featured-stories-admin");
+    var quick = el("featured-stories-quick");
+    if (!wrap || !quick) return;
+    if (!builderIsAdmin || guestMode || !featuredSlugs.length) {
+      wrap.hidden = true;
+      wrap.classList.add("hidden");
+      quick.innerHTML = "";
+      return;
+    }
+    wrap.hidden = false;
+    wrap.classList.remove("hidden");
+    quick.innerHTML = "";
+    featuredSlugs.forEach(function (slug) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn" + (slug === currentSlug ? " primary" : "");
+      btn.textContent = (titles && titles[slug]) || slug;
+      btn.addEventListener("click", function () {
+        if (slug === currentSlug) return;
+        el("story-select").value = slug;
+        el("story-select").dispatchEvent(new Event("change"));
+      });
+      quick.appendChild(btn);
+    });
+  }
+
+  function syncFeaturedStoryEditingNote() {
+    var note = el("featured-story-editing-note");
+    if (!note) return;
+    if (builderIsAdmin && isFeaturedSlug(currentSlug)) {
+      note.textContent = isCurrentStoryPublished()
+        ? "Editing a featured story — changes save live to the home page."
+        : "This story is in the featured queue. Publish it to show it on the home page.";
+      note.classList.remove("hidden");
+    } else {
+      note.textContent = "";
+      note.classList.add("hidden");
+    }
+  }
+
+  function syncDeleteStoryButton() {
+    var btn = el("btn-delete-story");
+    if (!btn) return;
+    // Admins may delete anything, including featured stories, which drops them from the queue.
+    if (isFeaturedSlug(currentSlug) && !builderIsAdmin) {
+      btn.disabled = true;
+      btn.title = "Featured example stories cannot be deleted.";
+    } else {
+      btn.disabled = false;
+      btn.title = "";
+    }
+  }
+
+  function isCurrentStoryPublished() {
+    return !!(currentSlug && publishedBySlug[currentSlug]);
+  }
+
+  function syncPublishButton(message) {
+    var wrap = el("story-publish-admin");
+    var btn = el("btn-toggle-published");
+    var status = el("story-publish-status");
+    if (!wrap || !btn) return;
+    if (!builderIsAdmin || guestMode || !currentSlug) {
+      wrap.hidden = true;
+      wrap.classList.add("hidden");
+      return;
+    }
+    wrap.hidden = false;
+    wrap.classList.remove("hidden");
+    var published = isCurrentStoryPublished();
+    btn.textContent = published ? "Unpublish" : "Publish";
+    btn.disabled = false;
+    if (status) {
+      status.textContent =
+        message ||
+        (published
+          ? isFeaturedSlug(currentSlug)
+            ? "Live on the home page."
+            : "Published — visible to visitors with the link."
+          : "Not published yet. Publish when the story is ready.");
+    }
+  }
+
+  function setCurrentStoryPublished(published) {
+    var btn = el("btn-toggle-published");
+    var status = el("story-publish-status");
+    if (!currentSlug) return;
+    if (btn) btn.disabled = true;
+    if (status) status.textContent = published ? "Publishing…" : "Unpublishing…";
+    fetch(
+      "/api/platform/v1/admin/stories/" + encodeURIComponent(currentSlug) + "/published",
+      {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ published: published }),
+      }
+    )
+      .then(function (r) {
+        return r.json().then(function (j) {
+          if (!r.ok) throw new Error(j.error || "HTTP " + r.status);
+          return j;
+        });
+      })
+      .then(function () {
+        publishedBySlug[currentSlug] = published;
+        syncPublishButton(
+          published
+            ? isFeaturedSlug(currentSlug)
+              ? "Published — it is now live on the home page."
+              : "Published."
+            : "Unpublished — hidden from visitors."
+        );
+      })
+      .catch(function (e) {
+        syncPublishButton(e.message || "Could not change publish state.");
+        var btn2 = el("btn-toggle-published");
+        if (btn2) btn2.disabled = false;
+      });
   }
 
   function syncStorySelectValue() {
@@ -4762,7 +5687,9 @@
       }
       syncMapOptionsFlyoutFields();
       syncStorySelectValue();
+      syncStoryTitleUi();
       applyGuestModeUi();
+      captureGuestRevertSnapshot();
       restorePreviewLinkAfterLoad();
       updateNavPreviewButton(currentSlug);
       then();
@@ -4777,23 +5704,29 @@
       return;
     }
 
-    fetch("/__story-api/list", { cache: "no-store" })
+    fetch("/__story-api/list", { cache: "no-store", credentials: "include" })
       .then(function (r) {
         if (!r.ok) throw new Error();
         return r.json();
       })
       .then(function (data) {
         storyApiOk = true;
+        builderIsAdmin = !!(data && data.role === "admin");
+        featuredSlugs = (data && data.featuredSlugs) || [];
+        publishedBySlug = (data && data.published) || {};
         var stories = data.stories || [];
         var titles = data.titles || {};
-        populateStorySelect(stories, titles);
+        populateStorySelect(stories, titles, {
+          featuredSlugs: featuredSlugs,
+          isAdmin: builderIsAdmin,
+        });
         var fromUrl = getStorySlugFromUrl();
         var fromLs = null;
         try {
           fromLs = localStorage.getItem("mapsandcards-active-story-slug");
         } catch (e) {}
         currentSlug = fromUrl || fromLs || stories[0] || null;
-        if (currentSlug && stories.indexOf(currentSlug) === -1) {
+        if (!fromUrl && currentSlug && stories.indexOf(currentSlug) === -1) {
           currentSlug = stories[0] || null;
         }
         if (currentSlug) {
@@ -4831,34 +5764,46 @@
       .then(function () {
         syncMapOptionsFlyoutFields();
         syncStorySelectValue();
+        syncStoryTitleUi();
         showStoryApiHint();
         restorePreviewLinkAfterLoad();
         updateNavPreviewButton(currentSlug);
+        syncFeaturedStoryEditingNote();
+        syncDeleteStoryButton();
+        syncPublishButton();
         then();
       });
   }
 
-  function createGuestStory(slug, defaultsPatch, templateSlug, startLocation) {
-    var loadConfig = templateSlug
-      ? fetchDefaultTemplateConfig(templateSlug).then(function (json) {
-          return normalizeConfig(json);
-        })
-      : Promise.resolve(
-          (function () {
-            var defaults = clone(DEFAULT_CONFIG);
-            if (defaultsPatch) {
-              Object.keys(defaultsPatch).forEach(function (k) {
-                defaults[k] = defaultsPatch[k];
-              });
-            }
-            return normalizeConfig(defaults);
-          })()
-        );
+  function buildNewStoryConfig(defaultsPatch, templateSlug, startLocation) {
+    function mergeDefaultsAndApplyLocation(base) {
+      var storyConfig = clone(base);
+      if (defaultsPatch) {
+        Object.keys(defaultsPatch).forEach(function (k) {
+          storyConfig[k] = defaultsPatch[k];
+        });
+      }
+      storyConfig = normalizeConfig(storyConfig);
+      applyStartLocationToConfig(storyConfig, startLocation, {
+        updateFirstLocation: !templateSlug,
+      });
+      return normalizeConfig(storyConfig);
+    }
+    if (templateSlug) {
+      return fetchDefaultTemplateConfig(templateSlug).then(function (json) {
+        return mergeDefaultsAndApplyLocation(json);
+      });
+    }
+    return Promise.resolve(mergeDefaultsAndApplyLocation(DEFAULT_CONFIG));
+  }
 
-    Promise.all([ensureGuestViewerTemplate({ refresh: true }), loadConfig])
+  function createGuestStory(slug, defaultsPatch, templateSlug, startLocation) {
+    Promise.all([
+      ensureGuestViewerTemplate({ refresh: true }),
+      buildNewStoryConfig(defaultsPatch, templateSlug, startLocation),
+    ])
       .then(function (pair) {
         var storyConfig = pair[1];
-        applyStartLocationToConfig(storyConfig, startLocation);
         storyConfig.restartAtEnd = true;
         storyConfig = normalizeConfig(storyConfig);
         if (window.MapsAndCardsGuest.loadProject(slug)) {
@@ -5161,9 +6106,14 @@
         map.addControl(creditsCtrl, "bottom-left");
         creditsPanelControl = creditsCtrl;
         map.addControl(
-          new maplibregl.NavigationControl({ showCompass: true }),
+          new maplibregl.NavigationControl({ showCompass: false }),
           "top-right"
         );
+        if (typeof MapCompassControl !== "undefined") {
+          compassControl = new MapCompassControl({ resetBearingOnClick: true });
+          map.addControl(compassControl, "bottom-right");
+          syncCompassControlVisibility();
+        }
         map.on("error", function (e) {
           if (e && e.error) console.warn("Map error:", e.error);
         });
@@ -5753,6 +6703,19 @@
     applyGlobe3dBuildingsIfNeeded(targetBase, s);
   }
 
+  function applyCapturedCameraToStep(step, lat, lng, zoom, pitch, bearing) {
+    if (!step) return;
+    step.lat = lat;
+    step.lng = lng;
+    step.zoom = zoom;
+    var autoPitch = stepPitchForStep(step, zoom);
+    if (Math.abs(pitch - autoPitch) > 0.5) step.pitch = Math.round(pitch * 10) / 10;
+    else delete step.pitch;
+    if (Math.abs(bearing) > 0.5) step.bearing = Math.round(bearing * 10) / 10;
+    else delete step.bearing;
+    normalizeStepCamera(step);
+  }
+
   function onCaptureClick() {
     var c = map.getCenter();
     var z = map.getZoom();
@@ -5760,15 +6723,7 @@
     var b = map.getBearing();
     var s = config.steps[selectedIndex];
     if (!s) return;
-    s.lat = c.lat;
-    s.lng = c.lng;
-    s.zoom = z;
-    var autoPitch = stepPitchForStep(s, z);
-    if (Math.abs(p - autoPitch) > 0.5) s.pitch = Math.round(p * 10) / 10;
-    else delete s.pitch;
-    if (Math.abs(b) > 0.5) s.bearing = Math.round(b * 10) / 10;
-    else delete s.bearing;
-    normalizeStepCamera(s);
+    applyCapturedCameraToStep(s, c.lat, c.lng, z, p, b);
     if (isIntroStep(s)) {
       syncGlobalMapOptionsFromBuilderMap();
       config.initialMap = {
@@ -5799,17 +6754,136 @@
     return captureButtonEl;
   }
 
+  function canRemoveSelectedStep() {
+    if (!config || !config.steps || !config.steps[selectedIndex]) return false;
+    var s = config.steps[selectedIndex];
+    if (isIntroStep(s)) return config.steps.length > 1;
+    return countLocationSteps() > 1;
+  }
+
+  function canMoveSelectedStepUp() {
+    if (!config || !config.steps) return false;
+    var introFirst = config.steps.length && isIntroStep(config.steps[0]);
+    return !(selectedIndex <= 0 || (introFirst && selectedIndex === 1));
+  }
+
+  function canMoveSelectedStepDown() {
+    if (!config || !config.steps || !config.steps[selectedIndex]) return false;
+    return !(
+      selectedIndex >= config.steps.length - 1 ||
+      isIntroStep(config.steps[selectedIndex])
+    );
+  }
+
+  function deleteSelectedStep() {
+    removeStepAt(selectedIndex);
+  }
+
+  function moveStepUp() {
+    setMarkerPlacementMode(false);
+    ensureDrawSimpleSelect();
+    if (!canMoveSelectedStepUp()) return;
+    var t = config.steps[selectedIndex - 1];
+    config.steps[selectedIndex - 1] = config.steps[selectedIndex];
+    config.steps[selectedIndex] = t;
+    selectedIndex--;
+    saveNow();
+    renderStepList();
+    syncEditorFromStep();
+  }
+
+  function moveStepDown() {
+    setMarkerPlacementMode(false);
+    ensureDrawSimpleSelect();
+    if (!canMoveSelectedStepDown()) return;
+    var t = config.steps[selectedIndex + 1];
+    config.steps[selectedIndex + 1] = config.steps[selectedIndex];
+    config.steps[selectedIndex] = t;
+    selectedIndex++;
+    saveNow();
+    renderStepList();
+    syncEditorFromStep();
+  }
+
+  var STEP_LIST_ACTION_ICONS = {
+    add: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
+    delete: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg>',
+    up: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>',
+    down: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7"/></svg>',
+  };
+
+  function createStepListIconButton(id, title, iconHtml, extraClass, onClick) {
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.id = id;
+    btn.className = "step-list-icon-btn" + (extraClass ? " " + extraClass : "");
+    btn.title = title;
+    btn.setAttribute("aria-label", title);
+    btn.innerHTML = iconHtml;
+    btn.addEventListener("click", onClick);
+    return btn;
+  }
+
+  function renderStepListActionIcons() {
+    var row = document.createElement("div");
+    row.className = "step-list-actions-row";
+    row.appendChild(
+      createStepListIconButton(
+        "step-list-btn-add",
+        "Add",
+        STEP_LIST_ACTION_ICONS.add,
+        "step-list-icon-btn--add",
+        addLocationStep
+      )
+    );
+    row.appendChild(
+      createStepListIconButton(
+        "step-list-btn-delete",
+        "Delete",
+        STEP_LIST_ACTION_ICONS.delete,
+        "step-list-icon-btn--delete",
+        deleteSelectedStep
+      )
+    );
+    row.appendChild(
+      createStepListIconButton(
+        "step-list-btn-up",
+        "Up",
+        STEP_LIST_ACTION_ICONS.up,
+        "",
+        moveStepUp
+      )
+    );
+    row.appendChild(
+      createStepListIconButton(
+        "step-list-btn-down",
+        "Down",
+        STEP_LIST_ACTION_ICONS.down,
+        "",
+        moveStepDown
+      )
+    );
+    return row;
+  }
+
+  function syncStepListActionIcons() {
+    var delBtn = el("step-list-btn-delete");
+    var upBtn = el("step-list-btn-up");
+    var downBtn = el("step-list-btn-down");
+    if (delBtn) delBtn.disabled = !canRemoveSelectedStep();
+    if (upBtn) upBtn.disabled = !canMoveSelectedStepUp();
+    if (downBtn) downBtn.disabled = !canMoveSelectedStepDown();
+  }
+
   function syncRemoveStepControls() {
     var removeBtn = el("btn-remove-step");
     if (!removeBtn || !config || !config.steps) return;
     var s = config.steps[selectedIndex];
     var intro = isIntroStep(s);
-    var canRemove = intro
-      ? config.steps.length > 1
-      : countLocationSteps() > 1;
-    removeBtn.disabled = !canRemove;
+    removeBtn.disabled = !canRemoveSelectedStep();
     removeBtn.textContent = intro ? "Delete intro" : "Delete location";
     removeBtn.title = intro ? "Delete the intro card" : "Delete the selected location";
+    syncStepListActionIcons();
   }
 
   function syncAddIntroButton() {
@@ -5820,20 +6894,9 @@
   function syncMoveStepControls() {
     var upBtn = el("btn-move-up");
     var downBtn = el("btn-move-down");
-    if (!config || !config.steps) return;
-    var s = config.steps[selectedIndex];
-    var intro = isIntroStep(s);
-    var introFirst = config.steps.length && isIntroStep(config.steps[0]);
-    if (upBtn) {
-      upBtn.disabled =
-        selectedIndex <= 0 ||
-        (introFirst && selectedIndex === 1);
-    }
-    if (downBtn) {
-      downBtn.disabled =
-        selectedIndex >= config.steps.length - 1 ||
-        intro;
-    }
+    if (upBtn) upBtn.disabled = !canMoveSelectedStepUp();
+    if (downBtn) downBtn.disabled = !canMoveSelectedStepDown();
+    syncStepListActionIcons();
   }
 
   function syncStepTypeUi() {
@@ -5850,6 +6913,7 @@
     if (basemapRow) basemapRow.hidden = intro;
     if (annotateBtn) annotateBtn.hidden = intro;
     syncStepFlyTransitionUi();
+    syncStepScrollHoldUi();
     syncMoveStepControls();
     syncAddIntroButton();
     syncRemoveStepControls();
@@ -5892,6 +6956,10 @@
     if (cap.parentNode) cap.parentNode.removeChild(cap);
     list.innerHTML = "";
     config.steps.forEach(function (s, i) {
+      var item = document.createElement("div");
+      item.className = "step-list-item";
+      if (i === selectedIndex) item.classList.add("step-list-item--selected");
+
       var row = document.createElement("div");
       row.className = "step-list-row";
       if (isIntroStep(s)) row.classList.add("step-list-row--intro");
@@ -5902,12 +6970,7 @@
       if (s.id) b.title = s.id;
       if (i === selectedIndex) b.classList.add("active");
       b.addEventListener("click", function () {
-        selectedIndex = i;
-        setMarkerPlacementMode(false);
-        ensureDrawSimpleSelect();
-        renderStepList();
-        syncEditorFromStep();
-        flyToStep(i, true);
+        selectStepAt(i, true);
       });
       row.appendChild(b);
       var del = document.createElement("button");
@@ -5925,17 +6988,47 @@
       });
       row.appendChild(del);
       if (i === selectedIndex) row.appendChild(cap);
-      list.appendChild(row);
+      item.appendChild(row);
+
+      list.appendChild(item);
     });
+    list.appendChild(renderStepListActionIcons());
     if (config.steps.length === 0) {
       var emptyRow = document.createElement("div");
       emptyRow.className = "step-list-row";
       emptyRow.appendChild(cap);
       list.appendChild(emptyRow);
     }
+    mountSelectedStepContext(el("step-workspace-controls"));
+    requestAnimationFrame(function () {
+      var item = list.querySelector(".step-list-item--selected");
+      if (item) item.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    });
     syncRemoveStepControls();
     syncAddIntroButton();
     syncMoveStepControls();
+  }
+
+  var STEP_CONTEXT_NODE_IDS = [
+    "step-coords",
+    "btn-clear-step-camera",
+    "step-basemap-row",
+    "step-options",
+    "annotate-panel",
+    "step-camera-hint",
+  ];
+
+  function mountSelectedStepContext(mountEl) {
+    var park = el("step-context-park");
+    var opts = el("step-options");
+    var wasOpen = !!(opts && opts.open);
+    STEP_CONTEXT_NODE_IDS.forEach(function (id) {
+      var node = el(id);
+      if (!node) return;
+      if (mountEl) mountEl.appendChild(node);
+      else if (park) park.appendChild(node);
+    });
+    if (opts && wasOpen) opts.open = true;
   }
 
   function initCardQuill() {
@@ -6046,6 +7139,7 @@
     syncStepBasemapSelect();
     syncStepMapOverridesUi();
     syncStepSpinUi();
+    syncStepScrollHoldUi();
     syncStepFlyTransitionUi();
     syncStepTypeUi();
     var panel = el("annotate-panel");
@@ -6110,58 +7204,13 @@
     flyToStep(0, false);
   });
 
-  el("btn-add-step").addEventListener("click", function () {
-    setMarkerPlacementMode(false);
-    ensureDrawSimpleSelect();
-    var c = map.getCenter();
-    var z = map.getZoom();
-    var n = countLocationSteps() + 1;
-    config.steps.push({
-      id: "location-" + n,
-      lat: c.lat,
-      lng: c.lng,
-      zoom: z,
-      html: "<p>New location.</p>",
-      flyTransition: "smooth",
-      overlays: { geojson: { type: "FeatureCollection", features: [] } }
-    });
-    selectedIndex = config.steps.length - 1;
-    saveNow();
-    renderStepList();
-    syncEditorFromStep();
-  });
+  el("btn-add-step").addEventListener("click", addLocationStep);
 
-  el("btn-remove-step").addEventListener("click", function () {
-    removeStepAt(selectedIndex);
-  });
+  el("btn-remove-step").addEventListener("click", deleteSelectedStep);
 
-  el("btn-move-up").addEventListener("click", function () {
-    setMarkerPlacementMode(false);
-    ensureDrawSimpleSelect();
-    if (selectedIndex <= 0) return;
-    if (config.steps[0] && isIntroStep(config.steps[0]) && selectedIndex === 1) return;
-    var t = config.steps[selectedIndex - 1];
-    config.steps[selectedIndex - 1] = config.steps[selectedIndex];
-    config.steps[selectedIndex] = t;
-    selectedIndex--;
-    saveNow();
-    renderStepList();
-    syncEditorFromStep();
-  });
+  el("btn-move-up").addEventListener("click", moveStepUp);
 
-  el("btn-move-down").addEventListener("click", function () {
-    setMarkerPlacementMode(false);
-    ensureDrawSimpleSelect();
-    if (selectedIndex >= config.steps.length - 1) return;
-    if (isIntroStep(config.steps[selectedIndex])) return;
-    var t = config.steps[selectedIndex + 1];
-    config.steps[selectedIndex + 1] = config.steps[selectedIndex];
-    config.steps[selectedIndex] = t;
-    selectedIndex++;
-    saveNow();
-    renderStepList();
-    syncEditorFromStep();
-  });
+  el("btn-move-down").addEventListener("click", moveStepDown);
 
   function goToStep(i) {
     if (i < 0 || i >= config.steps.length) return;
@@ -6244,9 +7293,43 @@
       config = normalizeConfig(config);
       persistGuestProject({ quiet: true })
         .then(function () {
-          var project = window.MapsAndCardsGuest.loadProject(currentSlug);
-          if (!project) throw new Error("No guest project to export");
-          return window.MapsAndCardsGuest.exportLocalSite(project);
+          var bundlePromise = window.StoryMapImages
+            ? StoryMapImages.bundleImagesForStandaloneExport(config, function (url) {
+                if (String(url).indexOf("data:") === 0) return Promise.resolve(null);
+                return fetch(url, { credentials: "include" }).then(function (r) {
+                  return r.ok ? r.arrayBuffer() : null;
+                });
+              })
+            : Promise.resolve({ config: config, entries: [] });
+          return bundlePromise.then(function (bundled) {
+            return ensureGuestViewerTemplate({ refresh: true }).then(function () {
+              var project = buildGuestProject(currentSlug, bundled.config);
+              if (!project) throw new Error("No guest project to export");
+              project.files.forEach(function (file) {
+                if (
+                  file.name &&
+                  String(file.name).toLowerCase() === "index.html" &&
+                  typeof file.content === "string"
+                ) {
+                  file.content = file.content.replace(
+                    /src="\/Tools\/story-map-images\.js"/,
+                    'src="assets/story-map-images.js"'
+                  );
+                }
+              });
+              return fetch("/Tools/story-map-images.js")
+                .then(function (r) {
+                  return r.ok ? r.text() : "";
+                })
+                .then(function (scriptText) {
+                  var extras = (bundled.entries || []).slice();
+                  if (scriptText) {
+                    extras.push({ name: "assets/story-map-images.js", data: scriptText });
+                  }
+                  return window.MapsAndCardsGuest.exportLocalSite(project, extras);
+                });
+            });
+          });
         })
         .catch(function (e) {
           alert("Export failed: " + (e.message || e));
@@ -6342,7 +7425,14 @@
     details.addEventListener("toggle", function () {
       if (!details.open) return;
       requestAnimationFrame(function () {
-        details.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        var panel = el("build-panel-main");
+        if (panel) {
+          var rect = details.getBoundingClientRect();
+          var panelRect = panel.getBoundingClientRect();
+          if (rect.bottom > panelRect.bottom || rect.top < panelRect.top) {
+            details.scrollIntoView({ block: "nearest", behavior: "smooth" });
+          }
+        }
         if (map) map.resize();
       });
     });
@@ -6378,39 +7468,73 @@
     }
   });
 
-  el("btn-new-story").addEventListener("click", function () {
-    promptNewStoryModal().then(function (result) {
+  function startNewStoryFlow(options) {
+    var asFeatured = !!(options && options.featured);
+    return promptNewStoryModal().then(function (result) {
       if (!result) return;
       var slug = result.slug;
       if (guestMode) {
         createGuestStory(slug, result.defaults, result.templateSlug, result.startLocation);
         return;
       }
-      var defaults = clone(DEFAULT_CONFIG);
-      Object.keys(result.defaults).forEach(function (k) {
-        defaults[k] = result.defaults[k];
-      });
-      applyStartLocationToConfig(defaults, result.startLocation);
-      defaults = normalizeConfig(defaults);
-      fetch("/__story-api/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug: slug, defaultJson: defaults })
-      })
-        .then(function (r) {
-          return r.json().then(function (j) {
-            return { ok: r.ok, status: r.status, j: j };
+      buildNewStoryConfig(result.defaults, result.templateSlug, result.startLocation)
+        .then(function (defaults) {
+          return fetch("/__story-api/create", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              slug: slug,
+              defaultJson: defaults,
+              featured: asFeatured,
+            }),
+          }).then(function (r) {
+            return r.json().then(function (j) {
+              return { ok: r.ok, status: r.status, j: j };
+            });
           });
         })
         .then(function (o) {
           if (!o.ok) throw new Error(o.j.error || "HTTP " + o.status);
-          window.location.href = "?story=" + encodeURIComponent(slug);
+          var savedSlug = (o.j && o.j.slug) || slug;
+          window.location.href = "?story=" + encodeURIComponent(savedSlug);
         })
         .catch(function (e) {
           alert("Could not create story: " + (e.message || e));
         });
     });
+  }
+
+  el("btn-new-story").addEventListener("click", function () {
+    startNewStoryFlow();
   });
+
+  function maybeStartRequestedNewStory() {
+    var request = getNewStoryRequestFromUrl();
+    if (!request) return;
+    clearNewStoryParamsFromUrl();
+    if (request.featured && !builderIsAdmin) {
+      alert("Sign in as admin to create a featured story.");
+      return;
+    }
+    window.setTimeout(function () {
+      startNewStoryFlow({ featured: request.featured });
+    }, 0);
+  }
+
+  var publishToggleBtn = el("btn-toggle-published");
+  if (publishToggleBtn) {
+    publishToggleBtn.addEventListener("click", function () {
+      setCurrentStoryPublished(!isCurrentStoryPublished());
+    });
+  }
+
+  var guestRevertBtn = el("btn-guest-revert");
+  if (guestRevertBtn) {
+    guestRevertBtn.addEventListener("click", function () {
+      revertGuestChanges();
+    });
+  }
 
   el("btn-delete-story").addEventListener("click", function () {
     if (!currentSlug) {
@@ -6539,6 +7663,41 @@
     syncGlobeSpinForStep(selectedIndex);
   });
 
+  el("step-scroll-hold-toggle").addEventListener("change", function () {
+    var s = config.steps[selectedIndex];
+    if (!s) return;
+    if (el("step-scroll-hold-toggle").checked) {
+      s.scrollHold = true;
+    } else {
+      delete s.scrollHold;
+    }
+    normalizeStepOverlays(s);
+    saveNow();
+    syncStepScrollHoldUi();
+  });
+
+  function applyStepScrollHoldExtraFromUi(immediate) {
+    var s = config.steps[selectedIndex];
+    if (!s) return;
+    var raw = parseFloat(el("step-scroll-hold-extra").value, 10);
+    if (!isFinite(raw) || raw <= 0) {
+      delete s.scrollHoldExtraSec;
+    } else {
+      s.scrollHoldExtraSec = Math.min(30, Math.round(raw * 10) / 10);
+    }
+    normalizeStepOverlays(s);
+    if (immediate) saveNow();
+    else saveSoon();
+    syncStepScrollHoldUi();
+  }
+
+  el("step-scroll-hold-extra").addEventListener("input", function () {
+    applyStepScrollHoldExtraFromUi(false);
+  });
+  el("step-scroll-hold-extra").addEventListener("change", function () {
+    applyStepScrollHoldExtraFromUi(true);
+  });
+
   el("btn-clear-step-camera").addEventListener("click", function () {
     var s = config.steps[selectedIndex];
     if (!s) return;
@@ -6553,6 +7712,13 @@
   el("restart-at-end-toggle").addEventListener("change", function () {
     if (el("restart-at-end-toggle").checked) config.restartAtEnd = true;
     else delete config.restartAtEnd;
+    saveSoon();
+  });
+
+  el("show-compass-toggle").addEventListener("change", function () {
+    if (el("show-compass-toggle").checked) delete config.showCompass;
+    else config.showCompass = false;
+    syncCompassControlVisibility();
     saveSoon();
   });
 
@@ -6633,6 +7799,160 @@
       setMarkerPlacementMode(true, "label");
     }
   });
+
+  function loadImageAspectRatio(url) {
+    return new Promise(function (resolve) {
+      var img = new Image();
+      img.onload = function () {
+        var ar = img.naturalWidth / img.naturalHeight;
+        resolve(ar > 0 ? ar : 1.333);
+      };
+      img.onerror = function () {
+        resolve(1.333);
+      };
+      img.crossOrigin = "anonymous";
+      img.src = url;
+    });
+  }
+
+  function beginImagePlacement(imageUrl, label, aspectRatio) {
+    pendingImagePlacement = {
+      imageUrl: imageUrl,
+      label: label || "",
+      aspectRatio: aspectRatio || 1.333,
+    };
+    setMarkerPlacementMode(true, "image");
+  }
+
+  function syncImageFromFilesButton() {
+    var btn = el("btn-add-image-from-files");
+    var filesToggle = el("nav-files-toggle");
+    if (!btn) return;
+    btn.classList.toggle(
+      "hidden",
+      !(filesToggle && !filesToggle.classList.contains("hidden"))
+    );
+  }
+
+  function uploadStudentImageFile(file) {
+    return file.arrayBuffer().then(function (buf) {
+      var bytes = new Uint8Array(buf);
+      var binary = "";
+      for (var i = 0; i < bytes.length; i += 0x8000) {
+        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+      }
+      return platformFetch("/files/student", {
+        method: "POST",
+        body: JSON.stringify({
+          filename: file.name,
+          category: "images",
+          dataBase64: btoa(binary),
+        }),
+      });
+    });
+  }
+
+  function processOverlayImageFile(file) {
+    if (!file || !file.type || file.type.indexOf("image/") !== 0) {
+      alert("Choose an image file.");
+      return;
+    }
+    var filesToggle = el("nav-files-toggle");
+    var canUpload = filesToggle && !filesToggle.classList.contains("hidden");
+    if (canUpload) {
+      uploadStudentImageFile(file)
+        .then(function (asset) {
+          if (!asset || !asset.public_url) throw new Error("Upload failed");
+          return loadImageAspectRatio(asset.public_url).then(function (ar) {
+            beginImagePlacement(asset.public_url, asset.filename || file.name, ar);
+          });
+        })
+        .catch(function (e) {
+          alert("Could not upload image: " + (e.message || e));
+        });
+      return;
+    }
+    if (file.size > 800 * 1024) {
+      alert("Guest mode: use an image under 800 KB, or sign in to upload larger files.");
+      return;
+    }
+    var reader = new FileReader();
+    reader.onload = function () {
+      loadImageAspectRatio(reader.result).then(function (ar) {
+        beginImagePlacement(reader.result, file.name, ar);
+      });
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function pickImageFromMyFiles() {
+    platformFetch("/files/student")
+      .then(function (data) {
+        var images = (data.assets || []).filter(function (a) {
+          return a.category === "images" && a.public_url;
+        });
+        if (!images.length) {
+          alert("No images in My Files yet. Upload one in the Files panel first.");
+          return;
+        }
+        if (images.length === 1) {
+          return loadImageAspectRatio(images[0].public_url).then(function (ar) {
+            beginImagePlacement(images[0].public_url, images[0].filename, ar);
+          });
+        }
+        var names = images.map(function (a, i) {
+          return i + 1 + ". " + a.filename;
+        });
+        var choice = window.prompt(
+          "Pick an image by number:\n\n" + names.join("\n"),
+          "1"
+        );
+        if (choice == null) return;
+        var idx = parseInt(choice, 10) - 1;
+        if (isNaN(idx) || idx < 0 || idx >= images.length) {
+          alert("Invalid choice.");
+          return;
+        }
+        return loadImageAspectRatio(images[idx].public_url).then(function (ar) {
+          beginImagePlacement(images[idx].public_url, images[idx].filename, ar);
+        });
+      })
+      .catch(function (e) {
+        alert("Could not load My Files: " + (e.message || e));
+      });
+  }
+
+  var overlayImageFile = el("overlay-image-file");
+  if (overlayImageFile) {
+    overlayImageFile.addEventListener("change", function (ev) {
+      var file = ev.target.files && ev.target.files[0];
+      ev.target.value = "";
+      if (file) processOverlayImageFile(file);
+    });
+  }
+
+  var btnAddImage = el("btn-add-image");
+  if (btnAddImage) {
+    btnAddImage.addEventListener("click", function () {
+      if (!map) return;
+      closeMarkerEditPopup();
+      if (markerPlacementMode && placementKind === "image") {
+        setMarkerPlacementMode(false);
+        return;
+      }
+      var input = el("overlay-image-file");
+      if (input) input.click();
+    });
+  }
+
+  var btnImageFromFiles = el("btn-add-image-from-files");
+  if (btnImageFromFiles) {
+    btnImageFromFiles.addEventListener("click", function () {
+      if (!map) return;
+      closeMarkerEditPopup();
+      pickImageFromMyFiles();
+    });
+  }
 
   /* ── Geocoder search ─────────────────────────────────────── */
   (function initGeoSearch() {
@@ -6785,14 +8105,32 @@
     });
   }
 
+  function syncAccountFlyoutUi(opts) {
+    opts = opts || {};
+    var summary = el("nav-account-summary");
+    var signIn = el("nav-account-signin");
+    var signOut = el("nav-account-signout");
+    var accountToggle = el("nav-account-toggle");
+    if (summary) summary.textContent = opts.summary || "";
+    if (signIn) {
+      if (opts.showSignIn) signIn.classList.remove("hidden");
+      else signIn.classList.add("hidden");
+    }
+    if (signOut) {
+      if (opts.showSignOut) signOut.classList.remove("hidden");
+      else signOut.classList.add("hidden");
+    }
+    if (accountToggle) {
+      if (opts.showAccountToggle) accountToggle.classList.remove("hidden");
+      else accountToggle.classList.add("hidden");
+    }
+  }
+
   function initBuilderSessionUi() {
     var labelEl = el("builder-session-label");
-    var guestSignOut = el("builder-session-guest-signout");
-    var guestSignIn = el("builder-session-guest-signin");
-    var signOutEl = el("builder-session-signout");
+    var Auth = window.MapsAndCardsBuilderAuth;
     var submitBtn = el("nav-submit-toggle");
     var myFiles = el("nav-files-toggle");
-    var Auth = window.MapsAndCardsBuilderAuth;
     if (!labelEl) return;
 
     if (guestMode) {
@@ -6800,9 +8138,13 @@
       labelEl.classList.add("guest-mode");
       labelEl.textContent =
         "Guest (local only) — export ZIP or sign in to save & submit.";
-      if (guestSignOut) guestSignOut.classList.remove("hidden");
-      if (guestSignIn) guestSignIn.classList.remove("hidden");
-      if (signOutEl) signOutEl.classList.add("hidden");
+      syncAccountFlyoutUi({
+        summary:
+          "Guest mode — your work is saved locally in this browser. Sign in to save to the server and submit to your teacher.",
+        showSignIn: true,
+        showSignOut: true,
+        showAccountToggle: true,
+      });
       if (Auth && typeof Auth.bindGuestSessionBar === "function") {
         Auth.bindGuestSessionBar({ getCurrentSlug: function () { return currentSlug; } });
       }
@@ -6810,27 +8152,61 @@
     }
 
     labelEl.classList.remove("guest-mode");
-    if (guestSignOut) guestSignOut.classList.add("hidden");
-    if (guestSignIn) guestSignIn.classList.add("hidden");
 
-    fetch("/api/platform/v1/auth/student/me", { credentials: "include" })
+    fetch("/api/platform/v1/auth/admin/me", { credentials: "include" })
       .then(function (r) {
         if (!r.ok) throw new Error();
         return r.json();
       })
-      .then(function (data) {
-        if (!data.student) return;
+      .then(function () {
+        builderIsAdmin = true;
         labelEl.classList.remove("hidden");
-        labelEl.textContent =
-          "Signed in as " + data.student.displayName + " · " + data.student.className;
-        if (submitBtn) submitBtn.classList.remove("hidden");
-        if (myFiles) myFiles.classList.remove("hidden");
-        if (signOutEl) signOutEl.classList.remove("hidden");
-        if (Auth && typeof Auth.bindStudentSessionBar === "function") {
-          Auth.bindStudentSessionBar();
+        labelEl.textContent = "Admin — featured stories save live to the site.";
+        syncAccountFlyoutUi({
+          summary: labelEl.textContent,
+          showSignIn: false,
+          showSignOut: true,
+          showAccountToggle: true,
+        });
+        if (Auth && typeof Auth.bindAdminSessionBar === "function") {
+          Auth.bindAdminSessionBar();
         }
+        syncFeaturedStoriesAdminUi();
+        syncFeaturedStoryEditingNote();
+        syncDeleteStoryButton();
+        syncPublishButton();
       })
-      .catch(function () {});
+      .catch(function () {
+        fetch("/api/platform/v1/auth/student/me", { credentials: "include" })
+          .then(function (r) {
+            if (!r.ok) throw new Error();
+            return r.json();
+          })
+          .then(function (data) {
+            if (!data.student) {
+              syncAccountFlyoutUi({ summary: "", showSignIn: false, showSignOut: false, showAccountToggle: false });
+              return;
+            }
+            labelEl.classList.remove("hidden");
+            labelEl.textContent =
+              "Signed in as " + data.student.displayName + " · " + data.student.className;
+            if (submitBtn) submitBtn.classList.remove("hidden");
+            if (myFiles) myFiles.classList.remove("hidden");
+            syncImageFromFilesButton();
+            syncAccountFlyoutUi({
+              summary: labelEl.textContent,
+              showSignIn: false,
+              showSignOut: true,
+              showAccountToggle: true,
+            });
+            if (Auth && typeof Auth.bindStudentSessionBar === "function") {
+              Auth.bindStudentSessionBar();
+            }
+          })
+          .catch(function () {
+            syncAccountFlyoutUi({ summary: "", showSignIn: false, showSignOut: false, showAccountToggle: false });
+          });
+      });
   }
 
   var NAV_FLYOUTS = [
@@ -6838,6 +8214,7 @@
     { panelId: "nav-map-options-panel", toggleId: "nav-map-options-toggle", onOpen: syncMapOptionsFlyoutFields },
     { panelId: "nav-submit-panel", toggleId: "nav-submit-toggle" },
     { panelId: "nav-files-panel", toggleId: "nav-files-toggle", onOpen: loadNavFilesList },
+    { panelId: "nav-account-panel", toggleId: "nav-account-toggle" },
   ];
 
   function closeNavFlyoutsExcept(exceptPanelId) {
@@ -6878,6 +8255,10 @@
 
   function setFilesPanelOpen(open) {
     setNavFlyoutOpen("nav-files-panel", "nav-files-toggle", open, loadNavFilesList);
+  }
+
+  function setAccountPanelOpen(open) {
+    setNavFlyoutOpen("nav-account-panel", "nav-account-toggle", open);
   }
 
   function platformFetch(path, options) {
@@ -7024,6 +8405,9 @@
     var filesToggle = el("nav-files-toggle");
     var filesPanel = el("nav-files-panel");
     var filesClose = el("nav-files-panel-close");
+    var accountToggle = el("nav-account-toggle");
+    var accountPanel = el("nav-account-panel");
+    var accountClose = el("nav-account-panel-close");
     var navPreview = el("btn-nav-preview");
 
     if (storyToggle && storyPanel) {
@@ -7070,6 +8454,17 @@
         setFilesPanelOpen(false);
       });
     }
+    if (accountToggle && accountPanel) {
+      accountToggle.addEventListener("click", function (e) {
+        e.stopPropagation();
+        setAccountPanelOpen(accountPanel.hidden);
+      });
+    }
+    if (accountClose) {
+      accountClose.addEventListener("click", function () {
+        setAccountPanelOpen(false);
+      });
+    }
     document.addEventListener("click", function (e) {
       NAV_FLYOUTS.forEach(function (entry) {
         var panel = el(entry.panelId);
@@ -7085,6 +8480,7 @@
           else if (entry.panelId === "nav-map-options-panel") setMapOptionsPanelOpen(false);
           else if (entry.panelId === "nav-submit-panel") setSubmitPanelOpen(false);
           else if (entry.panelId === "nav-files-panel") setFilesPanelOpen(false);
+          else if (entry.panelId === "nav-account-panel") setAccountPanelOpen(false);
         }
       });
     });
@@ -7095,6 +8491,16 @@
     }
     initMapOptionsFlyoutControls();
     initNavFilesPanel();
+    var storyTitleInput = el("story-title-input");
+    if (storyTitleInput && !storyTitleInput.dataset.wired) {
+      storyTitleInput.dataset.wired = "1";
+      storyTitleInput.addEventListener("input", function () {
+        applyStoryTitleFromInput(storyTitleInput.value);
+      });
+      storyTitleInput.addEventListener("change", function () {
+        applyStoryTitleFromInput(storyTitleInput.value);
+      });
+    }
   }
 
   function initMapOptionsFlyoutControls() {
@@ -7340,6 +8746,7 @@
     initNavRail();
     loadConfigThen(function () {
       initBuilderSessionUi();
+      maybeStartRequestedNewStory();
       initCardQuill();
       initMap(function () {
         /* set initial tracker so the first flyToStep knows not to switch styles unnecessarily */
@@ -7350,6 +8757,7 @@
         renderStepList();
         syncMapOptionsFlyoutFields();
         syncEditorFromStep();
+        syncStoryTitleUi();
         flyToStep(selectedIndex, false);
         updateMapLocationButtonState();
       });

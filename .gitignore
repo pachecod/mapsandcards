@@ -10,3 +10,4 @@ Starter Templates/**/assets/
 .env
 .env.*
 !.env.example
+.reference/

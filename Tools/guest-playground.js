@@ -167,14 +167,15 @@
    * Requires global JSZip.
    */
   function markStandaloneExportHtml(html) {
-    if (!html || /data-standalone-export/i.test(html)) return html;
-    return String(html).replace(/<html(\s[^>]*)>/i, function (match) {
-      if (/data-standalone-export/i.test(match)) return match;
-      return match.replace("<html", '<html data-standalone-export="1"');
-    });
+    if (!html) return html;
+    /* The analytics tag is served by app middleware, so it only 404s in a standalone bundle. */
+    return String(html).replace(
+      /[ \t]*<script[^>]*src="\/__analytics\.js"[^>]*><\/script>[ \t]*\r?\n?/gi,
+      ""
+    );
   }
 
-  function exportLocalSite(project) {
+  function exportLocalSite(project, extraFiles) {
     if (!project || !project.files) {
       return Promise.reject(new Error("No project to export"));
     }
@@ -192,6 +193,10 @@
         content = markStandaloneExportHtml(content);
       }
       zip.file(file.name, content);
+    });
+    (extraFiles || []).forEach(function (entry) {
+      if (!entry || !entry.name) return;
+      zip.file(entry.name, entry.data);
     });
     return zip.generateAsync({ type: "blob" }).then(function (blob) {
       var url = URL.createObjectURL(blob);

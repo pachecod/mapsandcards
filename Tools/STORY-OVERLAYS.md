@@ -50,6 +50,7 @@ Story-level fields (in the root JSON):
 |------|-----------|------------------------|
 | Placemark | `Point` | `kind`: `"marker"`, optional `color`, `radius` |
 | Label | `Point` | `kind`: `"label"` or set `text` / `title`, optional `size`, `color`, `haloColor` |
+| Image | `Point` | `kind`: `"image"`, `imageUrl`, `widthM`, `heightM` (meters on the ground), optional `aspectRatio`, `opacity`, `imageLabel` |
 | Region | `Polygon` / `MultiPolygon` | `kind`: `"region"`, optional `fillColor`, `fillOpacity`, `strokeColor`, `strokeWidth` |
 | Line | `LineString` / `MultiLineString` | `kind`: `"line"`, optional `color`, `width` |
 
@@ -58,6 +59,8 @@ Coordinates are **longitude, latitude** per GeoJSON.
 ## Reader (scroll-map-story.html)
 
 - **Story mode (scroll scrub):** While scrolling between cards, the map camera is driven by scroll progress — not independent timed `flyTo` animations. Camera position is interpolated between step anchors (card center at ~42% viewport height) using each step’s smooth or pullback transition path. Releasing scroll at any point leaves the map at the matching camera.
+- **Scroll hold (optional per step):** A step may set `"scrollHold": true`, including the **Intro** card. During manual scroll only, the map pauses while that card is entering, visible, or leaving the viewport; camera travel happens in the scroll gaps before and after the card. **Next/Previous** skip hold zones and fly the direct path between step anchors.
+- **Extra scroll pause:** With `scrollHold`, a step may set `"scrollHoldExtraSec"` (number, default omitted/0) to add stillness **after** the card leaves, before the map moves toward the next location. The value is approximate seconds of comfortable scroll; Next/Previous ignore it.
 - **Story mode (reduced motion):** When the OS prefers reduced motion, Story mode falls back to discrete `flyTo` flights on step change.
 - **Story mode:** Overlays update when the active step changes (at the midpoint between cards during scroll, or when settled on a step).
 - **Explore mode:** Overlays from **all locations** are shown at once, each at its own coordinates on the map/globe. Returning to Story mode shows only the active step’s overlays again.
@@ -69,7 +72,9 @@ Coordinates are **longitude, latitude** per GeoJSON.
 
 ## Builder
 
-Use **Apply JSON to map**, **Import GeoJSON**, **Marker / Label at map center**, **Draw line / polygon / point** (Mapbox Draw), and the feature list **Remove** to edit overlays for the selected step.
+Use **Apply JSON to map**, **Import GeoJSON**, **Marker / Label / Image at map center**, **Draw line / polygon / point** (Mapbox Draw), and the feature list **Edit / Move / Remove** to edit overlays for the selected step.
+
+**Image overlays** are georeferenced: they scale with the map as you zoom. In the builder, choose **Image** (or **From My Files** when signed in), then click the map to place. Use **Edit** to adjust ground width in meters and opacity; use **Move** to reposition.
 
 Use **Set Map Location** on the map to save center, zoom, pitch, and bearing for the selected step. On the **Intro** card, this also updates the story’s global opening view (`initialMap`).
 
@@ -77,4 +82,6 @@ Per-step **Options** (collapsible panel):
 
 - **Stars** / **3D buildings** — default, on, or off
 - **Spin globe while this card is active**
+- **Pause map while card is on screen** — scroll-only hold (`scrollHold`); Next/Previous ignore it
+- **Extra pause after card (seconds)** — optional `scrollHoldExtraSec` when pause is enabled
 - **Move to this location** / **Move to next location** (Intro only) — smooth vs pullback fly

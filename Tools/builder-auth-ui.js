@@ -311,8 +311,8 @@
 
   function bindGuestSessionBar(opts) {
     opts = opts || {};
-    var signOutBtn = document.getElementById("builder-session-guest-signout");
-    var signInBtn = document.getElementById("builder-session-guest-signin");
+    var signOutBtn = document.getElementById("nav-account-signout");
+    var signInBtn = document.getElementById("nav-account-signin");
     if (signOutBtn && signOutBtn.dataset.bound !== "1") {
       signOutBtn.dataset.bound = "1";
       signOutBtn.addEventListener("click", function () {
@@ -351,7 +351,7 @@
   }
 
   function bindStudentSessionBar() {
-    var signOutBtn = document.getElementById("builder-session-signout");
+    var signOutBtn = document.getElementById("nav-account-signout");
     if (!signOutBtn || signOutBtn.dataset.bound === "1") return;
     signOutBtn.dataset.bound = "1";
     signOutBtn.addEventListener("click", function () {
@@ -364,6 +364,18 @@
     });
   }
 
+  function bindAdminSessionBar() {
+    var signOutBtn = document.getElementById("nav-account-signout");
+    if (!signOutBtn || signOutBtn.dataset.bound === "1") return;
+    signOutBtn.dataset.bound = "1";
+    signOutBtn.addEventListener("click", function () {
+      if (!confirm("Log out of admin and return to the admin sign-in screen?")) return;
+      api("/auth/admin/logout", { method: "POST" }).then(function () {
+        window.location.href = "/admin/";
+      });
+    });
+  }
+
   global.MapsAndCardsBuilderAuth = {
     promptGuestSignInWarning: promptGuestSignInWarning,
     showStudentLoginOverlay: showStudentLoginOverlay,
@@ -371,5 +383,6 @@
     offerGuestImport: offerGuestImport,
     bindGuestSessionBar: bindGuestSessionBar,
     bindStudentSessionBar: bindStudentSessionBar,
+    bindAdminSessionBar: bindAdminSessionBar,
   };
 })(typeof window !== "undefined" ? window : globalThis);

@@ -1,4 +1,5 @@
 {
+  "title": "Earth",
   "steps": [
     {
       "id": "location-1",
@@ -13,7 +14,8 @@
           "features": []
         }
       },
-      "spin": true
+      "spin": true,
+      "scrollHold": true
     },
     {
       "id": "location-6",
@@ -27,7 +29,8 @@
           "features": []
         }
       },
-      "baseMap": "esri-satellite"
+      "baseMap": "esri-satellite",
+      "scrollHold": true
     },
     {
       "id": "location-2",
@@ -41,7 +44,8 @@
           "type": "FeatureCollection",
           "features": []
         }
-      }
+      },
+      "scrollHold": true
     },
     {
       "id": "location-3",
@@ -55,7 +59,8 @@
           "type": "FeatureCollection",
           "features": []
         }
-      }
+      },
+      "scrollHold": true
     },
     {
       "id": "location-4",
@@ -69,7 +74,8 @@
           "type": "FeatureCollection",
           "features": []
         }
-      }
+      },
+      "scrollHold": true
     },
     {
       "id": "location-5",
@@ -83,7 +89,8 @@
           "type": "FeatureCollection",
           "features": []
         }
-      }
+      },
+      "scrollHold": true
     }
   ],
   "baseMap": "openfreemap-bright",

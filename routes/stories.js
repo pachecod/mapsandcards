@@ -12,7 +12,12 @@ import {
   canWriteStory,
   buildStudentSlug,
   isPlatformRosterEnabled,
+  canDeleteStory,
 } from "../middleware/story-access.js";
+import {
+  listFeaturedStories,
+  titleForFeaturedSlug,
+} from "../services/featured-stories.js";
 import { getSiteSettings } from "../services/platform-service.js";
 import {
   seedDefaultTemplatesDb,
@@ -182,6 +187,8 @@ const GLOBE_DAYNIGHT_PATH = join(ROOT, "Tools", "globe-daynight.js");
 const GLOBE_STARS_PATH = join(ROOT, "Tools", "globe-stars.js");
 const GLOBE_3D_BUILDINGS_PATH = join(ROOT, "Tools", "globe-3d-buildings.js");
 const SCROLL_CAMERA_SCRUB_PATH = join(ROOT, "Tools", "scroll-camera-scrub.js");
+const STORY_MAP_IMAGES_PATH = join(ROOT, "Tools", "story-map-images.js");
+const MAP_COMPASS_PATH = join(ROOT, "Tools", "map-compass.js");
 
 const assetCache = new Map();
 
@@ -211,15 +218,93 @@ function rewriteCdnToLocal(html) {
     .replace(/src="\/Tools\/globe-daynight\.js"/, 'src="assets/globe-daynight.js"')
     .replace(/src="\/Tools\/globe-stars\.js"/, 'src="assets/globe-stars.js"')
     .replace(/src="\/Tools\/globe-3d-buildings\.js"/, 'src="assets/globe-3d-buildings.js"')
-    .replace(/src="\/Tools\/scroll-camera-scrub\.js"/, 'src="assets/scroll-camera-scrub.js"');
+    .replace(/src="\/Tools\/scroll-camera-scrub\.js"/, 'src="assets/scroll-camera-scrub.js"')
+    .replace(/src="\/Tools\/story-map-images\.js"/, 'src="assets/story-map-images.js"')
+    .replace(/src="\/Tools\/map-compass\.js"/, 'src="assets/map-compass.js"');
+}
+
+/** The analytics tag is served by this app's middleware, so it only 404s in a standalone bundle. */
+function stripServerOnlyScripts(html) {
+  return html.replace(
+    /[ \t]*<script[^>]*src="\/__analytics\.js"[^>]*><\/script>[ \t]*\r?\n?/gi,
+    ""
+  );
 }
 
 function markStandaloneExport(html) {
-  if (/data-standalone-export/i.test(html)) return html;
-  return html.replace(/<html(\s[^>]*)>/i, function (match) {
-    if (/data-standalone-export/i.test(match)) return match;
-    return match.replace("<html", '<html data-standalone-export="1"');
-  });
+  return stripServerOnlyScripts(html);
+}
+
+function isImageOverlayFeature(f) {
+  return !!(
+    f &&
+    f.geometry &&
+    f.geometry.type === "Point" &&
+    f.properties &&
+    f.properties.kind === "image" &&
+    typeof f.properties.imageUrl === "string" &&
+    f.properties.imageUrl.trim()
+  );
+}
+
+async function bundleStoryImagesForExport(config, fetchAsset) {
+  const cfg = JSON.parse(JSON.stringify(config));
+  const entries = [];
+  const usedNames = {};
+  let index = 0;
+
+  function uniqueName(base) {
+    let name = base;
+    let n = 1;
+    while (usedNames[name]) {
+      n += 1;
+      name = base.replace(/(\.[a-z]+)$/i, `-${n}$1`);
+    }
+    usedNames[name] = true;
+    return name;
+  }
+
+  function guessExt(url) {
+    const m = String(url || "").match(/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i);
+    if (m) return m[1].toLowerCase().replace("jpeg", "jpg");
+    if (String(url).startsWith("data:image/png")) return "png";
+    if (String(url).startsWith("data:image/jpeg")) return "jpg";
+    if (String(url).startsWith("data:image/webp")) return "webp";
+    if (String(url).startsWith("data:image/gif")) return "gif";
+    return "png";
+  }
+
+  if (!cfg.steps) return { config: cfg, entries };
+
+  for (const step of cfg.steps) {
+    const feats = step?.overlays?.geojson?.features;
+    if (!Array.isArray(feats)) continue;
+    for (const f of feats) {
+      if (!isImageOverlayFeature(f)) continue;
+      const url = f.properties.imageUrl;
+      const id = f.properties.id || `img-${index}`;
+      index += 1;
+      if (String(url).startsWith("data:")) {
+        const m = String(url).match(/^data:[^;]+;base64,(.+)$/);
+        if (m) {
+          const fname = uniqueName(`overlay-${id}.${guessExt(url)}`);
+          entries.push({ name: `assets/${fname}`, data: Buffer.from(m[1], "base64") });
+          f.properties.imageUrl = `assets/${fname}`;
+        }
+        continue;
+      }
+      if (/^https?:\/\//i.test(url) || String(url).startsWith("/")) {
+        const buf = await fetchAsset(url);
+        if (buf) {
+          const fname = uniqueName(`overlay-${id}.${guessExt(url)}`);
+          entries.push({ name: `assets/${fname}`, data: buf });
+          f.properties.imageUrl = `assets/${fname}`;
+        }
+      }
+    }
+  }
+
+  return { config: cfg, entries };
 }
 
 /* ── Routes ── */
@@ -256,18 +341,52 @@ router.get("/list", async (req, res) => {
     console.warn("[seed] DB seed on list failed:", e.message || e);
   }
   const ctx = await getStoryAccessContext(req);
+  const featuredRows = await listFeaturedStories();
+  const featuredSlugs = featuredRows.map((r) => r.slug);
   const { sql, params } = storyListSql(ctx);
   const { rows } = await query(sql, params);
-  const stories = rows.map((r) => r.slug);
+  const rowBySlug = {};
+  rows.forEach((r) => {
+    rowBySlug[r.slug] = r;
+  });
+
   const titles = {};
   rows.forEach((r) => {
     const label = r.title || DEFAULT_TEMPLATE_TITLES[r.slug] || r.slug;
-    if (label && label !== r.slug) titles[r.slug] = label;
+    if (label) titles[r.slug] = label;
   });
-  for (const [slug, label] of Object.entries(DEFAULT_TEMPLATE_TITLES)) {
-    if (stories.includes(slug)) titles[slug] = label;
-  }
-  res.json({ stories, titles });
+  featuredRows.forEach((r) => {
+    if (r.title) titles[r.slug] = r.title;
+    titles[r.slug] = titleForFeaturedSlug(r.slug, titles);
+  });
+
+  // Visitors see the featured queue in rank order; signed-in users see their own library.
+  const stories =
+    ctx.role === "anonymous"
+      ? featuredRows.filter((r) => r.published).map((r) => r.slug)
+      : rows.map((r) => r.slug);
+
+  const published = {};
+  rows.forEach((r) => {
+    published[r.slug] = !!r.published;
+  });
+
+  const featuredStories = featuredRows.map((r) => ({
+    slug: r.slug,
+    title: titleForFeaturedSlug(r.slug, titles),
+    published: !!r.published,
+    featured: true,
+    featured_rank: r.featured_rank,
+  }));
+
+  res.json({
+    stories,
+    titles,
+    published,
+    featuredSlugs,
+    featuredStories,
+    role: ctx.role,
+  });
 });
 
 // Create a new story
@@ -276,10 +395,11 @@ router.post("/create", async (req, res) => {
   if (isPlatformRosterEnabled() && ctx.role === "anonymous") {
     return res.status(401).json({ error: "Student sign-in required." });
   }
-  let { slug, defaultJson } = req.body || {};
+  let { slug, defaultJson, featured } = req.body || {};
   if (ctx.role === "student") {
     slug = buildStudentSlug(ctx, slug);
   }
+  const makeFeatured = !!featured && ctx.role === "admin";
   if (!isValidSlug(slug)) {
     return res.status(400).json({ error: "Invalid slug (use lowercase letters, numbers, hyphens)." });
   }
@@ -296,11 +416,14 @@ router.post("/create", async (req, res) => {
   const classId = ctx.role === "student" ? ctx.classId : null;
 
   await query(
-    `INSERT INTO stories (slug, title, config, owner_student_id, class_id, status)
-     VALUES ($1, $2, $3, $4, $5, 'draft')`,
-    [slug, config.title || slug, config, ownerId, classId]
+    `INSERT INTO stories (slug, title, config, owner_student_id, class_id, status, featured, featured_rank)
+     VALUES ($1, $2, $3, $4, $5, 'draft', $6,
+             CASE WHEN $6 THEN COALESCE(
+               (SELECT MAX(featured_rank) FROM stories WHERE featured = true), 0
+             ) + 1 END)`,
+    [slug, config.title || slug, config, ownerId, classId, makeFeatured]
   );
-  res.status(201).json({ slug, ok: true });
+  res.status(201).json({ slug, ok: true, featured: makeFeatured });
 });
 
 // Save / update a story
@@ -337,9 +460,11 @@ router.post("/delete", async (req, res) => {
   if (!isValidSlug(slug)) {
     return res.status(400).json({ error: "Invalid slug." });
   }
-  const access = await canWriteStory(ctx, slug);
+  const access = await canDeleteStory(ctx, slug);
   if (!access.ok) {
-    return res.status(access.reason === "auth_required" ? 401 : 403).json({ error: "Not allowed to delete this story." });
+    return res
+      .status(access.reason === "auth_required" ? 401 : 403)
+      .json({ error: "Not allowed to delete this story." });
   }
 
   const result = await query("DELETE FROM stories WHERE slug = $1", [slug]);
@@ -416,7 +541,30 @@ router.post("/export", async (req, res) => {
     return res.status(500).json({ error: "Missing viewer template." });
   }
 
-  const jsonStr = JSON.stringify(rows[0].config, null, 2);
+  const rawConfig = rows[0].config;
+  const bundled = await bundleStoryImagesForExport(rawConfig, async (url) => {
+    try {
+      const abs =
+        String(url).startsWith("/") && process.env.STATIC_ROOT
+          ? join(process.env.STATIC_ROOT, url)
+          : String(url).startsWith("/")
+            ? join(ROOT, url.replace(/^\//, ""))
+            : url;
+      if (String(abs).startsWith("/") || abs.includes("uploads/")) {
+        const diskPath = String(url).startsWith("/uploads/")
+          ? join(ROOT, url.replace(/^\//, ""))
+          : abs;
+        if (existsSync(diskPath)) return readFile(diskPath);
+      }
+      const res = await fetch(url.startsWith("/") ? `http://127.0.0.1${url}` : url);
+      if (!res.ok) return null;
+      return Buffer.from(await res.arrayBuffer());
+    } catch {
+      return null;
+    }
+  });
+
+  const jsonStr = JSON.stringify(bundled.config, null, 2);
   let html = await readFile(VIEWER_TEMPLATE, "utf8");
   html = injectEmbeddedStoryJson(html, jsonStr);
   html = rewriteCdnToLocal(html);
@@ -427,8 +575,10 @@ router.post("/export", async (req, res) => {
   const globeStarsJs = await readFile(GLOBE_STARS_PATH);
   const globe3dBuildingsJs = await readFile(GLOBE_3D_BUILDINGS_PATH);
   const scrollCameraScrubJs = await readFile(SCROLL_CAMERA_SCRUB_PATH);
+  const storyMapImagesJs = await readFile(STORY_MAP_IMAGES_PATH);
+  const mapCompassJs = await readFile(MAP_COMPASS_PATH);
 
-  const zipBuf = buildZip([
+  const zipEntries = [
     { name: "index.html", data: Buffer.from(html, "utf8") },
     { name: "scroll-map-story.json", data: Buffer.from(jsonStr, "utf8") },
     { name: "assets/maplibre-gl.min.js", data: assetBuffers[0] },
@@ -438,7 +588,12 @@ router.post("/export", async (req, res) => {
     { name: "assets/globe-stars.js", data: globeStarsJs },
     { name: "assets/globe-3d-buildings.js", data: globe3dBuildingsJs },
     { name: "assets/scroll-camera-scrub.js", data: scrollCameraScrubJs },
-  ]);
+    { name: "assets/story-map-images.js", data: storyMapImagesJs },
+    { name: "assets/map-compass.js", data: mapCompassJs },
+    ...bundled.entries,
+  ];
+
+  const zipBuf = buildZip(zipEntries);
 
   res.set("Content-Type", "application/zip");
   res.set("Content-Disposition", `attachment; filename="${slug}.zip"`);

@@ -62,7 +62,8 @@
         }
       },
       "baseMap": "openfreemap-bright",
-      "pitch": 0
+      "pitch": 0,
+      "scrollHold": true
     },
     {
       "id": "location-3",
@@ -117,7 +118,8 @@
         }
       },
       "baseMap": "openfreemap-bright",
-      "pitch": 60
+      "pitch": 60,
+      "scrollHold": true
     },
     {
       "id": "location-4",
@@ -153,7 +155,8 @@
         }
       },
       "baseMap": "openfreemap-bright",
-      "pitch": 60
+      "pitch": 60,
+      "scrollHold": true
     },
     {
       "id": "location-6",
@@ -188,7 +191,8 @@
           ]
         }
       },
-      "baseMap": "openfreemap-bright"
+      "baseMap": "openfreemap-bright",
+      "scrollHold": true
     },
     {
       "id": "location-7",
@@ -242,7 +246,8 @@
           ]
         }
       },
-      "baseMap": "openfreemap-bright"
+      "baseMap": "openfreemap-bright",
+      "scrollHold": true
     },
     {
       "id": "location-5",
@@ -278,7 +283,8 @@
         }
       },
       "baseMap": "openfreemap-bright",
-      "pitch": 4.5
+      "pitch": 4.5,
+      "scrollHold": true
     },
     {
       "id": "location-6",
@@ -293,7 +299,8 @@
           "features": []
         }
       },
-      "baseMap": "esri-satellite"
+      "baseMap": "esri-satellite",
+      "scrollHold": true
     },
     {
       "id": "location-8",
@@ -308,7 +315,8 @@
           "features": []
         }
       },
-      "baseMap": "esri-satellite"
+      "baseMap": "esri-satellite",
+      "scrollHold": true
     },
     {
       "id": "location-9",
@@ -323,7 +331,8 @@
           "features": []
         }
       },
-      "baseMap": "esri-satellite"
+      "baseMap": "esri-satellite",
+      "scrollHold": true
     },
     {
       "id": "location-10",
@@ -396,7 +405,8 @@
           ]
         }
       },
-      "baseMap": "carto-positron"
+      "baseMap": "carto-positron",
+      "scrollHold": true
     }
   ],
   "restartAtEnd": true,

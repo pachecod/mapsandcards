@@ -1,0 +1,221 @@
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+.app-layout .app-content {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.app-nav-rail {
+  flex: 0 0 48px;
+  width: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  align-self: stretch;
+  min-height: 0;
+  background: #eef0f3;
+  border-right: 1px solid #d5d9e0;
+  z-index: 120;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+.app-nav-rail .nav-rail-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #5f6368;
+  text-decoration: none;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.app-nav-rail .nav-rail-btn svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.app-nav-rail .nav-rail-btn:hover,
+.app-nav-rail .nav-rail-btn:focus-visible {
+  background: rgba(0, 0, 0, 0.06);
+  color: #1a1a1a;
+  outline: none;
+}
+.app-nav-rail .nav-rail-btn.active {
+  background: rgba(61, 139, 253, 0.14);
+  color: #2563eb;
+}
+.app-nav-rail .nav-rail-btn::after {
+  content: attr(data-label);
+  position: absolute;
+  left: calc(100% + 6px);
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0.28rem 0.55rem;
+  border-radius: 6px;
+  background: #1a2332;
+  color: #e8eaed;
+  font-size: 0.72rem;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+  z-index: 130;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+.app-nav-rail .nav-rail-btn:hover::after,
+.app-nav-rail .nav-rail-btn:focus-visible::after {
+  opacity: 1;
+}
+.app-nav-rail .nav-rail-divider {
+  height: 1px;
+  margin: 0.35rem 0.45rem;
+  background: #d5d9e0;
+  flex-shrink: 0;
+}
+.app-nav-flyout {
+  flex: 0 0 15rem;
+  width: 15rem;
+  display: flex;
+  flex-direction: column;
+  background: #f7f8fa;
+  border-right: 1px solid #d5d9e0;
+  z-index: 119;
+  min-height: 0;
+  color: #1a1a1a;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+.app-nav-flyout[hidden] {
+  display: none !important;
+}
+.app-nav-flyout-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid #d5d9e0;
+}
+.app-nav-flyout-head h2 {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+.app-nav-flyout-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.75rem;
+  overflow-y: auto;
+  flex: 1 1 0;
+  min-height: 0;
+}
+.app-nav-flyout-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.45rem 0.55rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #1a1a1a;
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+  text-decoration: none;
+}
+.app-nav-flyout-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+.app-nav-flyout-btn.btn-danger {
+  color: #b42318;
+}
+.app-nav-flyout-btn.btn-danger:hover {
+  background: rgba(180, 35, 24, 0.08);
+}
+.app-nav-flyout-btn.btn-primary {
+  color: #2563eb;
+  font-weight: 600;
+}
+.app-nav-panel-close {
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #5f6368;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.app-nav-panel-close:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #1a1a1a;
+}
+.app-nav-story-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.app-nav-story-item {
+  display: block;
+  padding: 0.5rem 0.55rem;
+  border-radius: 6px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  color: #1a1a1a;
+  text-decoration: none;
+  font-size: 0.8rem;
+}
+.app-nav-story-item:hover {
+  border-color: #93c5fd;
+  background: #f8fbff;
+}
+.app-nav-story-item strong {
+  display: block;
+  font-size: 0.82rem;
+  word-break: break-word;
+}
+.app-nav-story-item span {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.68rem;
+  color: #6b7280;
+}
+.app-nav-field-hint {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: #374151;
+}
+.app-nav-account-summary {
+  margin: 0 0 0.65rem;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: #374151;
+}
+.app-nav-divider {
+  height: 1px;
+  margin: 0.35rem 0;
+  background: #d5d9e0;
+}

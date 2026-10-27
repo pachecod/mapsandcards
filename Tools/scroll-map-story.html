@@ -763,6 +763,11 @@
   var currentLoadedBaseMap = "openfreemap-bright";
   var scrollScrubController = null;
   var scrubLastOverlayIndex = -1;
+  /** While scroll-scrubbing: the step whose images show (-1 = none, mid-flight;
+      null = follow the active step). Images belong to where the camera is. */
+  var scrubImageStepIndex = null;
+  /** Share of a travel segment, at each end, where the camera counts as at a card. */
+  var SCRUB_IMAGE_EDGE = 0.15;
   var scrubBasemapSegmentKey = "";
   var scrubBasemapPreloadKey = "";
   var scrubLastTransitionKey = "";
@@ -1600,8 +1605,11 @@
       if (step) {
         normalizeStepOverlays(step);
         split = splitOverlayFeatures(step.overlays.geojson);
-        if (window.StoryMapImages) {
-          imageFc.features = StoryMapImages.extractImageFeatures(step.overlays.geojson);
+        var imageStep =
+          scrubImageStepIndex === null ? step : config.steps[scrubImageStepIndex];
+        if (window.StoryMapImages && imageStep) {
+          normalizeStepOverlays(imageStep);
+          imageFc.features = StoryMapImages.extractImageFeatures(imageStep.overlays.geojson);
         }
       } else {
         split = { poly: EMPTY_FC, lines: EMPTY_FC, ptMark: EMPTY_FC, ptLabel: EMPTY_FC };
@@ -2466,6 +2474,7 @@
   function flyToStep(i, animate) {
     var s = config.steps[i];
     if (!s || !map) return;
+    scrubImageStepIndex = null;
     var gen = ++_flyGen;
     stopGlobeSpin();
     lastFlownIndex = i;
@@ -2743,6 +2752,15 @@
     );
   }
 
+  /** Images fade out as the camera leaves a card and in as it arrives, not at
+      the travel midpoint, so fades happen while the image is on screen. */
+  function scrubImageIndexForSegment(seg) {
+    if (seg.fromIndex === seg.toIndex) return seg.fromIndex;
+    if (seg.t <= SCRUB_IMAGE_EDGE) return seg.fromIndex;
+    if (seg.t >= 1 - SCRUB_IMAGE_EDGE) return seg.toIndex;
+    return -1;
+  }
+
   function applyScrubCamera(cam, seg) {
     if (!map || !cam) return;
     stopGlobeSpin();
@@ -2757,8 +2775,10 @@
     });
     lastFlownIndex = seg.activeIndex;
 
-    if (scrubLastOverlayIndex !== seg.activeIndex) {
+    var imageIndex = scrubImageIndexForSegment(seg);
+    if (scrubLastOverlayIndex !== seg.activeIndex || scrubImageStepIndex !== imageIndex) {
       scrubLastOverlayIndex = seg.activeIndex;
+      scrubImageStepIndex = imageIndex;
       applyStepOverlays(seg.activeIndex);
     }
 
@@ -2775,6 +2795,7 @@
       scrollScrubController = null;
     }
     scrubLastOverlayIndex = -1;
+    scrubImageStepIndex = null;
     scrubBasemapSegmentKey = "";
     scrubBasemapPreloadKey = "";
     scrubLastTransitionKey = "";

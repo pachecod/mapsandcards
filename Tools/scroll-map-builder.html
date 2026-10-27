@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Scroll map story — builder v1.86.3</title>
+  <title>Scroll map story — builder v1.86.4</title>
   <script src="/__analytics.js" defer></script>
   <link href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.css" rel="stylesheet" crossorigin="" />
   <link
@@ -1546,7 +1546,7 @@
       <div class="topbar-story-brand">
         <h1 id="builder-story-title">Untitled story</h1>
         <p class="topbar-builder-meta">
-          <span class="builder-version">Builder v1.86.3</span>
+          <span class="builder-version">Builder v1.86.4</span>
           <span id="guest-mode-badge" class="builder-version hidden" style="color:var(--accent)">· Guest</span>
         </p>
       </div>
@@ -4794,6 +4794,16 @@
           applyStepOverlays(selectedIndex);
           pendingImagePlacement = null;
           setMarkerPlacementMode(false);
+          /* Open width/opacity for the new image so authors see they can size it. */
+          var imgIdx = s.overlays.geojson.features.indexOf(imgFeat);
+          var imgLi = el("overlay-feature-list") &&
+            el("overlay-feature-list").querySelectorAll("li")[imgIdx];
+          if (imgLi) {
+            var annotatePanel = el("annotate-panel");
+            if (annotatePanel && annotatePanel.hidden) el("btn-annotate-toggle").click();
+            toggleImageEditor(imgLi, imgFeat, imgIdx);
+            imgLi.scrollIntoView({ block: "nearest" });
+          }
           return;
         }
         var featureIndex = s.overlays.geojson.features.length;

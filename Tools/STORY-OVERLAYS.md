@@ -50,7 +50,7 @@ Story-level fields (in the root JSON):
 |------|-----------|------------------------|
 | Placemark | `Point` | `kind`: `"marker"`, optional `color`, `radius` |
 | Label | `Point` | `kind`: `"label"` or set `text` / `title`, optional `size`, `color`, `haloColor` |
-| Image | `Point` | `kind`: `"image"`, `imageUrl`, `widthM`, `heightM` (meters on the ground), optional `aspectRatio`, `opacity`, `imageLabel` |
+| Image | `Point` | `kind`: `"image"`, `imageUrl`, `widthM`, `heightM` (meters on the ground), optional `aspectRatio`, `opacity`, `imageLabel`, `fade` (true = fade in when its card becomes active and out when it leaves), `fadeSec` (fade duration, default 1, max 10) |
 | Region | `Polygon` / `MultiPolygon` | `kind`: `"region"`, optional `fillColor`, `fillOpacity`, `strokeColor`, `strokeWidth` |
 | Line | `LineString` / `MultiLineString` | `kind`: `"line"`, optional `color`, `width` |
 
@@ -74,7 +74,7 @@ Coordinates are **longitude, latitude** per GeoJSON.
 
 Use **Apply JSON to map**, **Import GeoJSON**, **Marker / Label / Image at map center**, **Draw line / polygon / point** (Mapbox Draw), and the feature list **Edit / Move / Remove** to edit overlays for the selected step.
 
-**Image overlays** are georeferenced: they scale with the map as you zoom. In the builder, choose **Image** (or **From My Files** when signed in), then click the map to place. Use **Edit** to adjust ground width in meters and opacity; use **Move** to reposition.
+**Image overlays** are georeferenced: they scale with the map as you zoom. In the builder, choose **Image** (or **From My Files** when signed in), then click the map to place. Use **Edit** to set width in pixels (slider or typed number, measured at the location's saved zoom; stored as `widthM` meters, so the image still scales as readers zoom), opacity, and an optional **Fade in and out** with a duration in seconds (off by default); new images start about 300 px wide; use **Move** to reposition.
 
 Use **Set Map Location** on the map to save center, zoom, pitch, and bearing for the selected step. On the **Intro** card, this also updates the story’s global opening view (`initialMap`).
 

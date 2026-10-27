@@ -9,9 +9,13 @@
   var MAX_WIDTH_M = 50000;
   var DEFAULT_WIDTH_M = 2000;
   var DEFAULT_OPACITY = 1;
+  var DEFAULT_FADE_SEC = 1;
+  var MAX_FADE_SEC = 10;
   var ID_PREFIX = "sov-img-";
   var LAYER_PREFIX = "story-ov-img-";
   var imageSourceUrls = {};
+  /** layerId -> timeout id for images fading out before removal */
+  var fadeOutTimers = {};
 
   function clamp(v, lo, hi) {
     return Math.max(lo, Math.min(hi, v));
@@ -105,6 +109,13 @@
       p.opacity = DEFAULT_OPACITY;
     }
     p.opacity = clamp(p.opacity, 0.05, 1);
+    if (p.fade === true) {
+      if (typeof p.fadeSec !== "number" || isNaN(p.fadeSec)) p.fadeSec = DEFAULT_FADE_SEC;
+      p.fadeSec = clamp(p.fadeSec, 0.1, MAX_FADE_SEC);
+    } else {
+      delete p.fade;
+      delete p.fadeSec;
+    }
     if (typeof p.rotation !== "number" || isNaN(p.rotation)) {
       delete p.rotation;
     }
@@ -134,8 +145,45 @@
       });
   }
 
+  function fadeMs(p) {
+    return p && p.fade === true ? Math.round((p.fadeSec || DEFAULT_FADE_SEC) * 1000) : 0;
+  }
+
+  function cancelFadeOut(layerId) {
+    if (fadeOutTimers[layerId]) {
+      clearTimeout(fadeOutTimers[layerId]);
+      delete fadeOutTimers[layerId];
+    }
+  }
+
+  /** Set opacity, animating over ms (0 = instant). */
+  function setImageOpacity(map, layerId, opacity, ms) {
+    if (!map.getLayer(layerId)) return;
+    map.setPaintProperty(layerId, "raster-opacity-transition", { duration: ms, delay: 0 });
+    map.setPaintProperty(layerId, "raster-opacity", opacity);
+  }
+
+  function addImageLayer(map, sourceId, layerId, p, beforeId) {
+    var ms = fadeMs(p);
+    map.addLayer(
+      {
+        id: layerId,
+        type: "raster",
+        source: sourceId,
+        metadata: { fadeMs: ms },
+        paint: { "raster-opacity": ms ? 0 : p.opacity },
+      },
+      beforeId
+    );
+    if (ms) {
+      /* The layer starts at 0, so this change animates from 0 to the target. */
+      setImageOpacity(map, layerId, p.opacity, ms);
+    }
+  }
+
   function removeImageLayer(map, layerId, sourceId) {
     if (!map) return;
+    cancelFadeOut(layerId);
     try {
       if (map.getLayer(layerId)) map.removeLayer(layerId);
     } catch (e) {}
@@ -174,10 +222,19 @@
     });
 
     activeImageLayerIds(map).forEach(function (layerId) {
-      if (!want[layerId]) {
-        var sourceId = layerId.replace(LAYER_PREFIX, ID_PREFIX);
+      if (want[layerId] || fadeOutTimers[layerId]) return;
+      var sourceId = layerId.replace(LAYER_PREFIX, ID_PREFIX);
+      var layer = map.getLayer(layerId);
+      var ms = (layer && layer.metadata && layer.metadata.fadeMs) || 0;
+      if (!ms || opts.instant) {
         removeImageLayer(map, layerId, sourceId);
+        return;
       }
+      setImageOpacity(map, layerId, 0, ms);
+      fadeOutTimers[layerId] = setTimeout(function () {
+        delete fadeOutTimers[layerId];
+        removeImageLayer(map, layerId, sourceId);
+      }, ms);
     });
 
     var beforeId = findBeforeLayerId(map, opts.beforeLayerId);
@@ -202,36 +259,27 @@
             removeImageLayer(map, layerId, sourceId);
             map.addSource(sourceId, sourceSpec);
             imageSourceUrls[sourceId] = p.imageUrl;
-            map.addLayer(
-              {
-                id: layerId,
-                type: "raster",
-                source: sourceId,
-                paint: { "raster-opacity": p.opacity },
-              },
-              beforeId
-            );
+            addImageLayer(map, sourceId, layerId, p, beforeId);
           } else {
             var src = map.getSource(sourceId);
             if (src && src.setCoordinates) {
               src.setCoordinates(corners);
             }
-            if (map.getLayer(layerId)) {
-              map.setPaintProperty(layerId, "raster-opacity", p.opacity);
+            var layer = map.getLayer(layerId);
+            if (layer) {
+              var ms = fadeMs(p);
+              /* Coming back while fading out: fade back in. Otherwise (e.g. editing
+                 the opacity slider) apply instantly. */
+              var wasFadingOut = !!fadeOutTimers[layerId];
+              cancelFadeOut(layerId);
+              if (layer.metadata) layer.metadata.fadeMs = ms;
+              setImageOpacity(map, layerId, p.opacity, wasFadingOut ? ms : 0);
             }
           }
         } else {
           map.addSource(sourceId, sourceSpec);
           imageSourceUrls[sourceId] = p.imageUrl;
-          map.addLayer(
-            {
-              id: layerId,
-              type: "raster",
-              source: sourceId,
-              paint: { "raster-opacity": p.opacity },
-            },
-            beforeId
-          );
+          addImageLayer(map, sourceId, layerId, p, beforeId);
         }
       } catch (err) {
         console.warn("Image overlay:", p.imageUrl, err);
@@ -342,6 +390,8 @@
     MIN_WIDTH_M: MIN_WIDTH_M,
     MAX_WIDTH_M: MAX_WIDTH_M,
     DEFAULT_WIDTH_M: DEFAULT_WIDTH_M,
+    DEFAULT_FADE_SEC: DEFAULT_FADE_SEC,
+    MAX_FADE_SEC: MAX_FADE_SEC,
     newImageFeatureId: newImageFeatureId,
     computeImageCorners: computeImageCorners,
     isImageFeature: isImageFeature,

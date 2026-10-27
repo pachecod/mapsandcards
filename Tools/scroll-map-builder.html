@@ -2288,6 +2288,7 @@
         zoom: 11,
         html: "<p>Syracuse, NY</p>",
         flyTransition: "smooth",
+        scrollHold: true,
         overlays: { geojson: { type: "FeatureCollection", features: [] } }
       }
     ]
@@ -2400,11 +2401,14 @@
       zoom: z,
       html: "<p>New location.</p>",
       flyTransition: "smooth",
+      scrollHold: true,
       overlays: { geojson: { type: "FeatureCollection", features: [] } },
     };
     applyCapturedCameraToStep(step, c.lat, c.lng, z, p, b);
     config.steps.push(step);
     selectedIndex = config.steps.length - 1;
+    // saveNow reads the pause checkbox into the selected step; point it at the new step first.
+    syncStepScrollHoldUi();
     saveNow();
     renderStepList();
     syncEditorFromStep();
@@ -6941,6 +6945,7 @@
     else if (selectedIndex >= config.steps.length) {
       selectedIndex = config.steps.length - 1;
     }
+    syncStepScrollHoldUi();
     saveNow();
     renderStepList();
     syncEditorFromStep();

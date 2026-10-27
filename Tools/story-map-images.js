@@ -268,12 +268,17 @@
             var layer = map.getLayer(layerId);
             if (layer) {
               var ms = fadeMs(p);
-              /* Coming back while fading out: fade back in. Otherwise (e.g. editing
-                 the opacity slider) apply instantly. */
               var wasFadingOut = !!fadeOutTimers[layerId];
               cancelFadeOut(layerId);
               if (layer.metadata) layer.metadata.fadeMs = ms;
-              setImageOpacity(map, layerId, p.opacity, wasFadingOut ? ms : 0);
+              /* Coming back while fading out: fade back in. A changed opacity (the
+                 editor slider) applies instantly. A repeat sync with the same
+                 opacity must not touch it, or it would cut a fade-in short. */
+              if (wasFadingOut) {
+                setImageOpacity(map, layerId, p.opacity, ms);
+              } else if (map.getPaintProperty(layerId, "raster-opacity") !== p.opacity) {
+                setImageOpacity(map, layerId, p.opacity, 0);
+              }
             }
           }
         } else {

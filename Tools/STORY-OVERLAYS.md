@@ -82,6 +82,6 @@ Per-step **Options** (collapsible panel):
 
 - **Stars** / **3D buildings** — default, on, or off
 - **Spin globe while this card is active**
-- **Pause map while card is on screen** — scroll-only hold (`scrollHold`); on by default for newly added locations; Next/Previous ignore it
+- **Pause map while card is on screen** — scroll-only hold (`scrollHold`); on by default for every card of a new story (Intro included, from Blank or a template) and for newly added locations; Next/Previous ignore it
 - **Extra pause after card (seconds)** — optional `scrollHoldExtraSec` when pause is enabled
 - **Move to this location** / **Move to next location** (Intro only) — smooth vs pullback fly

@@ -2599,9 +2599,17 @@
   function captureMapOptionsFromUi() {
     if (!config) return;
     var baseSel = el("base-map-select");
+    var selStep = config.steps && config.steps[selectedIndex];
+    var selStepBasemap = el("step-basemap-select");
+    var selStepHasOverride =
+      !!selStep && !isIntroStep(selStep) && !!(selStepBasemap && selStepBasemap.value);
     /* Prefer the basemap actually loaded in the builder — the flyout select can
-       lag behind when the map was switched via per-step overrides. */
-    if (currentBuilderBaseMap) {
+       lag behind when the map was switched via per-step overrides. While a step
+       with its own basemap is selected, the loaded map is that override, not the
+       story default, so leave config.baseMap alone. */
+    if (selStepHasOverride) {
+      /* keep story default */
+    } else if (currentBuilderBaseMap) {
       config.baseMap = currentBuilderBaseMap;
     } else if (baseSel && baseSel.value) {
       config.baseMap = baseSel.value;
